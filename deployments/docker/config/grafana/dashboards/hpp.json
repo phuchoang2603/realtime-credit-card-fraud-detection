@@ -1,0 +1,96 @@
+{
+  "id": null,
+  "uid": "hpp",
+  "title": "House Price Prediction API",
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "templating": {
+    "list": [
+      {
+        "type": "textbox",
+        "name": "query",
+        "label": "Log Filter",
+        "hide": 0,
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Prediction Duration (ms)",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "rate(predict_duration_seconds_sum[1m]) / rate(predict_duration_seconds_count[1m])",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "milliseconds",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+    },
+    {
+      "type": "stat",
+      "title": "Total Predictions",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(app_requests_total{endpoint=\"/predict\", http_status=\"200\"})",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "type": "stat",
+      "title": "Validation Errors (422)",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(app_requests_total{endpoint=\"/predict\", http_status=\"422\"})",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "type": "stat",
+      "title": "Error Rate (%)",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "100 * sum(app_requests_total{http_status!=\"200\"}) / sum(app_requests_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "decimals": 1 }
+      },
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 4 }
+    },
+    {
+      "type": "logs",
+      "title": "FastAPI Logs",
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "{container=\"house-price-prediction\"} |= \"$query\"",
+          "refId": "B"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 12 }
+    }
+  ]
+}

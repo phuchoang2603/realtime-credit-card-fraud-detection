@@ -1,0 +1,14 @@
+apiVersion: v2
+name: hpp
+description: My Helm Chart for my house-pricing-prediction
+# A chart can be `application` or `library`,
+# we don't use `library` so often
+type: application
+# The chart vesion, which should be changed every time
+# you make an update to the chart
+version: 1.0.11
+# The version number of the application being deployed
+appVersion: "1.0.11"
+maintainers:
+  - email: fullstack@datascience.com
+    name: fullstackdatascience

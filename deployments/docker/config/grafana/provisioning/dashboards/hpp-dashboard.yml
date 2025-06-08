@@ -1,0 +1,16 @@
+apiVersion: 1
+
+providers:
+  - name: "House Price Dashboards"
+    folder: ""
+    type: file
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards
+    editable: true
+    allowUiUpdates: true
+    inputs:
+      - name: DS_PROMETHEUS
+        type: datasource
+        pluginId: prometheus
+        value: Prometheus
