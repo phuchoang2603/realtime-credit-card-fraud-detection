@@ -1,0 +1,18 @@
+# prettier-ignore
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Release.Name }}"
+  labels:
+    app: "{{ .Release.Name }}"
+  namespace: model-serving
+spec:
+  selector:
+    app: "{{ .Release.Name }}"
+  ports:
+    - name: http
+      port: 30000
+      targetPort: 30000
+      nodePort: {{ .Values.service.nodePort }}
+      protocol: TCP
+  type: LoadBalancer
