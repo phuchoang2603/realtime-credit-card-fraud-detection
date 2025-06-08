@@ -5,3 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = []
+
+[tool.uv.workspace]
+members = [
+    "notebooks/project",
+    "notebooks",
+]
