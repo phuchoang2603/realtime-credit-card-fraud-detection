@@ -1,8 +1,56 @@
-# 📊 Credit Card Fraud Detection Background
+# 📊 Credit Card Fraud Detection Notebook
 
-## 🔍 Fraud Scenarios
+<!--toc:start-->
 
-### Types of Fraud
+- [📊 Credit Card Fraud Detection Notebook](#📊-credit-card-fraud-detection-notebook)
+  - [🧪 How to Run Jupyter Lab with Docker](#🧪-how-to-run-jupyter-lab-with-docker)
+  - [📊 Background](#📊-background)
+    - [🔍 Fraud Scenarios](#🔍-fraud-scenarios)
+      - [Types of Fraud](#types-of-fraud)
+    - [🛡️ Detection System Architecture](#🛡️-detection-system-architecture)
+    - [🧠 Machine Learning for Credit Card Fraud Detection](#🧠-machine-learning-for-credit-card-fraud-detection)
+      - [Transaction Features](#transaction-features)
+      - [ML Workflow](#ml-workflow)
+      - [Model Function](#model-function)
+      - [Common Algorithms](#common-algorithms)
+    - [⚠️ Challenges in CCFD](#️-challenges-in-ccfd)
+      - [Class Imbalance](#class-imbalance)
+      - [Concept Drift](#concept-drift)
+      - [Real-Time Constraints](#real-time-constraints)
+      - [Categorical Features](#categorical-features)
+      - [Sequential Nature](#sequential-nature)
+      - [Class Overlap](#class-overlap)
+      - [Metrics](#metrics)
+      - [Data Availability](#data-availability)
+  - [📚 Summary](#📚-summary)
+  - [📎 Reference](#📎-reference)
+  <!--toc:end-->
+
+## 🧪 How to Run Jupyter Lab with Docker
+
+To start the Jupyter Lab environment using Docker:
+
+1. Open your terminal
+2. Navigate to the `jupyter-lab-docker` directory:
+
+   ```bash
+   cd notebooks/jupyter-lab-docker
+   ```
+
+3. Run the following command to build and start the container in the background:
+
+   ```bash
+   docker compose up --build -d
+   ```
+
+4. Open your browser and go to <http://localhost:8888> to access Jupyter Lab.
+5. Use the token shown in the terminal logs to log in (or set up a password if configured).
+
+## 📊 Background
+
+### 🔍 Fraud Scenarios
+
+#### Types of Fraud
 
 - **Card Present (CP):**
 
@@ -24,13 +72,11 @@
 
 ---
 
-## 🛡️ Detection System Architecture
+### 🛡️ Detection System Architecture
 
 ![Fig 2: FDS Layers](./images/fds-layer.png)
 
 > **Fig. 2**: Multiple layers of defense in a Fraud Detection System (FDS). This notebook focuses on the **data-driven model**.
-
-### Control Layers
 
 1. **Terminal Control**
 
@@ -61,9 +107,9 @@
 
 ---
 
-## 🧠 Machine Learning for Credit Card Fraud Detection
+### 🧠 Machine Learning for Credit Card Fraud Detection
 
-### Transaction Features
+#### Transaction Features
 
 - **Account-Related**: account ID, open date, limit, expiry
 - **Transaction-Related**: timestamp, amount, merchant category, terminal info
@@ -78,9 +124,9 @@
 
 ---
 
-### ML Workflow
+#### ML Workflow
 
-![ML Pipeline](./images/ml-pipeline.png)
+![ML Pipeline](./images/baseline_ML_workflow_subset.png)
 
 > **Fig. 3**: Common two-stage ML workflow: training on labeled data → predicting new transactions.
 
@@ -102,7 +148,7 @@ $$
 
 ---
 
-### Common Algorithms
+#### Common Algorithms
 
 - **Logistic Regression (LR), Decision Trees (DT)** – simple, interpretable
 - **Random Forests (RF), Boosting** – top-performing
@@ -110,9 +156,9 @@ $$
 
 ---
 
-## ⚠️ Challenges in CCFD
+### ⚠️ Challenges in CCFD
 
-### Class Imbalance
+#### Class Imbalance
 
 - Fraud <1% of transactions
 - Need special techniques:
@@ -120,17 +166,17 @@ $$
   - Sampling (over/under)
   - Weighted loss
 
-### Concept Drift
+#### Concept Drift
 
 - Changes in user/fraud behavior over time
 - Requires online/adaptive learning
 
-### Real-Time Constraints
+#### Real-Time Constraints
 
 - Decisions must be made in milliseconds
 - Scalability is critical
 
-### Categorical Features
+#### Categorical Features
 
 - IDs, card types require transformation:
 
@@ -138,22 +184,22 @@ $$
   - Embeddings
   - Graph features
 
-### Sequential Nature
+#### Sequential Nature
 
 - Transaction histories per user or terminal
 - Model via time aggregation or sequence models (HMMs, RNNs)
 
-### Class Overlap
+#### Class Overlap
 
 - Fraud and genuine often look similar
 - Need strong contextual features
 
-### Metrics
+#### Metrics
 
 - Accuracy and AUC not enough
 - Balance **detection rate** vs **false positives**
 
-### Data Availability
+#### Data Availability
 
 - Most datasets are private
 - Kaggle (2016) is only public benchmark
