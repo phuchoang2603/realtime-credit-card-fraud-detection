@@ -1,23 +1,29 @@
 import os
 import pickle
-import pandas as pd
 import time
+import pandas as pd
 from fastapi import FastAPI, Request, HTTPException
 
 # Import configurations and schemas from separate modules
 from app.schema import TransactionFeatures, Prediction
 from app.utils.logging_config import setup_logging, get_logger
-from app.utils.tracing_config import setup_tracing, get_tracer
+from app.utils.tracing_config import (
+    setup_tracing,
+    get_tracer,
+    traceable,
+)
 from app.utils.metrics_config import (
     predictions_counter,
     prediction_latency,
     fraud_score_histogram,
 )
-
-# Updated import to use the simplified preprocessing function
 from app.utils.data_preprocessing import align_features_for_prediction
+from app.utils.pre_prediction_checks import (
+    run_terminal_control_check,
+    run_transaction_blocking_rules,
+)
 
-# --- Application Setup ---
+# --- Application Setup and Model Loading
 setup_logging()
 log = get_logger(__name__)
 app = FastAPI(
@@ -27,17 +33,51 @@ app = FastAPI(
 setup_tracing(app, service_name="fraud-detection-api")
 tracer = get_tracer(__name__)
 
-# --- Model Loading ---
-MODEL_PATH = os.environ.get("MODEL_PATH", "./models/model.pkl")
+DEFAULT_MODEL_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "models", "model.pkl"
+)
+MODEL_PATH = os.environ.get("MODEL_PATH", DEFAULT_MODEL_PATH)
 model = None
 try:
     with open(MODEL_PATH, "rb") as f:
         model = pickle.load(f)
     log.info("Model loaded successfully.", path=MODEL_PATH)
-except FileNotFoundError:
-    log.error("Model file not found.", path=MODEL_PATH)
 except Exception as e:
     log.error("Error loading model.", error=str(e), path=MODEL_PATH)
+
+
+# --- Helper function for model prediction ---
+@traceable
+async def run_model_prediction(
+    transaction: TransactionFeatures, request_id: str
+) -> Prediction:
+    """Runs the ML model inference in its own trace span."""
+    if model is None:
+        log.error("Prediction failed: Model not loaded.", request_id=request_id)
+        raise HTTPException(status_code=503, detail="Model not available")
+
+    start_time = time.time()
+    try:
+        input_df = pd.DataFrame([transaction.dict()])
+        processed_df = align_features_for_prediction(input_df)
+        fraud_probability = model.predict_proba(processed_df)[:, 1][0]
+        is_fraud = bool(fraud_probability > 0.5)
+
+        predictions_counter.add(1, {"is_fraud": str(is_fraud)})
+        fraud_score_histogram.record(fraud_probability)
+        log.info(
+            "Prediction successful",
+            request_id=request_id,
+            is_fraud=is_fraud,
+            fraud_probability=float(fraud_probability),
+        )
+        return Prediction(is_fraud=is_fraud, fraud_probability=fraud_probability)
+    except Exception as e:
+        log.error("Prediction error", error=str(e), request_id=request_id)
+        raise  # The decorator will capture and record the exception
+    finally:
+        latency = time.time() - start_time
+        prediction_latency.record(latency)
 
 
 # --- API Endpoints ---
@@ -50,48 +90,22 @@ async def health_check():
 @app.post("/predict", response_model=Prediction, tags=["Prediction"])
 async def predict_fraud(request: Request, transaction: TransactionFeatures):
     """
-    Accepts pre-engineered transaction features and returns a fraud prediction.
+    Orchestrates the fraud detection process by calling traceable helper functions.
     """
     request_id = request.headers.get("X-Request-ID", "N/A")
-    with tracer.start_as_current_span("prediction_request") as span:
-        span.set_attribute("request_id", request_id)
+    log.info(
+        "Received prediction request",
+        request_id=request_id,
+        transaction_id=transaction.TRANSACTION_ID,
+    )
 
-        if model is None:
-            log.error("Prediction failed: Model not loaded.", request_id=request_id)
-            raise HTTPException(status_code=503, detail="Model not available")
+    # 1. Run Pre-Prediction Checks
+    await run_terminal_control_check(customer_id=transaction.CUSTOMER_ID)
+    await run_transaction_blocking_rules(transaction=transaction)
 
-        log.info("Received prediction request", request_id=request_id)
+    # 2. Run Model Prediction
+    prediction = await run_model_prediction(
+        transaction=transaction, request_id=request_id
+    )
 
-        start_time = time.time()
-        try:
-            input_df = pd.DataFrame([transaction.dict()])
-
-            processed_df = align_features_for_prediction(input_df)
-
-            fraud_probability = model.predict_proba(processed_df)[:, 1][0]
-            is_fraud = bool(fraud_probability > 0.5)
-
-            predictions_counter.add(1, {"is_fraud": str(is_fraud)})
-            fraud_score_histogram.record(fraud_probability)
-
-            log.info(
-                "Prediction successful",
-                request_id=request_id,
-                is_fraud=is_fraud,
-                fraud_probability=float(fraud_probability),
-            )
-            span.set_attribute("prediction.is_fraud", is_fraud)
-            span.set_attribute("prediction.probability", float(fraud_probability))
-
-            return Prediction(is_fraud=is_fraud, fraud_probability=fraud_probability)
-
-        except Exception as e:
-            log.error("Prediction error", error=str(e), request_id=request_id)
-            span.record_exception(e)
-            raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
-        finally:
-            # This block will always run, ensuring latency is recorded
-            # even if an error occurs.
-            latency = time.time() - start_time
-            prediction_latency.record(latency)
-            # --- END OF CORRECTION ---
+    return prediction

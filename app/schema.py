@@ -1,13 +1,24 @@
 from pydantic import BaseModel, Field
 from typing import Literal
+from datetime import datetime
 
 
 class TransactionFeatures(BaseModel):
     """
-    Defines the input features for a single transaction prediction, based on the
-    feature engineering pipeline from the handbook.
+    Defines the input features for a single transaction prediction.
+    Includes raw features for logging/rules and engineered features for the model.
     """
 
+    # == Raw Features (Not for ML Model) ==
+    # These are used for logging, tracing, and pre-prediction rule checks.
+    TRANSACTION_ID: int = Field(..., example=12345)
+    TX_DATETIME: datetime = Field(..., example="2025-06-11T12:30:00")
+    CUSTOMER_ID: int = Field(..., example=1234)
+    TERMINAL_ID: int = Field(..., example=5678)
+    TX_TIME_SECONDS: int = Field(..., example=1654950600)
+    TX_TIME_DAYS: int = Field(..., example=19154)
+
+    # == Engineered Features (For ML Model) ==
     TX_AMOUNT: float = Field(
         ..., example=100.50, description="The monetary value of the transaction."
     )
