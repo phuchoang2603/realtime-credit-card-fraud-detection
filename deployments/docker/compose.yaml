@@ -1,33 +1,34 @@
 services:
-  test-client:
+  client:
     build:
-      context: ./test-client
-    container_name: fraud-detection-test-client
+      context: ./client
+    container_name: fraud-detection-client
     environment:
-      - API_URL=fraud-detection:30000
+      - API_URL=http://api:8000/predict
     networks:
       - monitoring
+    depends_on:
+      - api
+    restart: on-failure
+
+  api:
+    build:
+      context: ../.. # root of the repo
+      dockerfile: ./deployments/docker/Dockerfile
+    container_name: fraud-detection-api
+    ports:
+      - "8000:8000" # FastAPI application
+      - "8010:8010" # Prometheus metrics
+    networks:
+      - monitoring
+    # depends_on:
+    #   - loki
     restart: unless-stopped
-#   hpp:
-#     build:
-#       context: ../.. # root of the repo
-#       dockerfile: ./deployments/docker/Dockerfile
-#     container_name: house-price-prediction
-#     ports:
-#       - "30000:30000"
-#       - "8001:8001"
-#     environment:
-#       - LOG_LEVEL=INFO
-#     networks:
-#       - monitoring
-#     depends_on:
-#       - loki
-#     restart: unless-stopped
-#     logging:
-#       driver: "json-file"
-#       options:
-#         max-size: "10m"
-#         max-file: "3"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 #
 #   loki:
 #     image: grafana/loki:2.9.0
