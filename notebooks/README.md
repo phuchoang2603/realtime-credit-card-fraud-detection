@@ -1,32 +1,18 @@
-# 📊 Credit Card Fraud Detection Notebook
+# Credit Card Fraud Detection Notebook
 
 <!--toc:start-->
 
-- [📊 Credit Card Fraud Detection Notebook](#📊-credit-card-fraud-detection-notebook)
-  - [🧪 How to Run Jupyter Lab with Docker](#🧪-how-to-run-jupyter-lab-with-docker)
-  - [📊 Background](#📊-background)
-    - [🔍 Fraud Scenarios](#🔍-fraud-scenarios)
-      - [Types of Fraud](#types-of-fraud)
-    - [🛡️ Detection System Architecture](#🛡️-detection-system-architecture)
-    - [🧠 Machine Learning for Credit Card Fraud Detection](#🧠-machine-learning-for-credit-card-fraud-detection)
-      - [Transaction Features](#transaction-features)
-      - [ML Workflow](#ml-workflow)
-      - [Model Function](#model-function)
-      - [Common Algorithms](#common-algorithms)
-    - [⚠️ Challenges in CCFD](#️-challenges-in-ccfd)
-      - [Class Imbalance](#class-imbalance)
-      - [Concept Drift](#concept-drift)
-      - [Real-Time Constraints](#real-time-constraints)
-      - [Categorical Features](#categorical-features)
-      - [Sequential Nature](#sequential-nature)
-      - [Class Overlap](#class-overlap)
-      - [Metrics](#metrics)
-      - [Data Availability](#data-availability)
-  - [📚 Summary](#📚-summary)
-  - [📎 Reference](#📎-reference)
+- [Credit Card Fraud Detection Notebook](#credit-card-fraud-detection-notebook)
+  - [How to Run Jupyter Lab with Docker](#how-to-run-jupyter-lab-with-docker)
+  - [Background](#background)
+    - [Fraud Scenarios](#fraud-scenarios)
+    - [Detection System Architecture](#detection-system-architecture)
+    - [Machine Learning for Credit Card Fraud Detection](#machine-learning-for-credit-card-fraud-detection)
+    - [Challenges in CCFD](#challenges-in-ccfd)
+  - [Reference](#reference)
   <!--toc:end-->
 
-## 🧪 How to Run Jupyter Lab with Docker
+## How to Run Jupyter Lab with Docker
 
 To start the Jupyter Lab environment using Docker:
 
@@ -46,11 +32,9 @@ To start the Jupyter Lab environment using Docker:
 4. Open your browser and go to <http://localhost:8888> to access Jupyter Lab.
 5. Use the token shown in the terminal logs to log in (or set up a password if configured).
 
-## 📊 Background
+## Background
 
-### 🔍 Fraud Scenarios
-
-#### Types of Fraud
+### Fraud Scenarios
 
 - **Card Present (CP):**
 
@@ -66,15 +50,15 @@ To start the Jupyter Lab environment using Docker:
   - Credentials often sold on underground marketplaces.
   - ❗ CNP fraud is harder to trace and more prevalent.
 
-![Fig 1: Card Fraud Evolution](./images/card-fraud-evolution.png)
+![Fig 1: Card Fraud Evolution](./experiment/images/card-fraud-evolution.png)
 
 > **Fig. 1**: Card-not-present frauds dominate total fraud value across SEPA-issued cards.
 
 ---
 
-### 🛡️ Detection System Architecture
+### Detection System Architecture
 
-![Fig 2: FDS Layers](./images/fds-layer.png)
+![Fig 2: FDS Layers](./experiment/images/fds-layer.png)
 
 > **Fig. 2**: Multiple layers of defense in a Fraud Detection System (FDS). This notebook focuses on the **data-driven model**.
 
@@ -107,9 +91,9 @@ To start the Jupyter Lab environment using Docker:
 
 ---
 
-### 🧠 Machine Learning for Credit Card Fraud Detection
+### Machine Learning for Credit Card Fraud Detection
 
-#### Transaction Features
+![Example Transactions Table](./experiment/images/sample-transaction.png)
 
 - **Account-Related**: account ID, open date, limit, expiry
 - **Transaction-Related**: timestamp, amount, merchant category, terminal info
@@ -120,17 +104,9 @@ To start the Jupyter Lab environment using Docker:
 - `TX_FRAUD = 0`: Genuine
 - `TX_FRAUD = 1`: Fraudulent
 
-![Example Transactions Table](./images/sample-transaction.png)
-
----
-
-#### ML Workflow
-
-![ML Pipeline](./images/baseline_ML_workflow_subset.png)
+![ML Pipeline](./experiment/images/baseline_ML_workflow_subset.png)
 
 > **Fig. 3**: Common two-stage ML workflow: training on labeled data → predicting new transactions.
-
-#### Model Function
 
 A prediction model $h(x, \theta)$ maps feature inputs $x$ to output label or risk score:
 
@@ -146,9 +122,7 @@ $$
 - Output: risk score or binary prediction
 - Feature Engineering: transforms raw input into usable format
 
----
-
-#### Common Algorithms
+Common Algorithms
 
 - **Logistic Regression (LR), Decision Trees (DT)** – simple, interpretable
 - **Random Forests (RF), Boosting** – top-performing
@@ -156,68 +130,56 @@ $$
 
 ---
 
-### ⚠️ Challenges in CCFD
+### Challenges in CCFD
 
-#### Class Imbalance
+1. Class Imbalance
 
-- Fraud <1% of transactions
-- Need special techniques:
+   - Fraud <1% of transactions
+   - Need special techniques:
+     - Sampling (over/under)
+     - Weighted loss
 
-  - Sampling (over/under)
-  - Weighted loss
+2. Concept Drift
 
-#### Concept Drift
+   - Changes in user/fraud behavior over time
+   - Requires online/adaptive learning
 
-- Changes in user/fraud behavior over time
-- Requires online/adaptive learning
+3. Real-Time Constraints
 
-#### Real-Time Constraints
+   - Decisions must be made in milliseconds
+   - Scalability is critical
 
-- Decisions must be made in milliseconds
-- Scalability is critical
+4. Categorical Features
 
-#### Categorical Features
+   - IDs, card types require transformation:
+     - Aggregation
+     - Embeddings
+     - Graph features
 
-- IDs, card types require transformation:
+5. Sequential Nature
 
-  - Aggregation
-  - Embeddings
-  - Graph features
+   - Transaction histories per user or terminal
+   - Model via time aggregation or sequence models (HMMs, RNNs)
 
-#### Sequential Nature
+6. Class Overlap
 
-- Transaction histories per user or terminal
-- Model via time aggregation or sequence models (HMMs, RNNs)
+   - Fraud and genuine often look similar
+   - Need strong contextual features
 
-#### Class Overlap
+7. Metrics
 
-- Fraud and genuine often look similar
-- Need strong contextual features
+   - Accuracy and AUC not enough
+   - Balance **detection rate** vs **false positives**
 
-#### Metrics
+8. Data Availability
 
-- Accuracy and AUC not enough
-- Balance **detection rate** vs **false positives**
-
-#### Data Availability
-
-- Most datasets are private
-- Kaggle (2016) is only public benchmark
-- Lack of simulators hinders reproducibility
+   - Most datasets are private
+   - Kaggle (2016) is only public benchmark
+   - Lack of simulators hinders reproducibility
 
 ---
 
-## 📚 Summary
-
-This notebook explores how machine learning is used to detect credit card fraud, focusing on:
-
-- The architecture of fraud detection systems
-- Feature engineering and supervised learning workflows
-- Practical challenges and best practices in fraud detection
-
----
-
-## 📎 Reference
+## Reference
 
 Fraud Detection Handbook:
 [https://fraud-detection-handbook.github.io/fraud-detection-handbook/Chapter_2_Background/CreditCardFraud.html](https://fraud-detection-handbook.github.io/fraud-detection-handbook/Chapter_2_Background/CreditCardFraud.html)
