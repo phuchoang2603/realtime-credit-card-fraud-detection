@@ -1,5 +1,15 @@
 # Reproducible Machine Learning for Credit Card Fraud Detection: A Summary
 
+<!--toc:start-->
+
+- [Reproducible Machine Learning for Credit Card Fraud Detection: A Summary](#reproducible-machine-learning-for-credit-card-fraud-detection-a-summary)
+  - [Chapter 3: Baseline ML](#chapter-3-baseline-ml)
+  - [Chapter 4: Performance Metrics](#chapter-4-performance-metrics)
+  - [Chapter 5: Model Validation and Model Selection](#chapter-5-model-validation-and-model-selection)
+  - [Chapter 6: Imbalanced Learning](#chapter-6-imbalanced-learning)
+  - [Chapter 7: Deep Learning](#chapter-7-deep-learning)
+  <!--toc:end-->
+
 This report summarizes the key findings from the "Reproducible Machine
 Learning for Credit Card Fraud Detection" handbook, covering baseline models,
 performance metrics, model selection, imbalanced learning, and deep
@@ -37,13 +47,16 @@ machine learning models on a real-world dataset.
     overfitting, with perfect training scores that did not generalize.
 
 ![WL_benchmark_test_set](./images/WL_benchmark_test_set.png)
-_Fig. 1: Test Set Performance of Standard ML Algorithms_
+
+> _Fig. 1: Test Set Performance of Standard ML Algorithms_
 
 ![WL_benchmark_train_set](./images/WL_benchmark_train_set.png)
-_Fig. 2: Training Set Performance of Standard ML Algorithms_
+
+> _Fig. 2: Training Set Performance of Standard ML Algorithms_
 
 ![WL_benchmark_exec_times](./images/WL_benchmark_exec_times.png)
-_Fig. 3: Execution Times for Training and Prediction_
+
+> _Fig. 3: Execution Times for Training and Prediction_
 
 ## Chapter 4: Performance Metrics
 
@@ -99,13 +112,16 @@ its hyperparameters to ensure optimal performance on future data.
   orders of magnitude faster than for Random Forest and XGBoost.
 
 ![ModelSelection_TrainingVsTest](./images/ModelSelection_TrainingVsTest.png)
-_Fig. 4: Training vs. Test Performance in Model Selection_
+
+> _Fig. 4: Training vs. Test Performance in Model Selection_
 
 ![ModelSelection_Summary](./images/ModelSelection_Summary.png)
-_Fig. 5: Summary of Model Selection Performances_
+
+> _Fig. 5: Summary of Model Selection Performances_
 
 ![ModelSelection_exec_times](./images/ModelSelection_exec_times.png)
-_Fig. 6: Model Selection Execution Times_
+
+> _Fig. 6: Model Selection Execution Times_
 
 ## Chapter 6: Imbalanced Learning
 
@@ -140,10 +156,12 @@ inherent in fraud detection datasets.
   naturally acts like a cost-sensitive technique.
 
 ![Imbalanced_RealWorldData_smote_rus](./images/Imbalanced_RealWorldData_smote_rus.png)
-_Fig. 7: SMOTE and RUS Performance on Real-World Data_
+
+> _Fig. 7: SMOTE and RUS Performance on Real-World Data_
 
 ![Imbalanced_RealWorldData_ensemble_summary](./images/Imbalanced_RealWorldData_ensemble_summary.png)
-_Fig. 8: Ensemble Method Performance Summary on Real-World Data_
+
+> _Fig. 8: Ensemble Method Performance Summary on Real-World Data_
 
 ## Chapter 7: Deep Learning
 
@@ -186,7 +204,6 @@ architectures to the fraud detection problem.
   - The extensive tuning required comes at a great cost but is valuable for
     the flexibility and performance gains it offers.
 
-### Performance Visualizations
-
 ![DeepLearning_global-compare](./images/DeepLearning_global-compare.png)
-_Fig. 9: Global Comparison of Deep Learning and Baseline Models_
+
+> _Fig. 9: Global Comparison of Deep Learning and Baseline Models_
