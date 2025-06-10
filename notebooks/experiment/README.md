@@ -1,7 +1,7 @@
 # Reproducible Machine Learning for Credit Card Fraud Detection: A Summary
 
-<!--toc:start-->
 
+<!--toc:start-->
 - [Reproducible Machine Learning for Credit Card Fraud Detection: A Summary](#reproducible-machine-learning-for-credit-card-fraud-detection-a-summary)
   - [Chapter 3: Baseline ML](#chapter-3-baseline-ml)
   - [Chapter 4: Performance Metrics](#chapter-4-performance-metrics)
@@ -9,7 +9,7 @@
   - [Chapter 6: Imbalanced Learning](#chapter-6-imbalanced-learning)
   - [Chapter 7: Deep Learning](#chapter-7-deep-learning)
   <!--toc:end-->
-
+  
 This report summarizes the key findings from the "Reproducible Machine
 Learning for Credit Card Fraud Detection" handbook, covering baseline models,
 performance metrics, model selection, imbalanced learning, and deep
