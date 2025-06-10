@@ -8,6 +8,5 @@ dependencies = []
 
 [tool.uv.workspace]
 members = [
-    "notebooks/project",
     "notebooks",
 ]
