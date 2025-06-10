@@ -1,14 +1,11 @@
 FROM ghcr.io/astral-sh/uv:python3.8-bookworm
 
 # Set working directory
-WORKDIR /app
+WORKDIR /client
 
-COPY ./app .
 COPY ./requirements.txt .
-COPY ./models ./models
-
-ENV MODEL_PATH=./models/model.pkl
+COPY test_client.py .
 
 RUN uv pip install --system -r requirements.txt
 
-CMD ["python", "main.py"]
+CMD ["python", "-u", "test_client.py"]
