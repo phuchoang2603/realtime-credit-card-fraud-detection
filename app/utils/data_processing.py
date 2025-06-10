@@ -1,19 +1,36 @@
-import sys
-
 import pandas as pd
-from fastapi.encoders import jsonable_encoder
-
-sys.path.append("..")
-from schema import HouseInfo
 
 
-def format_input_data(data: HouseInfo):
-    """Format the input data to a prediction data structure
-
-    Args:
-        data (HouseInfo): Information about a house
-
-    Returns:
-        A Pandas DataFrame: Convert the input data into a Pandas DataFrame
+def align_features_for_prediction(df: pd.DataFrame) -> pd.DataFrame:
     """
-    return pd.DataFrame(jsonable_encoder(data), index=[0])
+    Ensures the input DataFrame has the exact columns in the correct order
+    that the model expects for a prediction. This assumes features are
+    already engineered before being sent to the API.
+    """
+    expected_columns = [
+        "TX_AMOUNT",
+        "TX_DURING_WEEKEND",
+        "TX_DURING_NIGHT",
+        "CUSTOMER_ID_NB_TX_1DAY_WINDOW",
+        "CUSTOMER_ID_AVG_AMOUNT_1DAY_WINDOW",
+        "CUSTOMER_ID_NB_TX_7DAY_WINDOW",
+        "CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW",
+        "CUSTOMER_ID_NB_TX_30DAY_WINDOW",
+        "CUSTOMER_ID_AVG_AMOUNT_30DAY_WINDOW",
+        "TERMINAL_ID_NB_TX_1DAY_WINDOW",
+        "TERMINAL_ID_RISK_1DAY_WINDOW",
+        "TERMINAL_ID_NB_TX_7DAY_WINDOW",
+        "TERMINAL_ID_RISK_7DAY_WINDOW",
+        "TERMINAL_ID_NB_TX_30DAY_WINDOW",
+        "TERMINAL_ID_RISK_30DAY_WINDOW",
+    ]
+
+    # This function now only validates and reorders columns.
+    try:
+        df = df[expected_columns]
+    except KeyError as e:
+        # Provides a more informative error if the client sends a payload
+        # with missing pre-engineered features.
+        raise ValueError(f"Input data is missing required feature columns: {e}")
+
+    return df
