@@ -1,10 +1,11 @@
 import os
 import pickle
 import pandas as pd
+import time
 from fastapi import FastAPI, Request, HTTPException
 
 # Import configurations and schemas from separate modules
-from app.schemas import TransactionFeatures, Prediction
+from app.schema import TransactionFeatures, Prediction
 from app.utils.logging_config import setup_logging, get_logger
 from app.utils.tracing_config import setup_tracing, get_tracer
 from app.utils.metrics_config import (
@@ -27,7 +28,7 @@ setup_tracing(app, service_name="fraud-detection-api")
 tracer = get_tracer(__name__)
 
 # --- Model Loading ---
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "model.pkl")
+MODEL_PATH = os.environ.get("MODEL_PATH", "./models/model.pkl")
 model = None
 try:
     with open(MODEL_PATH, "rb") as f:
@@ -61,35 +62,36 @@ async def predict_fraud(request: Request, transaction: TransactionFeatures):
 
         log.info("Received prediction request", request_id=request_id)
 
-        with prediction_latency.time():
-            try:
-                input_df = pd.DataFrame([transaction.dict()])
+        start_time = time.time()
+        try:
+            input_df = pd.DataFrame([transaction.dict()])
 
-                # Use the simplified function to ensure column order
-                processed_df = align_features_for_prediction(input_df)
+            processed_df = align_features_for_prediction(input_df)
 
-                fraud_probability = model.predict_proba(processed_df)[:, 1][0]
-                is_fraud = bool(fraud_probability > 0.5)
+            fraud_probability = model.predict_proba(processed_df)[:, 1][0]
+            is_fraud = bool(fraud_probability > 0.5)
 
-                predictions_counter.add(1, {"is_fraud": str(is_fraud)})
-                fraud_score_histogram.record(fraud_probability)
+            predictions_counter.add(1, {"is_fraud": str(is_fraud)})
+            fraud_score_histogram.record(fraud_probability)
 
-                log.info(
-                    "Prediction successful",
-                    request_id=request_id,
-                    is_fraud=is_fraud,
-                    fraud_probability=float(fraud_probability),
-                )
-                span.set_attribute("prediction.is_fraud", is_fraud)
-                span.set_attribute("prediction.probability", float(fraud_probability))
+            log.info(
+                "Prediction successful",
+                request_id=request_id,
+                is_fraud=is_fraud,
+                fraud_probability=float(fraud_probability),
+            )
+            span.set_attribute("prediction.is_fraud", is_fraud)
+            span.set_attribute("prediction.probability", float(fraud_probability))
 
-                return Prediction(
-                    is_fraud=is_fraud, fraud_probability=fraud_probability
-                )
+            return Prediction(is_fraud=is_fraud, fraud_probability=fraud_probability)
 
-            except Exception as e:
-                log.error("Prediction error", error=str(e), request_id=request_id)
-                span.record_exception(e)
-                raise HTTPException(
-                    status_code=500, detail=f"Internal server error: {e}"
-                )
+        except Exception as e:
+            log.error("Prediction error", error=str(e), request_id=request_id)
+            span.record_exception(e)
+            raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+        finally:
+            # This block will always run, ensuring latency is recorded
+            # even if an error occurs.
+            latency = time.time() - start_time
+            prediction_latency.record(latency)
+            # --- END OF CORRECTION ---
