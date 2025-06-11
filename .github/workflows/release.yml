@@ -71,7 +71,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: deployments/docker/Dockerfile
+          file: ./Dockerfile
           push: true
           tags: |
             ${{ env.GHCR_IMAGE }}:${{ env.VERSION_TAG }}
