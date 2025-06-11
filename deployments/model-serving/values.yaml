@@ -1,7 +1,41 @@
 replicaCount: 2
 image:
   repository: "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection"
-  tag: "v1.0.0"
-  pullPolicy: Always
+  tag: "v1.0.1"
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
 service:
-  nodePort: 30000
+  type: ClusterIP
+  port: 8000
+env:
+  - name: MODEL_PATH
+    value: /app/models/model.pkl
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "http://alloy.monitoring:12345"
+  - name: OTEL_SERVICE_NAME
+    value: "fraud-detection-api"
+# Ingress configuration
+ingress:
+  enabled: true
+  entryPoints:
+    - websecure
+  hosts:
+    - host: "fraud.home.phuchoang.sbs"
+podAnnotations:
+  # -- Add annotations for Prometheus to scrape metrics
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/metrics"
+  prometheus.io/port: "8010"
+resources: {}
+# limits:
+#   cpu: 100m
+#   memory: 128Mi
+# requests:
+#   cpu: 100m
+#   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
