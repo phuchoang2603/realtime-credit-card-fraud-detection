@@ -41,8 +41,38 @@ loki.source.docker "default" {
 }
 
 // --- 2. Collect Metrics from Application ---
+// prometheus.scrape "fraud_detection_api" {
+//   targets = [{
+//     __address__ = "api:8010",
+//   }]
+//   forward_to     = [prometheus.remote_write.default.receiver]
+//   job_name = "fraud-detection-api"
+// }
 
-// --- 3. Collect Metrics from Docker Containers (cAdvisor) ---
+// --- 3. Collect Traces from Application ---
+otelcol.receiver.otlp "default" {
+  http {}
+  grpc {}
+
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
+}
+otelcol.processor.batch "default" {
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+			insecure = true
+		}
+  }
+} 
+
+// --- 4. Collect Metrics from Docker Containers (cAdvisor) ---
 prometheus.exporter.cadvisor "container_metrics" {
   docker_host = "unix:///var/run/docker.sock"
 
@@ -54,7 +84,7 @@ prometheus.scrape "scrape_cadvisor" {
   scrape_interval = "10s"
 }
 
-// --- 4. Collect Metrics from the Host Machine (replaces node-exporter) ---
+// --- 5. Collect Metrics from the Host Machine (replaces node-exporter) ---
 discovery.relabel "integrations_node_exporter" {
   targets = prometheus.exporter.unix.integrations_node_exporter.targets
 

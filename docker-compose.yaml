@@ -4,7 +4,7 @@ networks:
     name: monitoring
 
 volumes:
-  # tempo-data:
+  tempo-data:
   loki-data:
   prometheus_data:
   grafana-data:
@@ -29,6 +29,10 @@ services:
     build:
       context: .
     container_name: fraud-detection-api
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:12345
+      - OTEL_SERVICE_NAME=fraud-detection-api
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=fraud-detection-api,service.version=1.0.0
     ports:
       - "8000:8000" # FastAPI application
       - "8010:8010" # Prometheus metrics
@@ -73,19 +77,27 @@ services:
     restart: unless-stopped
 
   # # tracing backend
-  # tempo:
-  #   image: grafana/tempo:2.4.1
-  #   container_name: tempo
-  #   command: ["-config.file=/etc/tempo.yml"]
-  #   volumes:
-  #     - ./config/tempo-config.yml:/etc/tempo.yml
-  #     - tempo-data:/var/tempo
-  #   ports:
-  #     - "3200:3200" # Tempo UI
-  #     - "4318:4317" # OTLP gRPC port (renamed to avoid conflict with Alloy)
-  #   networks:
-  #     - monitoring
-  #   restart: unless-stopped
+  tempo:
+    image: grafana/tempo:2.7.2
+    container_name: tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./config/tempo-config.yaml:/etc/tempo.yaml
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200" # Tempo UI
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  memcached:
+    image: memcached:1.6.29
+    container_name: memcached
+    ports:
+      - "11211:11211"
+    environment:
+      - MEMCACHED_MAX_MEMORY=64m # Set the maximum memory usage
+      - MEMCACHED_THREADS=4 # Number of threads to use
 
   # metrics backend
   prometheus:
@@ -94,6 +106,8 @@ services:
     command:
       - --web.enable-remote-write-receiver
       - --config.file=/etc/prometheus/prometheus.yml
+      - --enable-feature=native-histograms
+      - --enable-feature=exemplar-storage
     volumes:
       - prometheus_data:/prometheus
       - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
@@ -113,6 +127,8 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_BASIC_ENABLED=false
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+      - GF_INSTALL_PLUGINS=grafana-exploretraces-app
     volumes:
       - grafana-data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning
