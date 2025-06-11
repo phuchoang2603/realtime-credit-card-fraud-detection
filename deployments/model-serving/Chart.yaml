@@ -2,8 +2,8 @@ apiVersion: v2
 name: fraud-detection
 description: Helm Chart for my fraud-detection
 type: application
-version: 1.0.0
-appVersion: "1.0.0"
+version: 1.0.1
+appVersion: "1.0.1"
 maintainers:
   - email: xuanphuc.a1gv@gmail.com
     name: phuchoang2603
