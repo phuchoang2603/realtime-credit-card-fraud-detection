@@ -1,18 +1,22 @@
-# prettier-ignore
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{ .Release.Name }}"
+  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Release.Name }}"
-  namespace: model-serving
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  selector:
-    app: "{{ .Release.Name }}"
+  type: {{ .Values.service.type }}
   ports:
-    - name: http
-      port: 30000
-      targetPort: 30000
-      nodePort: {{ .Values.service.nodePort }}
+    - port: 8000
+      targetPort: http
       protocol: TCP
-  type: LoadBalancer
+      name: http
+    - port: 8010
+      targetPort: http-metrics
+      protocol: TCP
+      name: http-metrics
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
