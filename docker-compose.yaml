@@ -32,7 +32,6 @@ services:
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:12345
       - OTEL_SERVICE_NAME=fraud-detection-api
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=fraud-detection-api,service.version=1.0.0
     ports:
       - "8000:8000" # FastAPI application
       - "8010:8010" # Prometheus metrics
