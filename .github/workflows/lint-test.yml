@@ -51,6 +51,6 @@ jobs:
 
       - name: Run Pytest
         run: |
-          export MODEL_PATH=../models/model.pkl
           export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export TESTING_MODE=true
           pytest tests/
