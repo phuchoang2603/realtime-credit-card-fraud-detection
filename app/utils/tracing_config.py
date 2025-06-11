@@ -15,7 +15,6 @@ def setup_tracing(app: FastAPI, service_name: str):
 
     # Set up the TracerProvider
     provider = TracerProvider(resource=resource)
-    provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
     trace.set_tracer_provider(provider)
 
     # Instrument the FastAPI app automatically

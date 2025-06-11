@@ -3,6 +3,7 @@ import pickle
 import time
 import pandas as pd
 from fastapi import FastAPI, Request, HTTPException
+from opentelemetry import trace
 
 # Import configurations and schemas from separate modules
 from app.schema import TransactionFeatures, Prediction
@@ -88,16 +89,25 @@ async def health_check():
 
 
 @app.post("/predict", response_model=Prediction, tags=["Prediction"])
+@traceable
 async def predict_fraud(request: Request, transaction: TransactionFeatures):
     """
     Orchestrates the fraud detection process by calling traceable helper functions.
     """
     request_id = request.headers.get("X-Request-ID", "N/A")
+
     log.info(
         "Received prediction request",
         request_id=request_id,
         transaction_id=transaction.TRANSACTION_ID,
+        customer_id=transaction.CUSTOMER_ID,
+        terminal_id=transaction.TERMINAL_ID,
     )
+
+    span = trace.get_current_span()
+    span.set_attribute("transaction_id", transaction.TRANSACTION_ID)
+    span.set_attribute("customer_id", transaction.CUSTOMER_ID)
+    span.set_attribute("terminal_id", transaction.TERMINAL_ID)
 
     # 1. Run Pre-Prediction Checks
     await run_terminal_control_check(customer_id=transaction.CUSTOMER_ID)
