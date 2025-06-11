@@ -1,18 +1,19 @@
-# prettier-ignore
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{ .Release.Name }}"
+  name: {{ include "{{ .Chart.Name }}.fullname" . }}
   labels:
-    app: "{{ .Release.Name }}"
-  namespace: model-serving
+    {{- include "{{ .Chart.Name }}.labels" . | nindent 4 }}
 spec:
-  selector:
-    app: "{{ .Release.Name }}"
+  type: {{ .Values.service.type }}
   ports:
-    - name: http
-      port: 30000
-      targetPort: 30000
-      nodePort: {{ .Values.service.nodePort }}
+    - port: 8000
+      targetPort: http
       protocol: TCP
-  type: LoadBalancer
+      name: http
+    - port: 8010
+      targetPort: http-metrics
+      protocol: TCP
+      name: http-metrics
+  selector:
+    {{- include "{{ .Chart.Name }}.selectorLabels" . | nindent 4 }}

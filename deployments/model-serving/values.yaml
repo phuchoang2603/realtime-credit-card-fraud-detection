@@ -1,7 +1,54 @@
 replicaCount: 2
+
 image:
   repository: "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection"
   tag: "v1.0.0"
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
 service:
-  nodePort: 30000
+  type: LoadBalancer
+  port: 8000
+
+env:
+  - name: MODEL_PATH
+    value: /app/models/model.pkl
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "http://alloy.monitoring:12345"
+  - name: OTEL_SERVICE_NAME
+    value: "fraud-detection-api"
+
+# Ingress configuration
+ingress:
+  enabled: false
+  annotations:
+    # This tells Kubernetes which ingress controller to use.
+    # For Traefik, this is a common annotation.
+    kubernetes.io/ingress.class: "traefik"
+  hosts:
+    - host: "fraud-api.your-domain.com" #<-- The public URL for your app
+      paths:
+        - path: /
+          pathType: Prefix
+
+podAnnotations:
+  # -- Add annotations for Prometheus to scrape metrics
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/metrics"
+  prometheus.io/port: "8010"
+
+resources:
+  {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80

@@ -1,22 +1,43 @@
-# prettier-ignore
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ .Release.Name }}"
+  name: {{ include "{{ .Chart.Name }}.fullname" . }}
   labels:
-    app: "{{ .Release.Name }}"
-  namespace: model-serving
+    {{- include "{{ .Chart.Name }}.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount | default 2 }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: "{{ .Release.Name }}"
+      {{- include "{{ .Chart.Name }}.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      annotations:
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
-        app: "{{ .Release.Name }}"
+        {{- include "{{ .Chart.Name }}.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-        - name: "{{ .Release.Name }}"
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            - name: http-metrics
+              containerPort: 8010
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
