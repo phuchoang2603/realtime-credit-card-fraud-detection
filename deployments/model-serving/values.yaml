@@ -5,7 +5,7 @@ image:
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 8000
 env:
   - name: MODEL_PATH
@@ -16,16 +16,11 @@ env:
     value: "fraud-detection-api"
 # Ingress configuration
 ingress:
-  enabled: false
-  annotations:
-    # This tells Kubernetes which ingress controller to use.
-    # For Traefik, this is a common annotation.
-    kubernetes.io/ingress.class: "traefik"
+  enabled: true
+  entryPoints:
+    - websecure
   hosts:
-    - host: "fraud-api.your-domain.com" #<-- The public URL for your app
-      paths:
-        - path: /
-          pathType: Prefix
+    - host: "fraud.home.phuchoang.sbs"
 podAnnotations:
   # -- Add annotations for Prometheus to scrape metrics
   prometheus.io/scrape: "true"
