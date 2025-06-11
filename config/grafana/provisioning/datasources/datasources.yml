@@ -3,18 +3,19 @@ apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
-    access: proxy
+    orgId: 1
     url: http://prometheus:9090
+    basicAuth: false
     isDefault: true
+    version: 1
+    editable: false
 
   - name: Loki
     type: loki
     access: proxy
+    orgId: 1
     url: http://loki:3100
-    jsonData:
-      # This links Loki traces to the Prometheus data source
-      derivedFields:
-        - datasourceUid: "Prometheus" # Use the UID of the Prometheus data source
-          matcherRegex: 'traceID=(\w+)'
-          name: "TraceID"
-          url: "$${__value.raw}"
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: false

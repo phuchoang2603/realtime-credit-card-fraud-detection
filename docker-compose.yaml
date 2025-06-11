@@ -4,12 +4,14 @@ networks:
     name: monitoring
 
 volumes:
+  # tempo-data:
   loki-data:
-  grafana-data:
   prometheus_data:
+  grafana-data:
   alertmanager_data:
 
 services:
+  # Python client that send requests to api server continously
   client:
     build:
       context: ./client
@@ -22,6 +24,7 @@ services:
       - api
     restart: on-failure
 
+  # fast api server
   api:
     build:
       context: .
@@ -38,86 +41,78 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # collect metrics, logs, and traces data from OTLP endpoint, container and host
+  alloy:
+    image: grafana/alloy:v1.8.2
+    container_name: alloy
+    ports:
+      - 12345:12345
+    volumes:
+      - ./config/config.alloy:/etc/alloy/config.alloy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # logs backend
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:3.5.0
     container_name: loki
     ports:
       - "3100:3100"
-    command: -config.file=/etc/loki/config.yml
+    command: -config.file=/etc/loki/local-config.yaml
     volumes:
-      - ./config/loki-config.yml:/etc/loki/config.yml
+      - ./config/loki-config.yml:/etc/loki/local-config.yaml
       - loki-data:/loki
     networks:
       - monitoring
     restart: unless-stopped
 
-  promtail:
-    image: grafana/promtail:2.9.0
-    container_name: promtail
-    user: "0:0" # Run as root to ensure access
-    volumes:
-      - ./config/promtail-config.yml:/etc/promtail/config.yml
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - monitoring
-    depends_on:
-      - loki
-    restart: unless-stopped
+  # # tracing backend
+  # tempo:
+  #   image: grafana/tempo:2.4.1
+  #   container_name: tempo
+  #   command: ["-config.file=/etc/tempo.yml"]
+  #   volumes:
+  #     - ./config/tempo-config.yml:/etc/tempo.yml
+  #     - tempo-data:/var/tempo
+  #   ports:
+  #     - "3200:3200" # Tempo UI
+  #     - "4318:4317" # OTLP gRPC port (renamed to avoid conflict with Alloy)
+  #   networks:
+  #     - monitoring
+  #   restart: unless-stopped
 
-  node-exporter:
-    image: prom/node-exporter:v1.7.0
-    container_name: node-exporter
-    pid: host
-    restart: unless-stopped
-    ports:
-      - "9100:9100"
-    networks:
-      - monitoring
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.rootfs=/rootfs"
-      - "--path.sysfs=/host/sys"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-
-  alertmanager:
-    image: prom/alertmanager:v0.27.0
-    container_name: alertmanager
-    ports:
-      - "9093:9093"
-    volumes:
-      - alertmanager_data:/alertmanager/data
-      - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    networks:
-      - monitoring
-    restart: unless-stopped
-
+  # metrics backend
   prometheus:
-    image: prom/prometheus:v2.51.2
+    image: prom/prometheus:v3.3.0
     container_name: prometheus
+    command:
+      - --web.enable-remote-write-receiver
+      - --config.file=/etc/prometheus/prometheus.yml
     volumes:
       - prometheus_data:/prometheus
-      - ./config/prometheus:/etc/prometheus
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
     networks:
       - monitoring
     restart: unless-stopped
 
+  # visualization
   grafana:
-    image: grafana/grafana:9.0.0
+    image: grafana/grafana:11.6.1
     container_name: grafana
     ports:
       - "3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_BASIC_ENABLED=false
     volumes:
       - grafana-data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning
@@ -125,3 +120,16 @@ services:
     networks:
       - monitoring
     restart: unless-stopped
+
+  # notify
+  # alertmanager:
+  #   image: prom/alertmanager:v0.27.0
+  #   container_name: alertmanager
+  #   ports:
+  #     - "9093:9093"
+  #   volumes:
+  #     - alertmanager_data:/alertmanager/data
+  #     - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+  #   networks:
+  #     - monitoring
+  #   restart: unless-stopped

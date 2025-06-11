@@ -8,11 +8,6 @@ scrape_configs:
     static_configs:
       - targets: ["prometheus:9090"]
 
-  - job_name: "node"
-    scrape_interval: 5s
-    static_configs:
-      - targets: ["node-exporter:9100"]
-
   - job_name: "fraud-detection-api"
     metrics_path: /metrics # Default path for the OpenTelemetry exporter
     static_configs:
