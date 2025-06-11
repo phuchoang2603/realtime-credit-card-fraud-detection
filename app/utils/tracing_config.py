@@ -1,3 +1,4 @@
+import os
 from functools import wraps
 
 from fastapi import FastAPI
@@ -13,6 +14,11 @@ def setup_tracing(app: FastAPI, service_name: str):
     """
     Sets up OpenTelemetry tracing to export traces to Grafana Alloy.
     """
+    # --- Conditionally disable tracing for tests ---
+    if os.environ.get("TESTING_MODE", "false").lower() == "true":
+        print("TESTING_MODE is active. Skipping OpenTelemetry tracing setup.")
+        return
+
     resource = Resource(attributes={"service.name": service_name})
     provider = TracerProvider(resource=resource)
 
