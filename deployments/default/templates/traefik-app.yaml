@@ -10,7 +10,6 @@ spec:
     server: {{ .Values.global.destinationServer | quote }}
     namespace: {{ .Values.applications.traefik.destinationNamespace | quote }}
   sources:
-    # Source 1: The official Traefik Helm chart
     - repoURL: https://traefik.github.io/charts
       chart: traefik
       targetRevision: {{ .Values.applications.traefik.chartVersion | quote }}

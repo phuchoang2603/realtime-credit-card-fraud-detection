@@ -10,15 +10,12 @@ spec:
     server: {{ .Values.global.destinationServer | quote }}
     namespace: {{ .Values.applications.certManager.destinationNamespace | quote }}
   sources:
-    # Source 1: The official Jetstack Helm chart
     - repoURL: https://charts.jetstack.io
       chart: cert-manager
       targetRevision: {{ .Values.applications.certManager.chartVersion | quote }}
       helm:
         valueFiles:
           - $values/{{ .Values.applications.certManager.valuesFile }}
-
-    # Source 2: Your Git repository, which provides the values
     - repoURL: {{ .Values.global.repoURL | quote }}
       targetRevision: {{ .Values.global.targetRevision | quote }}
       ref: values
