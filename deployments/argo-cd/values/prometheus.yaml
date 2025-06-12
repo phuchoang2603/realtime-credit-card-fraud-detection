@@ -1,0 +1,21 @@
+# --- Keep Core Components Enabled ---
+prometheus:
+  enabled: true
+
+# Keeps Alertmanager for handling alerts.
+alertmanager:
+  enabled: false
+
+kube-state-metrics:
+  enabled: false
+
+prometheus-node-exporter:
+  enabled: false
+
+prometheus-pushgateway:
+  enabled: false
+
+server:
+  extraArgs:
+    web.enable-remote-write-receiver: true
+    enable-feature: "native-histograms,exemplar-storage"
