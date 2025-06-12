@@ -1,6 +1,6 @@
 global:
   repoURL: "https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git"
-  targetRevision: "main"
+  targetRevision: "argo-cd"
   destinationServer: "https://kubernetes.default.svc"
 
 # --- Cluster-wide configuration variables ---
