@@ -1,3 +1,0 @@
-controller:
-  type: deployment
-  terminationGracePeriodSeconds: 20

@@ -1,4 +1,0 @@
-# Test correct rendering of the pod annotations
-controller:
-  podAnnotations:
-    testAnnotationKey: testAnnotationValue

@@ -1,0 +1,197 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "kepler.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kepler.labels" . | nindent 4 }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "kepler.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "kepler.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- . | toYaml | nindent 8 }}
+        {{- end }}
+    spec:
+      hostNetwork: true
+      serviceAccountName: {{ include "kepler.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.modelServer.enabled }}
+      initContainers:
+      - name: estimator
+        command:
+        - python3
+        args:
+        - -u
+        - src/kepler_model/estimate/estimator.py
+        image: "{{ .Values.modelServer.image.repository }}:{{ .Values.modelServer.image.tag }}"
+        imagePullPolicy: {{ .Values.modelServer.image.pullPolicy }}
+        {{- with .Values.modelServer.sidecarResources }}
+        resources:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+        restartPolicy: Always
+        startupProbe:
+          exec:
+            command:
+            - test
+            - -S
+            - /tmp/estimator.sock
+        volumeMounts:
+        - mountPath: /tmp
+          name: estimator-sock
+      {{- end }}
+      containers:
+      - name: kepler-exporter
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        args:
+          - -v=$(KEPLER_LOG_LEVEL)
+          {{- if .Values.redfish.enabled }}
+          - -redfish-cred-file-path=/etc/redfish/redfish.csv
+          {{- end }}
+        env:
+          - name: NODE_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: METRIC_PATH
+            value: "/metrics"
+          - name: BIND_ADDRESS
+            value: "0.0.0.0:{{ .Values.service.port }}"
+          {{- if .Values.modelServer.enabled }}
+          - name: MODEL_SERVER_ENABLE
+            value: "true"
+          - name: MODEL_SERVER_ENDPOINT
+            value: {{ printf "http://%s:%d/model" (include "modelServer.fullname" .) .Values.modelServer.service.port }}
+          {{- with .Values.modelServer.modelConfig }}
+          - name: MODEL_CONFIG
+            value: |
+              {{- . | nindent 14 }}
+          {{- end }}
+          {{- end }}
+          {{- range $key, $value := .Values.extraEnvVars }}
+          - name: {{ $key | quote }}
+            value: {{ $value | quote }}
+          {{- end }}
+        ports:
+        - containerPort: {{ .Values.service.port }}
+          hostPort: {{ .Values.service.port }}
+          name: http
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 60
+          successThreshold: 1
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 1
+        volumeMounts:
+          - name: lib-modules
+            mountPath: /lib/modules
+          - name: tracing
+            mountPath: /sys
+          - name: proc
+            mountPath: /proc
+          - name: config-dir
+            mountPath: /etc/kepler            
+          {{- if .Values.canMount.usrSrc }}
+          - name: usr-src
+            mountPath: /usr/src
+          {{- end }}
+          {{- if .Values.redfish.enabled }}
+          - name: redfish
+            mountPath: /etc/redfish
+            readOnly: true
+          {{- end }}
+          {{- if .Values.modelServer.enabled }}
+          - name: estimator-sock
+            mountPath: /tmp
+          {{- end }}
+        {{- with .Values.resources }}
+        resources:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+      volumes:
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+            type: DirectoryOrCreate
+        - name: tracing
+          hostPath:
+            path: /sys
+            type: Directory
+        - name: proc
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: config-dir
+          emptyDir:
+            sizeLimit: 100Ki
+        {{- if .Values.canMount.usrSrc }}
+        - name: usr-src
+          hostPath:
+            path: /usr/src
+            type: Directory
+        {{- end }}
+        {{- if .Values.redfish.enabled }}
+        - name: redfish
+          secret:
+            secretName: {{ .Values.redfish.name }}
+        {{- end }}
+        {{- if .Values.modelServer.enabled }}
+        - name: estimator-sock
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
