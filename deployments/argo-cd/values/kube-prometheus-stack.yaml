@@ -44,10 +44,8 @@ alertmanager:
 
 nodeExporter:
   enabled: false
-
 prometheus-node-exporter:
   enabled: false
-
 prometheus-windows-exporter:
   prometheus:
     monitor:
@@ -55,30 +53,19 @@ prometheus-windows-exporter:
 
 kubeApiServer:
   enabled: false
-
 kubelet:
   enabled: false
-
 kubeControllerManager:
   enabled: false
-
 coreDns:
   enabled: false
-
 kubeDns:
   enabled: false
-
 kubeEtcd:
   enabled: false
-
 kubeScheduler:
   enabled: false
-
 kubeProxy:
   enabled: false
-
 kubeStateMetrics:
-  enabled: false
-
-prometheusOperator:
   enabled: false
