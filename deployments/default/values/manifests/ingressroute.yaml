@@ -5,7 +5,7 @@ metadata:
   name: argo-cd-ingressroute
   namespace: argo-cd
 spec:
-  entrypoints:
+  entryPoints:
     - websecure
   routes:
     - match: Host(`argo.home.phuchoang.sbs`)
@@ -20,7 +20,7 @@ metadata:
   name: longhorn-ingressroute
   namespace: longhorn-system
 spec:
-  entrypoints:
+  entryPoints:
     - websecure
   routes:
     - match: Host(`longhorn.home.phuchoang.sbs`)
