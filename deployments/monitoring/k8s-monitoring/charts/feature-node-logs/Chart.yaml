@@ -1,0 +1,11 @@
+apiVersion: v2
+appVersion: 1.0.0
+description: Kubernetes Observability feature for gathering Cluster Node logs.
+maintainers:
+- email: pete.wall@grafana.com
+  name: petewall
+name: feature-node-logs
+sources:
+- https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-node-logs
+type: application
+version: 1.0.0

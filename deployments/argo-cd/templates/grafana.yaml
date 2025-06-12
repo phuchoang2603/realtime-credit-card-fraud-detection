@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argo-cd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  sources:
+    # --- Source 1: The Helm chart ---
+    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
+      path: deployments/monitoring/grafana
+      targetRevision: main
+      helm:
+        valueFiles:
+          # This path references the 'values' ref from the second source below.
+          - $values/deployments/argo-cd/values/grafana.yaml
+
+    # --- Source 2: The Helm values file reference ---
+    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
+      targetRevision: main
+      # 'ref' creates a variable ($values) that can be used in other sources.
+      ref: values
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+# --- Standalone IngressRoute for Grafana ---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana-ingress
+  namespace: monitoring
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`grafana.home.phuchoang.sbs`)
+      kind: Rule
+      services:
+        - name: grafana
+          port: 80

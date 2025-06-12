@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argo-cd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  sources:
+    # --- Source 1: The Helm chart ---
+    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
+      path: deployments/monitoring/loki
+      targetRevision: main
+      helm:
+        valueFiles:
+          # This path references the 'values' ref from the second source below.
+          - $values/deployments/argo-cd/values/loki.yaml
+
+    # --- Source 2: The Helm values file reference ---
+    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
+      targetRevision: main
+      # 'ref' creates a variable ($values) that can be used in other sources.
+      ref: values
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

@@ -1,0 +1,349 @@
+# yamllint disable rule:line-length rule:comments-indentation
+---
+cluster:
+  # -- The name for this cluster.
+  # @section -- Cluster
+  name: ""
+
+#
+# Global settings
+#
+global:
+  # -- The specific platform for this cluster. Will enable compatibility for some platforms. Supported options: (empty) or "openshift".
+  # @section -- Global Settings
+  platform: ""
+
+  # -- The Kubernetes service. Change this if your cluster DNS is configured differently than the default.
+  # @section -- Global Settings
+  kubernetesAPIService: ""
+
+  # -- How frequently to scrape metrics.
+  # @section -- Global Settings
+  scrapeInterval: 60s
+
+  # -- Sets the max_cache_size for every prometheus.relabel component. ([docs](https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.relabel/#arguments))
+  # This should be at least 2x-5x your largest scrape target or samples appended rate.
+  # @section -- Global Settings
+  maxCacheSize: 100000
+
+#
+# Destinations
+#
+
+# -- The list of destinations where telemetry data will be sent.
+# See the [destinations documentation](https://github.com/grafana/k8s-monitoring-helm/blob/main/charts/k8s-monitoring/docs/destinations/README.md) for more information.
+# @section -- Destinations
+destinations: []
+
+#
+# Features
+#
+
+# -- Cluster Monitoring enables observability and monitoring for your Kubernetes Cluster itself.
+# Requires a destination that supports metrics.
+# To see the valid options, please see the [Cluster Monitoring feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-cluster-metrics).
+# @default -- Disabled
+# @section -- Features - Cluster Metrics
+clusterMetrics:
+  # -- Enable gathering Kubernetes Cluster metrics.
+  # @section -- Features - Cluster Metrics
+  enabled: false
+
+  # -- The destinations where cluster metrics will be sent. If empty, all metrics-capable destinations will be used.
+  # @section -- Features - Cluster Metrics
+  destinations: []
+
+  # -- Which collector to assign this feature to. Do not change this unless you are sure of what you are doing.
+  # @section -- Features - Cluster Metrics
+  # @ignored
+  collector: alloy-metrics
+
+  # To see additional options, please see the [Cluster Monitoring feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-cluster-metrics).
+
+# -- Cluster events.
+# Requires a destination that supports logs.
+# To see the valid options, please see the [Cluster Events feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-cluster-events).
+# @default -- Disabled
+# @section -- Features - Cluster Events
+clusterEvents:
+  # -- Enable gathering Kubernetes Cluster events.
+  # @section -- Features - Cluster Events
+  enabled: false
+
+  # -- The destinations where cluster events will be sent. If empty, all logs-capable destinations will be used.
+  # @section -- Features - Cluster Events
+  destinations: []
+
+  # -- Which collector to assign this feature to. Do not change this unless you are sure of what you are doing.
+  # @section -- Features - Cluster Events
+  # @ignored
+  collector: alloy-singleton
+
+  # To see additional options, please see the [Cluster Events feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-cluster-events).
+
+# -- Node logs.
+# Requires a destination that supports logs.
+# To see the valid options, please see the [Node Logs feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-node-logs).
+# @default -- Disabled
+# @section -- Features - Node Logs
+nodeLogs:
+  # -- Enable gathering Kubernetes Cluster Node logs.
+  # @section -- Features - Node Logs
+  enabled: false
+
+  # -- The destinations where logs will be sent. If empty, all logs-capable destinations will be used.
+  # @section -- Features - Node Logs
+  destinations: []
+
+  # -- Which collector to assign this feature to. Do not change this unless you are sure of what you are doing.
+  # @section -- Features - Node Logs
+  # @ignored
+  collector: alloy-logs
+
+  # To see additional options, please see the [Node Logs feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-node-logs).
+
+# -- Pod logs.
+# Requires a destination that supports logs.
+# To see the valid options, please see the [Pod Logs feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-pod-logs).
+# @default -- Disabled
+# @section -- Features - Pod Logs
+podLogs:
+  # -- Enable gathering Kubernetes Pod logs.
+  # @section -- Features - Pod Logs
+  enabled: false
+
+  # -- The destinations where logs will be sent. If empty, all logs-capable destinations will be used.
+  # @section -- Features - Pod Logs
+  destinations: []
+
+  # -- Which collector to assign this feature to. Do not change this unless you are sure of what you are doing.
+  # @section -- Features - Pod Logs
+  # @ignored
+  collector: alloy-logs
+
+  # To see additional options, please see the [Pod Logs feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-pod-logs).
+
+# -- Application Observability.
+# Requires destinations that supports metrics, logs, and traces.
+# To see the valid options, please see the [Application Observability feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-application-observability).
+# @default -- Disabled
+# @section -- Features - Application Observability
+applicationObservability:
+  # -- Enable receiving Application Observability.
+  # @section -- Features - Application Observability
+  enabled: false
+
+  # -- The destinations where application data will be sent. If empty, all capable destinations will be used.
+  # @section -- Features - Application Observability
+  destinations: []
+
+  # -- The receivers used for receiving application data.
+  # @section -- Features - Application Observability
+  receivers: {}
+
+  # -- Which collector to assign this feature to. Do not change this unless you are sure of what you are doing.
+  # @section -- Features - Application Observability
+  # @ignored
+  collector: alloy-receiver
+
+  # To see additional options, please see the [Application Observability feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-application-observability).
+
+# -- Auto-Instrumentation.
+# Requires destinations that supports metrics, logs, and traces.
+# To see the valid options, please see the [Auto-Instrumentation feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-auto-instrumentation).
+# @default -- Disabled
+# @section -- Features - Auto-Instrumentation
+autoInstrumentation:
+  # -- Enable automatic instrumentation for applications.
+  # @section -- Features - Auto-Instrumentation
+  enabled: false
+
+  # -- The destinations where application data will be sent. If empty, all capable destinations will be used.
+  # @section -- Features - Auto-Instrumentation
+  destinations: []
+
+  # -- Which collector to assign this feature to. Do not change this unless you are sure of what you are doing.
+  # @section -- Features - Auto-Instrumentation
+  # @ignored
+  collector: alloy-metrics
+
+  # To see additional options, please see the [Auto-Instrumentation feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-auto-instrumentation).
+
+# -- Annotation Autodiscovery enables gathering metrics from Kubernetes Pods and Services discovered by special annotations.
+# Requires a destination that supports metrics.
+# To see the valid options, please see the [Annotation Autodiscovery feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-annotation-autodiscovery).
+# @default -- Disabled
+# @section -- Features - Annotation Autodiscovery
+annotationAutodiscovery:
+  # -- Enable gathering metrics from Kubernetes Pods and Services discovered by special annotations.
+  # @section -- Features - Annotation Autodiscovery
+  enabled: false
+
+  # -- The destinations where cluster metrics will be sent. If empty, all metrics-capable destinations will be used.
+  # @section -- Features - Annotation Autodiscovery
+  destinations: []
+
+  # -- Which collector to assign this feature to. Do not change this unless you are sure of what you are doing.
+  # @section -- Features - Annotation Autodiscovery
+  # @ignored
+  collector: alloy-metrics
+
+  # To see additional options, please see the [Annotation Autodiscovery feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-annotation-autodiscovery).
+
+# -- Prometheus Operator Objects enables the gathering of metrics from objects like Probes, PodMonitors, and
+# ServiceMonitors. Requires a destination that supports metrics.
+# To see the valid options, please see the [Prometheus Operator Objects feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-prometheus-operator-objects).
+# @default -- Disabled
+# @section -- Features - Prometheus Operator Objects
+prometheusOperatorObjects:
+  # -- Enable gathering metrics from Prometheus Operator Objects.
+  # @section -- Features - Prometheus Operator Objects
+  enabled: false
+
+  # -- The destinations where metrics will be sent. If empty, all metrics-capable destinations will be used.
+  # @section -- Features - Prometheus Operator Objects
+  destinations: []
+
+  # -- Which collector to assign this feature to. Do not change this unless you are sure of what you are doing.
+  # @section -- Features - Prometheus Operator Objects
+  # @ignored
+  collector: alloy-metrics
+
+  # To see additional options, please see the [Prometheus Operator Objects feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-prometheus-operator-objects).
+
+# -- Profiling enables gathering profiles from applications.
+# Requires a destination that supports profiles.
+# To see the valid options, please see the [Profiling feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-profiling).
+# @default -- Disabled
+# @section -- Features - Profiling
+profiling:
+  # -- Enable gathering profiles from applications.
+  # @section -- Features - Profiling
+  enabled: false
+
+  # -- The destinations where profiles will be sent. If empty, all profiles-capable destinations will be used.
+  # @section -- Features - Profiling
+  destinations: []
+
+  # -- Which collector to assign this feature to. Do not change this unless you are sure of what you are doing.
+  # @section -- Features - Profiling
+  # @ignored
+  collector: alloy-profiles
+
+  # To see additional options, please see the [Profiling feature documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-profiling).
+
+# -- Service Integrations enables gathering telemetry data for common services and applications deployed to Kubernetes.
+# To see the valid options, please see the [Service Integrations documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-integrations).
+# @default -- No integrations enabled
+# @section -- Features - Service Integrations
+integrations:
+  # -- The destinations where integration metrics will be sent. If empty, all metrics-capable destinations will be used.
+  # @section -- Features - Service Integrations
+  destinations: []
+
+  # -- Which collectors to assign this feature to. Do not change this unless you are sure of what you are doing.
+  # @section -- Features - Service Integrations
+  # @ignored
+  collector: alloy-metrics
+
+  # To see additional options, please see the [Service Integrations documentation](https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-integrations).
+
+# Self-reporting creates a single metric and log that reports anonymized information about how this Helm chart was
+# configured. It reports features enabled, destinations types used, and alloy instances enabled. It does not report any
+# actual telemetry data, credentials or configuration, or send any data to any destination other than the ones
+# configured above.
+# @section -- Features - Self-reporting
+selfReporting:
+  # -- Enable Self-reporting.
+  # @section -- Features - Self-reporting
+  enabled: true
+
+  # -- The destinations where self-report metrics will be sent. If empty, all metrics-capable destinations will be used.
+  # @section -- Features - Self-reporting
+  destinations: []
+
+  # -- How frequently to generate self-report metrics. This does utilize the global scrapeInterval setting.
+  # @default -- 60s
+  # @section -- Features - Self-reporting
+  scrapeInterval: ""
+
+#
+# Collectors (Alloy instances)
+#
+
+# An Alloy instance for collecting metrics.
+# To see additional valid options, please see the [Alloy Helm chart documentation](https://github.com/grafana/alloy/tree/main/operations/helm/charts/alloy).
+alloy-metrics:
+  # -- Deploy the Alloy instance for collecting metrics.
+  # @section -- Collectors - Alloy Metrics
+  enabled: false
+
+# An Alloy instance for data sources required to be deployed on a single replica.
+# To see additional valid options, please see the [Alloy Helm chart documentation](https://github.com/grafana/alloy/tree/main/operations/helm/charts/alloy).
+alloy-singleton:
+  # -- Deploy the Alloy instance for data sources required to be deployed on a single replica.
+  # @section -- Collectors - Alloy Singleton
+  enabled: false
+
+
+# An Alloy instance for collecting log data.
+# To see additional valid options, please see the [Alloy Helm chart documentation](https://github.com/grafana/alloy/tree/main/operations/helm/charts/alloy).
+alloy-logs:
+  # -- Deploy the Alloy instance for collecting log data.
+  # @section -- Collectors - Alloy Logs
+  enabled: false
+
+# An Alloy instance for opening receivers to collect application data.
+# To see additional valid options, please see the [Alloy Helm chart documentation](https://github.com/grafana/alloy/tree/main/operations/helm/charts/alloy).
+alloy-receiver:
+  # -- Deploy the Alloy instance for opening receivers to collect application data.
+  # @section -- Collectors - Alloy Receiver
+  enabled: false
+
+  alloy:
+    # -- The ports to expose for the Alloy receiver.
+    # @section -- Collectors - Alloy Receiver
+    extraPorts: []
+
+  extraService:
+    # -- Create an extra service for the Alloy receiver. This service will mirror the alloy-receiver service, but its
+    # name can be customized to match existing application settings.
+    # @section -- Collectors - Alloy Receiver
+    enabled: false
+    # -- The name of the extra service to create. This will result in the format `<release-name>-<name>`.
+    # @section -- Collectors - Alloy Receiver
+    name: alloy
+    # -- If set, the full name of the extra service to create. This will result in the format `<fullname>`.
+    # @section -- Collectors - Alloy Receiver
+    fullname: ""
+
+# An Alloy instance for gathering profiles.
+# To see additional valid options, please see the [Alloy Helm chart documentation](https://github.com/grafana/alloy/tree/main/operations/helm/charts/alloy).
+alloy-profiles:
+  # -- Deploy the Alloy instance for gathering profiles.
+  # @section -- Collectors - Alloy Profiles
+  enabled: false
+
+alloy-operator:
+  deploy: true
+
+# -- Deploy additional manifest objects
+extraObjects: []
+# - apiVersion: external-secrets.io/v1beta1
+#   kind: ExternalSecret
+#   metadata:
+#     name: prometheus-secret
+#   spec:
+#     refreshInterval: 1h
+#     secretStoreRef:
+#       kind: SecretStore
+#       name: example
+#     target:
+#       template:
+#         data:
+#           prometheus_host: "{{ .Values.externalServices.prometheus.host }}"
+#           username: "{{`{{ .username }}`}}"
+#           password: "{{`{{ .password }}`}}"
+#     dataFrom:
+#     - extract:
+#         key: mysecret

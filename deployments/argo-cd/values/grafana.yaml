@@ -1,0 +1,54 @@
+---
+persistence:
+  type: pvc
+  enabled: true
+
+# DO NOT DO THIS IN PRODUCTION USECASES
+adminUser: admin
+adminPassword: adminadminadmin
+# CONSIDER USING AN EXISTING SECRET
+# Use an existing secret for the admin user.
+# admin:
+## Name of the secret. Can be templated.
+#  existingSecret: ""
+#  userKey: admin-user
+#  passwordKey: admin-password
+
+service:
+  enabled: true
+  type: ClusterIP
+
+# --- Datasource Provisioning ---
+# This section automatically creates the connections to Loki, Prometheus, and Tempo.
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      # --- Loki Datasource ---
+      - name: Loki
+        type: loki
+        access: proxy
+        orgId: 1
+        url: http://loki-gateway.monitoring.svc.cluster.local:80
+        basicAuth: false
+        isDefault: false
+        version: 1
+        editable: false
+
+      # --- Prometheus Datasource ---
+      # - name: Prometheus
+      #   type: prometheus
+      #   access: proxy
+      #   orgId: 1
+      #   url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+      #   isDefault: true
+      #   editable: false
+      #
+      # # --- Tempo Datasource ---
+      # - name: Tempo
+      #   type: tempo
+      #   access: proxy
+      #   orgId: 1
+      #   url: http://tempo.monitoring.svc.cluster.local:3200
+      #   isDefault: false
+      #   editable: false

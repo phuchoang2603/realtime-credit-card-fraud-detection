@@ -1,0 +1,43 @@
+{{- if .Values.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "kepler.fullname" . }}-prometheus-exporter
+  namespace: {{ .Values.serviceMonitor.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "kepler.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  jobLabel: app.kubernetes.io/name
+  {{- with .Values.serviceMonitor.attachMetadata }}
+  attachMetadata:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  endpoints:
+    - port: http
+      {{- with .Values.serviceMonitor.interval }}
+      interval: {{ . }}
+      {{- end }}
+      {{- with .Values.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      path: /metrics
+      scheme: http
+      {{- with .Values.serviceMonitor.relabelings }}
+      relabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.serviceMonitor.metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "kepler.selectorLabels" . | nindent 6 }}
+{{- end }}

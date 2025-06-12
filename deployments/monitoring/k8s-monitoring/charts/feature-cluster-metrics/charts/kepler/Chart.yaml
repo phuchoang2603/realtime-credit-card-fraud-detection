@@ -1,0 +1,25 @@
+annotations:
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/links: |
+    - name: support
+      url: https://github.com/sustainable-computing-io/kepler/issues/new
+    - name: docs
+      url: https://sustainable-computing.io/
+  artifacthub.io/signKey: |
+    fingerprint: 91BF31657FB6BB5931CBFCF92A544B84946E3621
+    url: https://keybase.io/bradmccoydev/pgp_keys.asc
+apiVersion: v2
+appVersion: release-0.8.0
+description: A Helm chart for kepler (Kubernetes-based Efficient Power Level Exporter)
+home: https://sustainable-computing.io/html/index.html
+icon: https://avatars.githubusercontent.com/u/91567619?s=200&v=4
+keywords:
+- cloud-native
+- sustainable-computing
+- kepler
+- ebpf
+name: kepler
+sources:
+- https://github.com/sustainable-computing-io/kepler
+type: application
+version: 0.6.0
