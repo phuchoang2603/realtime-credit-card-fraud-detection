@@ -26,16 +26,10 @@ spec:
       # 'ref' creates a variable ($values) that can be used in other sources.
       ref: values
 
-  # --- Sync Policy ---
-  # This configures how the application stays in sync with the Git repository.
   syncPolicy:
     automated:
-      # Allows Argo CD to delete resources that are no longer in the Git repository.
       prune: true
-      # Allows Argo CD to automatically sync the app when it detects differences.
       selfHeal: true
     syncOptions:
-      # Creates the destination namespace if it doesn't exist.
       - CreateNamespace=true
-      # Uses server-side apply to manage resources, which is generally more reliable.
       - ServerSideApply=true
