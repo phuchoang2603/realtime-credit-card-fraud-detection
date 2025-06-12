@@ -1,7 +1,7 @@
 service:
   type: LoadBalancer
   spec:
-    loadBalancerIP: "10.69.3.1"
+    loadBalancerIP: "10.69.3.3"
 
 tlsStore:
   default:
