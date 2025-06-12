@@ -14,13 +14,13 @@ applications:
 
   k8sMonitoring:
     path: deployments/monitoring/k8s-monitoring
-    valuesfile: deployments/argo-cd/values/k8s-monitoring.yaml
-    destinationnamespace: monitoring
+    valuesFile: deployments/argo-cd/values/k8s-monitoring.yaml
+    destinationNamespace: monitoring
 
   kubePrometheusStack:
     path: deployments/monitoring/kube-prometheus-stack
-    valuesfile: deployments/argo-cd/values/kube-prometheus-stack.yaml
-    destinationnamespace: monitoring
+    valuesFile: deployments/argo-cd/values/kube-prometheus-stack.yaml
+    destinationNamespace: monitoring
 
   tempo:
     path: deployments/monitoring/tempo

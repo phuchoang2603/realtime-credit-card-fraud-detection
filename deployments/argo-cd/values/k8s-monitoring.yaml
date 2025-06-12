@@ -19,10 +19,6 @@ destinations:
 # --- Log Sources ---
 clusterEvents:
   enabled: true
-  # collector: alloy-logs
-  # namespaces:
-  #   - monitoring
-  #   - model-serving
 
 nodeLogs:
   enabled: false
