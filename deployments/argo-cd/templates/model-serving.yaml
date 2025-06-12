@@ -27,18 +27,3 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
----
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: model-serving-ingress
-  namespace: {{ .Values.applications.modelServing.destinationNamespace | quote }}
-spec:
-  entryPoints:
-    - websecure
-  routes:
-    - match: Host(`fraud.home.phuchoang.sbs`) && PathPrefix(`/`)
-      kind: Rule
-      services:
-        - name: fraud-detection
-          port: 8000

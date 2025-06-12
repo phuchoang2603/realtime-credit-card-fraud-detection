@@ -27,19 +27,3 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
----
-# The standalone IngressRoute is kept as a static part of this template
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: grafana-ingress
-  namespace: {{ .Values.applications.grafana.destinationNamespace | quote }}
-spec:
-  entryPoints:
-    - websecure
-  routes:
-    - match: Host(`grafana.home.phuchoang.sbs`)
-      kind: Rule
-      services:
-        - name: grafana
-          port: 80
