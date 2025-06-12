@@ -1,8 +1,3 @@
-# --- Keep Core Components Enabled ---
-prometheus:
-  enabled: true
-
-# Keeps Alertmanager for handling alerts.
 alertmanager:
   enabled: false
 
@@ -16,6 +11,8 @@ prometheus-pushgateway:
   enabled: false
 
 server:
+  defaultFlagsOverride:
+    - --enable-feature=exemplar-storage
+    - --enable-feature=native-histograms
   extraArgs:
     web.enable-remote-write-receiver: true
-    enable-feature: "native-histograms,exemplar-storage"
