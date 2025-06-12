@@ -55,5 +55,5 @@ spec:
     - match: Host(`grafana.home.phuchoang.sbs`)
       kind: Rule
       services:
-        - name: grafana
+        - name: kube-prometheus-stack-grafana
           port: 80

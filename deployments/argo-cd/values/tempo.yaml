@@ -1,8 +1,11 @@
 tempo:
+  # Specific commit for reproducibility
+  tag: main-814c1c6
+
   # Metrics generator - The key feature for traces → metrics integration
   metricsGenerator:
     enabled: true
-    remoteWriteUrl: "http://prometheus-server.monitoring.svc.cluster.local:9090/api/v1/write"
+    remoteWriteUrl: "http://monitoring-kube-prometheus-prometheus:9090/api/v1/write"
 
   # Enable service graphs and span metrics
   overrides:

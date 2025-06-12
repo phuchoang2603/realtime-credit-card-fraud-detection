@@ -6,15 +6,15 @@ cluster:
 destinations:
   - name: loki
     type: loki
-    url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
+    url: http://loki-gateway/loki/api/v1/push
 
   - name: prometheus
     type: prometheus
-    url: http://prometheus-server.monitoring.svc.cluster.local:9090/api/v1/write
+    url: http://monitoring-kube-prometheus-prometheus:9090/api/v1/write
 
   - name: tempo
     type: otlp
-    url: http://tempo.monitoring.svc.cluster.local:4317
+    url: http://tempo:4317
 
 # --- Log Sources ---
 clusterEvents:

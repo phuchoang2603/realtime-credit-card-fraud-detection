@@ -12,20 +12,15 @@ applications:
     valuesFile: deployments/argo-cd/values/loki.yaml
     destinationNamespace: monitoring
 
-  grafana:
-    path: deployments/monitoring/grafana
-    valuesFile: deployments/argo-cd/values/grafana.yaml
-    destinationNamespace: monitoring
-
-  prometheus:
-    path: deployments/monitoring/prometheus
-    valuesFile: deployments/argo-cd/values/prometheus.yaml
-    destinationNamespace: monitoring
-
-  k8sMonitoring:
+  k8smonitoring:
     path: deployments/monitoring/k8s-monitoring
-    valuesFile: deployments/argo-cd/values/k8s-monitoring.yaml
-    destinationNamespace: monitoring
+    valuesfile: deployments/argo-cd/values/k8s-monitoring.yaml
+    destinationnamespace: monitoring
+
+  kubePrometheusStack:
+    path: deployments/monitoring/kube-prometheus-stack
+    valuesfile: deployments/argo-cd/values/kube-prometheus-stack.yaml
+    destinationnamespace: monitoring
 
   tempo:
     path: deployments/monitoring/tempo
