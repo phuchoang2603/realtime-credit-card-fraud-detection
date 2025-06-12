@@ -1,6 +1,7 @@
 ---
 persistence:
-  enabled: false
+  type: pvc
+  enabled: true
 
 # DO NOT DO THIS IN PRODUCTION USECASES
 adminUser: admin
