@@ -2,20 +2,27 @@
 cluster:
   name: fraud-detection-cluster
 
-# --- Destination for the collected logs ---
+# --- Destination ---
 destinations:
   - name: loki
     type: loki
     url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
 
-# --- Log Sources ---
+  - name: prometheus
+    type: prometheus
+    url: http://prometheus.monitoring.svc.cluster.local:9090/api/v1/write
 
+  - name: tempo
+    type: otlp
+    url: http://tempo.monitoring.svc.cluster.local:4317
+
+# --- Log Sources ---
 clusterEvents:
   enabled: true
-  collector: alloy-logs
-  namespaces:
-    - monitoring
-    - model-serving
+  # collector: alloy-logs
+  # namespaces:
+  #   - monitoring
+  #   - model-serving
 
 nodeLogs:
   enabled: false
@@ -43,13 +50,49 @@ podLogs:
     - monitoring
     - model-serving
 
+# --- Metric Sources ---
+clusterMetrics:
+  enabled: true
+  controlPlane:
+    enabled: true
+  kepler:
+    enabled: true
+  opencost:
+    enabled: false
+
+# --- Integration Configuration ---
+integrations:
+  cert-manager:
+    instances:
+      - name: cert-manager
+        namespace: cert-manager
+        labelSelectors:
+          app.kubernetes.io/name: cert-manager
+
+  etcd:
+    instances:
+      - name: etcd-server
+        labelSelectors:
+          app.kubernetes.io/component: etcd
+
+annotationAutodiscovery:
+  enabled: true
+
+applicationObservability:
+  enabled: true
+  receivers:
+    otlp:
+      grpc:
+        enabled: true
+        port: 4317
+      http:
+        enabled: true
+        port: 4318
+
 # --- Collector Configuration ---
-
-# get cluster events, but we already use alloy-logs
 alloy-singleton:
-  enabled: false
+  enabled: true
 
-# get pod and node logs
 alloy-logs:
   enabled: true
   alloy:
@@ -60,10 +103,20 @@ alloy-logs:
       enabled: true
 
 alloy-metrics:
-  enabled: false
+  enabled: true
 
 alloy-profiles:
   enabled: false
 
 alloy-receiver:
-  enabled: false
+  enabled: true
+  alloy:
+    extraPorts:
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP

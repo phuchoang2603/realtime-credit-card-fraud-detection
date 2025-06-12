@@ -27,6 +27,11 @@ applications:
     valuesFile: deployments/argo-cd/values/k8s-monitoring.yaml
     destinationNamespace: monitoring
 
+  tempo:
+    path: deployments/monitoring/tempo
+    valuesFile: deployments/argo-cd/values/tempo.yaml
+    destinationNamespace: monitoring
+
   modelServing:
     path: deployments/model-serving
     valuesFile: deployments/argo-cd/values/model-serving.yaml

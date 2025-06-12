@@ -16,10 +16,9 @@ env:
   - name: OTEL_SERVICE_NAME
     value: "fraud-detection-api"
 podAnnotations:
-  # -- Add annotations for Prometheus to scrape metrics
-  prometheus.io/scrape: "true"
-  prometheus.io/path: "/metrics"
-  prometheus.io/port: "8010"
+  k8s.grafana.com/scrape: "true"
+  k8s.grafana.com/metrics.path: "/metrics"
+  k8s.grafana.com/metrics.portNumber: "8010"
 resources: {}
 # limits:
 #   cpu: 100m

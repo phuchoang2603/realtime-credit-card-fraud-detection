@@ -18,6 +18,9 @@ service:
   enabled: true
   type: ClusterIP
 
+plugins:
+  - grafana-exploretraces-app
+
 # --- Datasource Provisioning ---
 # This section automatically creates the connections to Loki, Prometheus, and Tempo.
 datasources:
@@ -36,19 +39,19 @@ datasources:
         editable: false
 
       # --- Prometheus Datasource ---
-      # - name: Prometheus
-      #   type: prometheus
-      #   access: proxy
-      #   orgId: 1
-      #   url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
-      #   isDefault: true
-      #   editable: false
-      #
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        orgId: 1
+        url: http://prometheus.monitoring.svc.cluster.local:9090
+        isDefault: false
+        editable: false
+
       # # --- Tempo Datasource ---
-      # - name: Tempo
-      #   type: tempo
-      #   access: proxy
-      #   orgId: 1
-      #   url: http://tempo.monitoring.svc.cluster.local:3200
-      #   isDefault: false
-      #   editable: false
+      - name: Tempo
+        type: tempo
+        access: proxy
+        orgId: 1
+        url: http://tempo.monitoring.svc.cluster.local:3200
+        isDefault: true
+        editable: false
