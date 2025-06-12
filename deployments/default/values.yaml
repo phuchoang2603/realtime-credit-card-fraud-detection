@@ -1,0 +1,25 @@
+global:
+  repoURL: "https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git"
+  targetRevision: "main"
+  destinationServer: "https://kubernetes.default.svc"
+
+# --- Cluster-wide configuration variables ---
+config:
+  vip_ingress_ip: "10.69.3.1" # load balancer ip for traefik ingress controller
+  ssl_local_domain: "home.phuchoang.sbs"
+  ssl_email: "xuanphuc.a1gv@gmail.com" # <-- SET YOUR EMAIL HERE
+  ssl_cloudflare_api_token: "lyjbLan5ApshVxTktZRxgXZm3DkzQeT8vUxK_1sW" # <-- SET YOUR TOKEN HERE
+
+# --- Application Definitions ---
+applications:
+  traefik:
+    enabled: true
+    destinationNamespace: traefik
+    chartVersion: "v35.2.0"
+    valuesFile: deployments/default/values/traefik.yaml
+
+  certManager:
+    enabled: true
+    destinationNamespace: cert-manager
+    chartVersion: "v1.17.2"
+    valuesFile: deployments/default/values/cert-manager.yaml

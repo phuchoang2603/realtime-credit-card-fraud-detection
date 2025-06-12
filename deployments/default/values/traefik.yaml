@@ -1,0 +1,23 @@
+service:
+  type: LoadBalancer
+  spec:
+    loadBalancerIP: "10.69.3.1"
+
+tlsStore:
+  default:
+    defaultCertificate:
+      secretName: wildcard-tls
+
+ingressRoute:
+  dashboard:
+    enabled: true
+    matchRule: Host(`traefik.home.phuchoang.sbs`)
+    entryPoints: ["websecure"]
+
+ports:
+  web:
+    redirections:
+      entryPoint:
+        to: websecure
+        scheme: https
+        permanent: true

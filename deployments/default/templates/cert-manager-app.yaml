@@ -1,0 +1,29 @@
+{{- if .Values.applications.certManager.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argo-cd
+spec:
+  project: default
+  destination:
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.certManager.destinationNamespace | quote }}
+  sources:
+    # Source 1: The official Jetstack Helm chart
+    - repoURL: https://charts.jetstack.io
+      chart: cert-manager
+      targetRevision: {{ .Values.applications.certManager.chartVersion | quote }}
+      helm:
+        valueFiles:
+          - $values/{{ .Values.applications.certManager.valuesFile }}
+
+    # Source 2: Your Git repository, which provides the values
+    - repoURL: {{ .Values.global.repoURL | quote }}
+      targetRevision: {{ .Values.global.targetRevision | quote }}
+      ref: values
+      
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+{{- end }}
