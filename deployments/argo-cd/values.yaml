@@ -12,7 +12,7 @@ applications:
     valuesFile: deployments/argo-cd/values/loki.yaml
     destinationNamespace: monitoring
 
-  k8smonitoring:
+  k8sMonitoring:
     path: deployments/monitoring/k8s-monitoring
     valuesfile: deployments/argo-cd/values/k8s-monitoring.yaml
     destinationnamespace: monitoring
