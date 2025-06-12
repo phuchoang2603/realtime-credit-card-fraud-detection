@@ -12,7 +12,7 @@ env:
   - name: TESTING_MODE
     value: "false"
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    value: "http://grafana-k8s-monitoring-alloy.monitoring.svc.cluster.local:4318"
+    value: "http://k8s-monitoring-alloy-receiver.monitoring.svc.cluster.local:4318"
   - name: OTEL_SERVICE_NAME
     value: "fraud-detection-api"
 podAnnotations:

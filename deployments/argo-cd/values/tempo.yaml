@@ -2,7 +2,7 @@ tempo:
   # Metrics generator - The key feature for traces → metrics integration
   metricsGenerator:
     enabled: true
-    remoteWriteUrl: "http://prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+    remoteWriteUrl: "http://prometheus-server.monitoring.svc.cluster.local:9090/api/v1/write"
 
   # Enable service graphs and span metrics
   overrides:
