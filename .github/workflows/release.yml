@@ -97,6 +97,7 @@ jobs:
         id: files
         run: |
           echo "CHART_FILE=deployments/model-serving/Chart.yaml" >> $GITHUB_ENV
+          echo "ARGO_FILE=deployments/argo-cd/Chart.yaml" >> $GITHUB_ENV
           echo "VALUE_FILE=deployments/model-serving/values.yaml" >> $GITHUB_ENV
 
       - name: Install yq
@@ -113,10 +114,14 @@ jobs:
                    .appVersion = \"${VERSION#v}\"" \
                    -i "$CHART_FILE"
 
+          yq eval ".version = \"${VERSION#v}\" |
+                   .appVersion = \"${VERSION#v}\"" \
+                   -i "$ARGO_FILE"
+
           yq eval ".image.repository = \"$IMAGE\" |
                    .image.tag = \"$VERSION\"" \
                    -i "$VALUE_FILE"
 
-          git add "$CHART_FILE" "$VALUE_FILE"
+          git add "$CHART_FILE" "$ARGO_FILE" "$VALUE_FILE"
           git commit -m "ci: update Helm values.yaml and Chart.yaml to $IMAGE:$VERSION"
           git push origin HEAD

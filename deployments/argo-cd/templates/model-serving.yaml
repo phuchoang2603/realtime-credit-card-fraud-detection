@@ -1,19 +1,25 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: model-serving
+  name: fraud-detection
   namespace: argo-cd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   destination:
-    server: https://kubernetes.default.svc
-    namespace: model-serving
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.modelServing.destinationNamespace | quote }}
   sources:
-    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
-      path: deployments/model-serving
-      targetRevision: main
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.modelServing.repoURL | quote }}
+      path: {{ .Values.applications.modelServing.path | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.modelServing.targetRevision | quote }}
+      helm:
+        valueFiles:
+          - $values/{{ .Values.applications.modelServing.valuesFile }}
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.modelServing.repoURL | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.modelServing.targetRevision | quote }}
+      ref: values
   syncPolicy:
     automated:
       prune: true
@@ -26,7 +32,7 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: model-serving-ingress
-  namespace: model-serving
+  namespace: {{ .Values.applications.modelServing.destinationNamespace | quote }}
 spec:
   entryPoints:
     - websecure

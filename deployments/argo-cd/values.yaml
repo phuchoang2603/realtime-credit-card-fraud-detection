@@ -1,0 +1,28 @@
+global:
+  # The Git repository where the application manifests and values are stored.
+  repoURL: "https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git"
+  targetRevision: "main"
+  # The destination Kubernetes cluster URL for all applications.
+  destinationServer: "https://kubernetes.default.svc"
+
+# Per-application configurations.
+applications:
+  loki:
+    path: deployments/monitoring/loki
+    valuesFile: deployments/argo-cd/values/loki.yaml
+    destinationNamespace: monitoring
+
+  grafana:
+    path: deployments/monitoring/grafana
+    valuesFile: deployments/argo-cd/values/grafana.yaml
+    destinationNamespace: monitoring
+
+  k8sMonitoring:
+    path: deployments/monitoring/k8s-monitoring
+    valuesFile: deployments/argo-cd/values/k8s-monitoring.yaml
+    destinationNamespace: monitoring
+
+  modelServing:
+    path: deployments/model-serving
+    valuesFile: deployments/argo-cd/values/model-serving.yaml
+    destinationNamespace: model-serving

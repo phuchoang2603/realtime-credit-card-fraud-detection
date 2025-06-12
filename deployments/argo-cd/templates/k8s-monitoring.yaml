@@ -8,24 +8,18 @@ metadata:
 spec:
   project: default
   destination:
-    server: https://kubernetes.default.svc
-    namespace: monitoring
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.k8sMonitoring.destinationNamespace | quote }}
   sources:
-    # --- Source 1: The Helm chart ---
-    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
-      path: deployments/monitoring/k8s-monitoring
-      targetRevision: main
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.k8sMonitoring.repoURL | quote }}
+      path: {{ .Values.applications.k8sMonitoring.path | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.k8sMonitoring.targetRevision | quote }}
       helm:
         valueFiles:
-          # This path references the 'values' ref from the second source below.
-          - $values/deployments/argo-cd/values/k8s-monitoring.yaml
-
-    # --- Source 2: The Helm values file reference ---
-    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
-      targetRevision: main
-      # 'ref' creates a variable ($values) that can be used in other sources.
+          - $values/{{ .Values.applications.k8sMonitoring.valuesFile }}
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.k8sMonitoring.repoURL | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.k8sMonitoring.targetRevision | quote }}
       ref: values
-
   syncPolicy:
     automated:
       prune: true

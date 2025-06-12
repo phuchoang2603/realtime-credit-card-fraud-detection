@@ -8,24 +8,18 @@ metadata:
 spec:
   project: default
   destination:
-    server: https://kubernetes.default.svc
-    namespace: monitoring
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.grafana.destinationNamespace | quote }}
   sources:
-    # --- Source 1: The Helm chart ---
-    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
-      path: deployments/monitoring/grafana
-      targetRevision: main
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.grafana.repoURL | quote }}
+      path: {{ .Values.applications.grafana.path | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.grafana.targetRevision | quote }}
       helm:
         valueFiles:
-          # This path references the 'values' ref from the second source below.
-          - $values/deployments/argo-cd/values/grafana.yaml
-
-    # --- Source 2: The Helm values file reference ---
-    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
-      targetRevision: main
-      # 'ref' creates a variable ($values) that can be used in other sources.
+          - $values/{{ .Values.applications.grafana.valuesFile }}
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.grafana.repoURL | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.grafana.targetRevision | quote }}
       ref: values
-
   syncPolicy:
     automated:
       prune: true
@@ -34,12 +28,12 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
 ---
-# --- Standalone IngressRoute for Grafana ---
+# The standalone IngressRoute is kept as a static part of this template
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: grafana-ingress
-  namespace: monitoring
+  namespace: {{ .Values.applications.grafana.destinationNamespace | quote }}
 spec:
   entryPoints:
     - websecure
