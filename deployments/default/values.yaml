@@ -8,7 +8,7 @@ applications:
   traefik:
     enabled: true
     destinationNamespace: traefik
-    chartVersion: "v35.2.0"
+    chartVersion: "v36.2.0-rc1"
     valuesFile: deployments/default/values/traefik.yaml
 
   certManager:
