@@ -1,5 +1,0 @@
-controller:
-  type: deployment
-  podDisruptionBudget:
-    enabled: true
-    minAvailable: 1

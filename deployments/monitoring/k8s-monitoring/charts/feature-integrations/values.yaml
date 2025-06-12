@@ -1,0 +1,94 @@
+---
+# -- Name override
+# @section -- General settings
+nameOverride: ""
+
+# -- Full name override
+# @section -- General settings
+fullnameOverride: ""
+
+global:
+  # -- How frequently to scrape metrics.
+  # @section -- Global Settings
+  scrapeInterval: 60s
+
+  # -- Sets the max_cache_size for every prometheus.relabel component. ([docs](https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.relabel/#arguments))
+  # This should be at least 2x-5x your largest scrape target or samples appended rate.
+  # @section -- Global Settings
+  maxCacheSize: 100000
+
+  alloyModules:
+    # -- The source of the Alloy modules. The valid options are "configMap" or "git"
+    # @section -- Global Settings
+    source: git
+
+    # -- If using git, the branch of the git repository to use.
+    # @section -- Global Settings
+    branch: main
+
+# Configures which node labels to attach to the metrics collected for integrations that perform service discovery
+nodeLabels:
+  # -- Whether or not to attach the nodepool label
+  # @section -- Node Labels
+  nodePool: false
+  # -- Whether or not to add the region label
+  # @section -- Node Labels
+  region: false
+  # -- Whether or not to add the availability\_zone label
+  # @section -- Node Labels
+  availabilityZone: false
+  # -- Whether or not to add the node\_role label
+  # @section -- Node Labels
+  nodeRole: false
+  # -- Whether or not to add the os label
+  # @section -- Node Labels
+  nodeOS: false
+  # -- Whether or not to add the node architecture label
+  # @section -- Node Labels
+  nodeArchitecture: false
+  # -- Whether or not to add the instance\_type label
+  # @section -- Node Labels
+  instanceType: false
+
+# -- Scrape metrics/logs from Grafana Alloy
+# @section -- Integration: Alloy
+alloy:
+  instances: []
+
+# -- Scrape metrics/logs from cert-manager
+# @section -- Integration: cert-manager
+cert-manager:
+  instances: []
+
+# -- Scrape metrics/logs from etcd
+# @section -- Integration: etcd
+etcd:
+  instances: []
+
+# -- Scrape metrics/logs from Grafana
+# @section -- Integration: Grafana
+grafana:
+  instances: []
+
+# -- Scrape metrics/logs from Loki
+# @section -- Integration: Loki
+loki:
+  instances: []
+
+# -- Scrape metrics/logs from Mimir
+# @section -- Integration: Mimir
+mimir:
+  instances: []
+
+# -- Scrape metrics/logs from Tempo
+# @section -- Integration: Tempo
+tempo:
+  instances: []
+
+# -- Scrape metrics/logs from MySQL
+# @section -- Integration: MySQL
+mysql:
+  instances: []
+
+# @ignore
+deployAsConfigMap: false

@@ -1,0 +1,202 @@
+---
+# -- Name override
+# @section -- General settings
+nameOverride: ""
+
+# -- Full name override
+# @section -- General settings
+fullnameOverride: ""
+
+global:
+  # -- How frequently to scrape metrics.
+  # @section -- Global Settings
+  scrapeInterval: 60s
+
+  # -- The scrape timeout for discovered pods and services.
+  # @section -- Global Settings
+  scrapeTimeout: 10s
+
+  # -- Sets the max_cache_size for every prometheus.relabel component. ([docs](https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.relabel/#arguments))
+  # This should be at least 2x-5x your largest scrape target or samples appended rate.
+  # @section -- Global Settings
+  maxCacheSize: 100000
+
+# Annotations that are used to discover and configure metric scraping targets. Add these annotations
+# to your services or pods to control how autodiscovery will find and scrape metrics from your service or pod.
+annotations:
+  # -- Annotation for enabling scraping for this service or pod. Value should be either "true" or "false"
+  # @section -- Annotations
+  scrape: "k8s.grafana.com/scrape"
+  # -- Annotation for overriding the job label
+  # @section -- Annotations
+  job: "k8s.grafana.com/job"
+  # -- Annotation for overriding the instance label
+  # @section -- Annotations
+  instance: "k8s.grafana.com/instance"
+  # -- Annotation for selecting the specific container to scrape.
+  # @section -- Annotations
+  metricsContainer: "k8s.grafana.com/metrics.container"
+  # -- Annotation for setting or overriding the metrics path. If not set, it defaults to /metrics
+  # @section -- Annotations
+  metricsPath: "k8s.grafana.com/metrics.path"
+  # -- Annotation for setting the metrics port by name.
+  # @section -- Annotations
+  metricsPortName: "k8s.grafana.com/metrics.portName"
+  # -- Annotation for setting the metrics port by number.
+  # @section -- Annotations
+  metricsPortNumber: "k8s.grafana.com/metrics.portNumber"
+  # -- Annotation for setting the metrics scheme, default: http.
+  # @section -- Annotations
+  metricsScheme: "k8s.grafana.com/metrics.scheme"
+  # -- Annotation for setting `__param_<key>` parameters when scraping.
+  # Example: `k8s.grafana.com/metrics.param_key: "value"`.
+  # @section -- Annotations
+  metricsParam: "k8s.grafana.com/metrics.param"
+  # -- Annotation for overriding the scrape interval for this service or pod. Value should be a duration like "15s, 1m".
+  # Overrides metrics.autoDiscover.scrapeInterval
+  # @section -- Annotations
+  metricsScrapeInterval: "k8s.grafana.com/metrics.scrapeInterval"
+  # -- Annotation for overriding the scrape timeout for this service or pod. Value should be a duration like "15s, 1m".
+  # Overrides metrics.autoDiscover.scrapeTimeout
+  # @section -- Annotations
+  metricsScrapeTimeout: "k8s.grafana.com/metrics.scrapeTimeout"
+
+# -- The list of namespaces to include in autodiscovery. If empty, all namespaces are included.
+# @section -- Discovery Settings
+namespaces: []
+
+# -- The list of namespaces to exclude from autodiscovery.
+# @section -- Discovery Settings
+excludeNamespaces: []
+
+# -- Filter the list of discovered pods and services by labels.
+# Example: `labelSelectors: { 'app': 'myapp' }` will only discover pods and services with the label `app=myapp`.
+# Example: `labelSelectors: { 'app': ['myapp', 'myotherapp'] }` will only discover pods and services with the label `app=myapp` or `app=myotherapp`.
+# @section -- Discovery Settings
+labelSelectors: {}
+
+# Configures which node labels to attach to the metrics collected for pod autodiscovery jobs
+nodeLabels:
+  # -- Whether or not to attach the nodepool label
+  # @section -- Node Labels
+  nodePool: false
+  # -- Whether or not to add the region label
+  # @section -- Node Labels
+  region: false
+  # -- Whether or not to add the availability\_zone label
+  # @section -- Node Labels
+  availabilityZone: false
+  # -- Whether or not to add the node\_role label
+  # @section -- Node Labels
+  nodeRole: false
+  # -- Whether or not to add the os label
+  # @section -- Node Labels
+  nodeOS: false
+  # -- Whether or not to add the node architecture label
+  # @section -- Node Labels
+  nodeArchitecture: false
+  # -- Whether or not to add the instance\_type label
+  # @section -- Node Labels
+  instanceType: false
+
+pods:
+  # -- Enable discovering Pods with annotations.
+  # @section -- Pod Discovery Settings
+  enabled: true
+
+  # -- Filter the list of discovered Pods by labels.
+  # Example: `labelSelectors: { 'app': 'myapp' }` will only discover Pods with the label `app=myapp`.
+  # Example: `labelSelectors: { 'app': ['myapp', 'myotherapp'] }` will only discover Pods with the label `app=myapp` or `app=myotherapp`.
+  # @section -- Pod Discovery Settings
+  labelSelectors: {}
+
+  # -- Add labels to metrics from discovered Pods. Runs during discovery, so __meta_ labels are available. See the
+  # [documentation](https://grafana.com/docs/alloy/latest/reference/components/discovery/discovery.kubernetes/#pod-role)
+  # for the full list of meta labels.
+  # @section -- Pod Metric Processing Settings
+  labels: {}
+
+  # -- Metric labels to set with static data for discovered Pods.
+  # @section -- Pod Metric Processing Settings
+  staticLabels: {}
+
+  # -- Static labels to set on metrics from discovered Pods, not quoted so it can reference config components.
+  # @section -- Pod Metric Processing Settings
+  staticLabelsFrom: {}
+
+services:
+  # -- Enable discovering Services with annotations.
+  # @section -- Services
+  enabled: true
+
+  # -- Filter the list of discovered Services by labels.
+  # Example: `labelSelectors: { 'app': 'myapp' }` will only discover Services with the label `app=myapp`.
+  # Example: `labelSelectors: { 'app': ['myapp', 'myotherapp'] }` will only discover Services with the label `app=myapp` or `app=myotherapp`.
+  # @section -- Service Discovery Settings
+  labelSelectors: {}
+
+  # -- Add labels to metrics from discovered Services. Run during discovery, so __meta_ labels are available. See the
+  # [documentation](https://grafana.com/docs/alloy/latest/reference/components/discovery/discovery.kubernetes/#service-role)
+  # for the full list of meta labels.
+  # @section -- Service Metric Processing Settings
+  labels: {}
+
+  # -- Metric labels to set with static data for discovered Services.
+  # @section -- Service Metric Processing Settings
+  staticLabels: {}
+
+  # -- Static labels to set on metrics from discovered Services, not quoted so it can reference config components.
+  # @section -- Service Metric Processing Settings
+  staticLabelsFrom: {}
+
+# -- Rule blocks to be added to the discovery.relabel component for discovered pods and services.
+# These relabeling rules are applied pre-scrape against the targets from service discovery.
+# Before the scrape, any remaining target labels that start with `__` (i.e. `__meta_kubernetes*`) are dropped.
+# ([docs](https://grafana.com/docs/alloy/latest/reference/components/discovery/discovery.relabel/#rule-block))
+# @section -- Discovery Settings
+extraDiscoveryRules: ""
+
+# -- How frequently to scrape metrics from discovered pods and services. Only used if the `k8s.grafana.com/metrics.scrapeInterval` annotation is not set.
+# Overrides global.scrapeInterval
+# @default -- 60s
+# @section -- Scrape Settings
+scrapeInterval: ""
+
+# -- The scrape timeout for discovered pods and services. Only used if the `k8s.grafana.com/metrics.scrapeTimeout` annotation is not set.
+# Overrides global.scrapeTimeout
+# @default -- 10s
+# @section -- Scrape Settings
+scrapeTimeout: ""
+
+# Adjustments to the scraped metrics to filter the amount of metrics sent to storage.
+# @section -- Metric Processing Settings
+metricsTuning:
+  # -- Metrics to keep. Can use regular expressions.
+  # @section -- Metric Processing Settings
+  includeMetrics: []
+  # -- Metrics to drop. Can use regular expressions.
+  # @section -- Metric Processing Settings
+  excludeMetrics: []
+
+# -- Rule blocks to be added to the prometheus.relabel component for discovered pods and services.
+# These relabeling rules are applied post-scrape against the metrics returned from the scraped target, no `__meta*` labels are present.
+# ([docs](https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.relabel/#rule-block))
+# @section -- Metric Processing Settings
+extraMetricProcessingRules: ""
+
+# -- Sets the max_cache_size for cadvisor prometheus.relabel component.
+# This should be at least 2x-5x your largest scrape target or samples appended rate.
+# ([docs](https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.relabel/#arguments))
+# Overrides global.maxCacheSize
+# @raw
+# @section -- Metric Processing Settings
+maxCacheSize:
+
+# -- Sets bearer_token_file line in the prometheus.scrape annotation_autodiscovery.
+# @section -- Scrape Settings
+bearerToken:
+  enabled: true
+  token: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+# @ignore
+deployAsConfigMap: false

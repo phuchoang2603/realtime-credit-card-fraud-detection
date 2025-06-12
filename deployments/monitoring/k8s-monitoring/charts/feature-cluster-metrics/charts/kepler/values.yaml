@@ -1,0 +1,175 @@
+---
+# -- Replaces the name of the chart in the Chart.yaml file
+nameOverride: ""
+# -- Replaces the generated name
+fullnameOverride: ""
+
+image:
+  # -- Repository to pull the image from
+  repository: "quay.io/sustainable_computing_io/kepler"
+  # -- Image tag, if empty it will get it from the chart's appVersion
+  tag: ""
+  # -- Pull policy
+  pullPolicy: Always
+
+# -- Secret name for pulling images from private repository
+imagePullSecrets: []
+
+# -- Additional DaemonSet annotations
+annotations: {}
+
+# -- Additional pod annotations
+podAnnotations: {}
+
+# -- Additional pod labels
+podLabels: {}
+
+# -- Privileges and access control settings for a Pod (all containers in a pod)
+podSecurityContext: {}
+  # fsGroup: 2000
+
+# -- Privileges and access control settings for a container
+securityContext:
+  privileged: true
+
+# -- Node selection constraint
+nodeSelector:
+  kubernetes.io/os: linux
+
+# -- Toleration for taints
+tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+
+# -- Affinity rules
+affinity: {}
+
+# -- CPU/MEM resources
+resources: {}
+
+# -- Extra environment variables
+extraEnvVars:
+  KEPLER_LOG_LEVEL: "1"
+  # METRIC_PATH: "/metrics"
+  # BIND_ADDRESS: "0.0.0.0:9102"
+  ENABLE_GPU: "true"
+  ENABLE_QAT: "false"
+  ENABLE_EBPF_CGROUPID: "true"
+  EXPOSE_HW_COUNTER_METRICS: "true"
+  EXPOSE_IRQ_COUNTER_METRICS: "true"
+  EXPOSE_CGROUP_METRICS: "false"
+  ENABLE_PROCESS_METRICS: "false"
+  CPU_ARCH_OVERRIDE: ""
+  CGROUP_METRICS: '*'
+  # REDFISH_PROBE_INTERVAL_IN_SECONDS: "60"
+  # REDFISH_SKIP_SSL_VERIFY: "true"
+
+canMount:
+  usrSrc: true  # /usr/src may not available, ie GKE
+
+service:
+  annotations: {}
+  type: ClusterIP
+  port: 9102
+
+
+rbac:
+  # Specifies whether rbac should be created
+  create: true
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: 30s
+  scrapeTimeout: 5s
+  labels: {}
+  attachMetadata:
+    node: false
+  relabelings:
+    - action: replace
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+        - __meta_kubernetes_pod_node_name
+      targetLabel: instance
+  metricRelabelings: []
+    ## For example when you need the name of the pod's namespace in the 'namespace' label, e.g. for a multitenant setup
+    # - action: replace
+    #   regex: (.*)
+    #   sourceLabels:
+    #   - namespace
+    #   targetLabel: app_namespace
+    # - action: replace
+    #   regex: (.*)
+    #   sourceLabels:
+    #   - container_namespace
+    #   targetLabel: namespace
+
+redfish:
+  enabled: false
+  name: redfish
+  labels: {}
+  annotations: {}
+  fileContent: |-
+    your_kubelet_node1_name,redfish_username,redfish_password,https://node1_redfish_ip_or_hostname
+    your_kubelet_node2_name,redfish_username,redfish_password,https://node2_redfish_ip_or_hostname
+
+networkPolicy:
+  enabled: false
+  # If you enable a networkPolicy, you must add any redfish IP/Ports you list
+  # egress:
+  #   - to:
+  #     - ipBlock:
+  #         cidr: 10.0.0.0/24
+  #     ports:
+  #       - protocol: TCP
+  #         port: 443
+  egress: {}
+  ingress:
+    - ports:
+      - protocol: TCP
+        port: 9102
+
+# Configure kepler [model-server](https://sustainable-computing.io/kepler_model_server/get_started/)
+modelServer:
+  # whether model-server and estimator sidecar should be deployed
+  enabled: false
+  modelConfig: |
+    NODE_COMPONENTS_ESTIMATOR=true
+  nameOverride: ""
+  fullNameOverride: ""
+  image:
+    repository: "quay.io/sustainable_computing_io/kepler_model_server"
+    tag: "v0.7.12"
+    pullPolicy: Always
+  # replicas of the model-server Deployment
+  replicas: 1
+  # additional annotions for the model server Deployment
+  annotations: {}
+  # additional annotions for the model server Pods
+  podAnnotations: {}
+  # additional labels for the model server Pods
+  podLabels: {}
+  podSecurityContext: {}
+  # security context for the model-server container in the model-server Deployment
+  securityContext: {}
+  nodeSelector:
+    kubernetes.io/os: linux
+  affinity: {}
+  # resources for the model-server containers in the model-server Deployment
+  resources: {}
+  service:
+    annotations: {}
+    type: ClusterIP
+    port: 8100
+  # resources for the estimator sidecar deployed in the kepler DaemonSet
+  sidecarResources: {}
