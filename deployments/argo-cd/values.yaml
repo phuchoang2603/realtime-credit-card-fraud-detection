@@ -1,0 +1,50 @@
+global:
+  # The Git repository where the application manifests and values are stored.
+  repoURL: "https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git"
+  targetRevision: "main"
+  # The destination Kubernetes cluster URL for all applications.
+  destinationServer: "https://kubernetes.default.svc"
+
+# Per-application configurations.
+applications:
+  loki:
+    path: deployments/helm-chart/loki
+    valuesFile: deployments/argo-cd/values/loki.yaml
+    destinationNamespace: monitoring
+
+  k8sMonitoring:
+    path: deployments/helm-chart/k8s-monitoring
+    valuesFile: deployments/argo-cd/values/k8s-monitoring.yaml
+    destinationNamespace: monitoring
+
+  kubePrometheusStack:
+    path: deployments/helm-chart/kube-prometheus-stack
+    valuesFile: deployments/argo-cd/values/kube-prometheus-stack.yaml
+    destinationNamespace: monitoring
+
+  tempo:
+    path: deployments/helm-chart/tempo
+    valuesFile: deployments/argo-cd/values/tempo.yaml
+    destinationNamespace: monitoring
+
+  fraudDetection:
+    path: deployments/helm-chart/fraud-detection
+    valuesFile: deployments/argo-cd/values/fraud-detection.yaml
+    destinationNamespace: model-serving
+
+  traefik:
+    enabled: true
+    destinationNamespace: traefik
+    chartVersion: "v36.2.0-rc1"
+    valuesFile: deployments/argo-cd/values/traefik.yaml
+
+  certManager:
+    enabled: true
+    destinationNamespace: cert-manager
+    chartVersion: "v1.17.2"
+    valuesFile: deployments/argo-cd/values/cert-manager.yaml
+
+  certManagerExtras:
+    enabled: true
+    path: deployments/argo-cd/values/manifests
+    destinationNamespace: default

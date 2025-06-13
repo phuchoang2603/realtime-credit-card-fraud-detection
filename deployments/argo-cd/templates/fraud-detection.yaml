@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fraud-detection
+  namespace: argo-cd
+spec:
+  project: default
+  destination:
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.fraudDetection.destinationNamespace | quote }}
+  sources:
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.fraudDetection.repoURL | quote }}
+      path: {{ .Values.applications.fraudDetection.path | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.fraudDetection.targetRevision | quote }}
+      helm:
+        valueFiles:
+          - $values/{{ .Values.applications.fraudDetection.valuesFile }}
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.fraudDetection.repoURL | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.fraudDetection.targetRevision | quote }}
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

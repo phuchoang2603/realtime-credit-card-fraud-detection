@@ -2,20 +2,25 @@
 cluster:
   name: fraud-detection-cluster
 
-# --- Destination for the collected logs ---
+# --- Destination ---
 destinations:
   - name: loki
     type: loki
-    url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
+    url: http://loki-gateway/loki/api/v1/push
+
+  - name: tempo
+    type: otlp
+    url: http://tempo:4317
+    tls:
+      insecure: true
 
 # --- Log Sources ---
-
 clusterEvents:
   enabled: true
   collector: alloy-logs
   namespaces:
-    - monitoring
     - model-serving
+    - monitoring
 
 nodeLogs:
   enabled: false
@@ -43,17 +48,33 @@ podLogs:
     - monitoring
     - model-serving
 
-# --- Collector Configuration ---
+# --- Metric Sources ---
+clusterMetrics:
+  enabled: false
 
-# get cluster events, but we already use alloy-logs
+prometheusOperatorObjects:
+  enabled: false
+
+applicationObservability:
+  enabled: true
+  receivers:
+    otlp:
+      grpc:
+        enabled: true
+        port: 4317
+      http:
+        enabled: true
+        port: 4318
+
+# --- Collector Configuration ---
 alloy-singleton:
   enabled: false
 
-# get pod and node logs
 alloy-logs:
   enabled: true
   alloy:
     mounts:
+      dockercontainers: false
       varlog: false
     clustering:
       enabled: true
@@ -65,4 +86,14 @@ alloy-profiles:
   enabled: false
 
 alloy-receiver:
-  enabled: false
+  enabled: true
+  alloy:
+    extraPorts:
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP
