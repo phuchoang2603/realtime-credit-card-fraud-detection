@@ -1,7 +1,7 @@
 replicaCount: 2
 imagePullSecrets: []
 service:
-  type: ClusterIP
+  type: LoadBalancer
 env:
   - name: MODEL_PATH
     value: /app/models/model.pkl
