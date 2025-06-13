@@ -3,29 +3,21 @@ kind: Application
 metadata:
   name: loki
   namespace: argo-cd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   destination:
-    server: https://kubernetes.default.svc
-    namespace: monitoring
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.loki.destinationNamespace | quote }}
   sources:
-    # --- Source 1: The Helm chart ---
-    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
-      path: deployments/monitoring/loki
-      targetRevision: main
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.loki.repoURL | quote }}
+      path: {{ .Values.applications.loki.path | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.loki.targetRevision | quote }}
       helm:
         valueFiles:
-          # This path references the 'values' ref from the second source below.
-          - $values/deployments/argo-cd/values/loki.yaml
-
-    # --- Source 2: The Helm values file reference ---
-    - repoURL: 'https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git'
-      targetRevision: main
-      # 'ref' creates a variable ($values) that can be used in other sources.
+          - $values/{{ .Values.applications.loki.valuesFile }}
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.loki.repoURL | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.loki.targetRevision | quote }}
       ref: values
-
   syncPolicy:
     automated:
       prune: true

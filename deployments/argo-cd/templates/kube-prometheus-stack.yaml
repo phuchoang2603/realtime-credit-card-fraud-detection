@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argo-cd
+spec:
+  project: default
+  destination:
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.kubePrometheusStack.destinationNamespace | quote }}
+  sources:
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.kubePrometheusStack.repoURL | quote }}
+      path: {{ .Values.applications.kubePrometheusStack.path | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.kubePrometheusStack.targetRevision | quote }}
+      helm:
+        valueFiles:
+          - $values/{{ .Values.applications.kubePrometheusStack.valuesFile }}
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.kubePrometheusStack.repoURL | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.kubePrometheusStack.targetRevision | quote }}
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
