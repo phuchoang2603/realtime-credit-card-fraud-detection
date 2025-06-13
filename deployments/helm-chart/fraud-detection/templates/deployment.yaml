@@ -46,7 +46,7 @@ spec:
               path: /health
               port: http
             initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.readiessProbe.periodSeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }} 
             timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
             failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
           {{- end }}
