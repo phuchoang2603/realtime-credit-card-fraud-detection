@@ -49,27 +49,25 @@ podLogs:
 # --- Metric Sources ---
 clusterMetrics:
   enabled: true
-  controlPlane:
-    enabled: true
   kepler:
     enabled: true
   opencost:
     enabled: false
 
 # --- Integration Configuration ---
-integrations:
-  cert-manager:
-    instances:
-      - name: cert-manager
-        namespace: cert-manager
-        labelSelectors:
-          app.kubernetes.io/name: cert-manager
-
-  etcd:
-    instances:
-      - name: etcd-server
-        labelSelectors:
-          app.kubernetes.io/component: etcd
+# integrations:
+#   cert-manager:
+#     instances:
+#       - name: cert-manager
+#         namespace: cert-manager
+#         labelSelectors:
+#           app.kubernetes.io/name: cert-manager
+#
+#   etcd:
+#     instances:
+#       - name: etcd-server
+#         labelSelectors:
+#           app.kubernetes.io/component: etcd
 
 annotationAutodiscovery:
   enabled: true

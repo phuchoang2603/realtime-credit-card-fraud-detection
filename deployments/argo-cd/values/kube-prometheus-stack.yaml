@@ -46,6 +46,8 @@ grafana:
 alertmanager:
   enabled: false
 
+prometheusOperator:
+  enabled: true
 nodeExporter:
   enabled: false
 prometheus-node-exporter:

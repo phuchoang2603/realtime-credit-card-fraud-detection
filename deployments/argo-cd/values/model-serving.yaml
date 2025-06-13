@@ -1,8 +1,4 @@
 replicaCount: 2
-image:
-  repository: "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection"
-  tag: "v1.0.1"
-  pullPolicy: IfNotPresent
 imagePullSecrets: []
 service:
   type: ClusterIP
