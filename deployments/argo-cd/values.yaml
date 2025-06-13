@@ -1,7 +1,7 @@
 global:
   # The Git repository where the application manifests and values are stored.
   repoURL: "https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git"
-  targetRevision: "argo-cd"
+  targetRevision: "main"
   # The destination Kubernetes cluster URL for all applications.
   destinationServer: "https://kubernetes.default.svc"
 
