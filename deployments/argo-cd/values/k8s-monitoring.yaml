@@ -11,6 +11,8 @@ destinations:
   - name: tempo
     type: otlp
     url: http://tempo:4317
+    tls:
+      insecure: true
 
 # --- Log Sources ---
 clusterEvents:
