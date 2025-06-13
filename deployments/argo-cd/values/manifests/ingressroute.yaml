@@ -35,8 +35,8 @@ metadata:
   name: model-serving-ingress
   namespace: model-serving
 spec:
-  entryPoints:
-    - websecure
+  # entryPoints:
+  #   - websecure
   routes:
     - match: Host(`fraud.home.phuchoang.sbs`) && PathPrefix(`/`)
       kind: Rule
