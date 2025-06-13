@@ -8,7 +8,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`argo.home.phuchoang.sbs`)
+    - match: Host(`argo.home.phuchoang.sbs`) && PathPrefix(`/`)
       kind: Rule
       services:
         - name: argo-cd-argocd-server

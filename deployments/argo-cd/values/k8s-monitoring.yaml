@@ -10,7 +10,7 @@ destinations:
 
   - name: prometheus
     type: prometheus
-    url: http://monitoring-kube-prometheus-prometheus:9090/api/v1/write
+    url: http://kube-prometheus-stack-prometheus:9090/api/v1/write
 
   - name: tempo
     type: otlp
