@@ -8,26 +8,43 @@ global:
 # Per-application configurations.
 applications:
   loki:
-    path: deployments/monitoring/loki
+    path: deployments/helm-chart/loki
     valuesFile: deployments/argo-cd/values/loki.yaml
     destinationNamespace: monitoring
 
   k8sMonitoring:
-    path: deployments/monitoring/k8s-monitoring
+    path: deployments/helm-chart/k8s-monitoring
     valuesFile: deployments/argo-cd/values/k8s-monitoring.yaml
     destinationNamespace: monitoring
 
   kubePrometheusStack:
-    path: deployments/monitoring/kube-prometheus-stack
+    path: deployments/helm-chart/kube-prometheus-stack
     valuesFile: deployments/argo-cd/values/kube-prometheus-stack.yaml
     destinationNamespace: monitoring
 
   tempo:
-    path: deployments/monitoring/tempo
+    path: deployments/helm-chart/tempo
     valuesFile: deployments/argo-cd/values/tempo.yaml
     destinationNamespace: monitoring
 
-  modelServing:
-    path: deployments/model-serving
-    valuesFile: deployments/argo-cd/values/model-serving.yaml
+  fraudDetection:
+    path: deployments/helm-chart/fraud-detection
+    valuesFile: deployments/argo-cd/values/fraud-detection.yaml
     destinationNamespace: model-serving
+
+  traefik:
+    enabled: true
+    destinationNamespace: traefik
+    chartVersion: "v36.2.0-rc1"
+    valuesFile: deployments/argo-cd/values/traefik.yaml
+
+  certManager:
+    enabled: true
+    destinationNamespace: cert-manager
+    chartVersion: "v1.17.2"
+    valuesFile: deployments/argo-cd/values/cert-manager.yaml
+
+  certManagerExtras:
+    enabled: true
+    path: deployments/argo-cd/values/manifests
+    destinationNamespace: default
