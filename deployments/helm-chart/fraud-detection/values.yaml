@@ -1,13 +1,10 @@
 replicaCount: 2
-
 image:
   repository: "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection"
-  tag: "v1.0.1"
+  tag: "v1.0.3"
   pullPolicy: IfNotPresent
-
 service:
   type: ClusterIP
-
 env:
   - name: MODEL_PATH
     value: /app/models/model.pkl
@@ -15,16 +12,14 @@ env:
     value: "http://k8s-monitoring-alloy-receiver.monitoring.svc.cluster.local:4317"
   - name: OTEL_SERVICE_NAME
     value: "fraud-detection-api"
-
 # It's recommended to uncomment and adjust these for production deployments.
-resources:
-  {}
-  # limits:
-  #   cpu: 200m
-  #   memory: 256Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources: {}
+# limits:
+#   cpu: 200m
+#   memory: 256Mi
+# requests:
+#   cpu: 100m
+#   memory: 128Mi
 
 livenessProbe:
   enabled: true
@@ -32,14 +27,12 @@ livenessProbe:
   periodSeconds: 20
   timeoutSeconds: 5
   failureThreshold: 3
-
 readinessProbe:
   enabled: true
   initialDelaySeconds: 5
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
-
 podMonitor:
   enabled: true
   labels:
