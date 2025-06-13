@@ -1,13 +1,13 @@
 prometheus:
   prometheusSpec:
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
     enableRemoteWriteReceiver: true
     enableFeatures:
       - exemplar-storage
       - native-histograms
 
 grafana:
-  defaultDashboardsEnabled: false
-
   grafana.ini:
     auth.anonymous:
       enabled: true
@@ -44,34 +44,4 @@ grafana:
 
 # Disable components as k8s-monitoring already do it
 alertmanager:
-  enabled: false
-
-prometheusOperator:
-  enabled: true
-nodeExporter:
-  enabled: false
-prometheus-node-exporter:
-  enabled: false
-prometheus-windows-exporter:
-  prometheus:
-    monitor:
-      enabled: false
-
-kubeApiServer:
-  enabled: false
-kubelet:
-  enabled: false
-kubeControllerManager:
-  enabled: false
-coreDns:
-  enabled: false
-kubeDns:
-  enabled: false
-kubeEtcd:
-  enabled: false
-kubeScheduler:
-  enabled: false
-kubeProxy:
-  enabled: false
-kubeStateMetrics:
   enabled: false

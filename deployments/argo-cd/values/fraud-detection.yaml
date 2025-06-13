@@ -10,16 +10,21 @@ env:
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: "http://k8s-monitoring-alloy-receiver.monitoring.svc.cluster.local:4317"
   - name: OTEL_SERVICE_NAME
-    value: "fraud-detection-api"
-podAnnotations:
-  k8s.grafana.com/scrape: "true"
-  k8s.grafana.com/metrics.path: "/metrics"
-  k8s.grafana.com/metrics.portNumber: "8010"
-  k8s.grafana.com/job: "fraud-detection-api"
-resources: {}
-# limits:
-#   cpu: 100m
-#   memory: 128Mi
-# requests:
-#   cpu: 100m
-#   memory: 128Mi
+    value: "fraud-detection"
+
+# It's recommended to uncomment and adjust these for production deployments.
+resources:
+  {}
+  # limits:
+  #   cpu: 200m
+  #   memory: 256Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+podMonitor:
+  enabled: true
+  labels:
+    release: fraud-detection
+  interval: 15s
+  scrapeTimeout: 10s

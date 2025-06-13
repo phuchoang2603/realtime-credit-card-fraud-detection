@@ -1,0 +1,26 @@
+{{- if .Values.podMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- toYaml .Values.podMonitor.labels | nindent 4 }}
+spec:
+  # This selector tells the PodMonitor which pods to target.
+  # It must match the labels on your application pods.
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Release.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  # This defines which port on the pod to scrape.
+  podMetricsEndpoints:
+  - port: http-metrics
+    path: /metrics
+    {{- with .Values.podMonitor.interval }}
+    interval: {{ . }}
+    {{- end }}
+    {{- with .Values.podMonitor.scrapeTimeout }}
+    scrapeTimeout: {{ . }}
+    {{- end }}
+{{- end }}

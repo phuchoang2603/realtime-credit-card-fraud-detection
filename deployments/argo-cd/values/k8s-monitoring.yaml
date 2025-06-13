@@ -8,10 +8,6 @@ destinations:
     type: loki
     url: http://loki-gateway/loki/api/v1/push
 
-  - name: prometheus
-    type: prometheus
-    url: http://kube-prometheus-stack-prometheus:9090/api/v1/write
-
   - name: tempo
     type: otlp
     url: http://tempo:4317
@@ -19,6 +15,10 @@ destinations:
 # --- Log Sources ---
 clusterEvents:
   enabled: true
+  collector: alloy-logs
+  namespaces:
+    - model-serving
+    - monitoring
 
 nodeLogs:
   enabled: false
@@ -48,29 +48,7 @@ podLogs:
 
 # --- Metric Sources ---
 clusterMetrics:
-  enabled: true
-  kepler:
-    enabled: true
-  opencost:
-    enabled: false
-
-# --- Integration Configuration ---
-# integrations:
-#   cert-manager:
-#     instances:
-#       - name: cert-manager
-#         namespace: cert-manager
-#         labelSelectors:
-#           app.kubernetes.io/name: cert-manager
-#
-#   etcd:
-#     instances:
-#       - name: etcd-server
-#         labelSelectors:
-#           app.kubernetes.io/component: etcd
-
-annotationAutodiscovery:
-  enabled: true
+  enabled: false
 
 prometheusOperatorObjects:
   enabled: false
@@ -88,7 +66,7 @@ applicationObservability:
 
 # --- Collector Configuration ---
 alloy-singleton:
-  enabled: true
+  enabled: false
 
 alloy-logs:
   enabled: true
@@ -100,7 +78,7 @@ alloy-logs:
       enabled: true
 
 alloy-metrics:
-  enabled: true
+  enabled: false
 
 alloy-profiles:
   enabled: false

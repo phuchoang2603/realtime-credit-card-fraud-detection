@@ -77,21 +77,6 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: alloy-metrics-ingress
-  namespace: monitoring
-spec:
-  entryPoints:
-    - websecure
-  routes:
-    - match: Host(`alloy-metrics.home.phuchoang.sbs`)
-      kind: Rule
-      services:
-        - name: k8s-monitoring-alloy-metrics
-          port: 12345
----
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
   name: alloy-receiver-ingress
   namespace: monitoring
 spec:
