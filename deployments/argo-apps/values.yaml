@@ -44,7 +44,8 @@ applications:
     chartVersion: "v1.17.2"
     valuesFile: deployments/argo-apps/values/cert-manager.yaml
 
-  certManagerExtras:
+  # Regular manifest files for ingressroute, cert-manager issuers, ...
+  proxmox:
     enabled: true
-    path: deployments/argo-apps/values/manifests
+    path: deployments/argo-apps/values/proxmox
     destinationNamespace: default
