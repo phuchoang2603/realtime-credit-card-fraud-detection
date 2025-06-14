@@ -76,8 +76,7 @@ simulated-data-transformed
 *.sqlite3
 
 # Terraform state
-*.tfstate
-*.tfstate.backup
+*.tfstate*
 *.tfplan
 .terraform.lock.hcl
 .terraform/
