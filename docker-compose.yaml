@@ -17,7 +17,7 @@ services:
       context: ./client
     container_name: fraud-detection-client
     environment:
-      - API_URL=http://api:8000/predict
+      - API_URL=https://fraud.cloud.phuchoang.sbs/predict
     networks:
       - monitoring
     depends_on:
