@@ -1,7 +1,7 @@
 global:
   # The Git repository where the application manifests and values are stored.
   repoURL: "https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git"
-  targetRevision: "main"
+  targetRevision: "cloud"
   # The destination Kubernetes cluster URL for all applications.
   destinationServer: "https://kubernetes.default.svc"
 
@@ -44,7 +44,15 @@ applications:
     chartVersion: "v1.17.2"
     valuesFile: deployments/argo-apps/values/cert-manager.yaml
 
-  certManagerExtras:
+  # Regular manifest files of ingressroute, cert-manager issuers, ...
+  # for proxmox rke2 server or cloud (google, aws, azure,...)
+  # Must be enabled one or the another. Can not be enabled simultaneously
+  proxmox:
+    enabled: false
+    path: deployments/argo-apps/values/proxmox
+    destinationNamespace: default
+
+  cloud:
     enabled: true
-    path: deployments/argo-apps/values/manifests
+    path: deployments/argo-apps/values/cloud
     destinationNamespace: default

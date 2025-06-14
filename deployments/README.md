@@ -1,58 +1,107 @@
-# GitOps Deployment
+# Unified GitOps Deployment
 
-This repository contains the infrastructure and application manifests for deploying a real-time credit card fraud detection system. The entire stack is managed declaratively using a GitOps workflow powered by Helm and Argo CD.
+This repository contains the infrastructure and application manifests for deploying a real-time credit card fraud detection system. The entire stack is managed declaratively using a GitOps workflow.
 
-This guide outlines the technology stack and provides step-by-step instructions for deploying the core infrastructure and monitoring services.
+This guide outlines the technology stack and provides a complete, end-to-end guide for:
 
-## Technology Stack
+1. Provisioning the GKE cluster infrastructure with **Terraform**.
+2. Bootstrapping all applications with a unified **Argo CD "App of Apps" Helm chart**.
 
-This project uses a modern, cloud-native stack for observability and deployment, managed by two primary "App of Apps" Helm charts.
+## 🏛️ Technology Stack
 
-- **`k8s-monitoring-helm`**: This is the all-in-one chart responsible for data collection.
-  - **Grafana Alloy**: Deployed as the primary collector agent. It scrapes metrics, collects logs, and acts as a receiver for application traces (OTLP).
-- **`kube-prometheus-stack`**: This chart provides the backend for metrics storage and visualization.
-  - **Prometheus**: The time-series database where all metrics collected by Alloy are stored. It is configured to receive data via `remote_write`.
-  - **Grafana**: The visualization platform for creating dashboards for all our telemetry data (metrics, logs, and traces).
-- **Loki**: The backend system for storing and querying all application and cluster logs collected by Alloy.
-- **Tempo**: The backend system for storing and querying distributed traces sent from the application via the Alloy OTLP receiver.
+This project uses a modern, cloud-native stack for observability and deployment.
+
+- **Terraform**: Provisions the foundational GKE cluster, networking, and firewall rules on Google Cloud.
+- **Argo CD**: The GitOps controller that deploys and continuously manages all applications inside the cluster.
+- **`k8s-monitoring-helm`**: An all-in-one chart for data collection.
+  - **Grafana Alloy**: The primary collector agent for logs, metrics, and traces.
+- **`kube-prometheus-stack`**: Provides the backend for metrics storage and alerting.
+  - **Prometheus**: The time-series database where all metrics are stored.
+  - **Alertmanager**: Handles alerts based on rules defined in Prometheus.
+- **Loki**: The backend system for storing and querying all logs.
+- **Tempo**: The backend system for storing and querying distributed traces.
+- **Grafana**: The unified visualization platform for all telemetry data.
 - **Traefik**: The Ingress Controller managing external access to services.
-- **Cert-Manager**: Provides automatic TLS certificate provisioning from Let's Encrypt using Cloudflare for DNS validation.
+- **Cert-Manager**: Provides automatic TLS certificate provisioning.
 
-## Deployment Instructions
+## 🚀 Deployment Instructions
 
-These instructions will guide you through deploying the entire platform using the single, unified "App of Apps" Helm chart.
-Prerequisites
+### Prerequisites
 
-- A running Kubernetes cluster (e.g., RKE2).
-- kubectl command-line tool installed and configured.
-- helm command-line tool installed.
-- Argo CD installed and running in the argo-cd namespace in your cluster.
+Before you begin, ensure you have the following tools installed and configured:
 
-### Step 1: Configure Your Environment
+- **Google Cloud SDK (`gcloud` CLI)**: Authenticated to your GCP account.
+- **Terraform** (v1.5.0+)
+- **`kubectl`**
+- **`helm`**
+- **`gke-gcloud-auth-plugin`**: Required for `kubectl` to authenticate with GKE. Install it by running:
 
-All user-specific configurations for the entire platform are centralized in the main `values.yaml` & `values/ folder` of the argo-apps chart. Navigate to the chart directory values folder:
+  ```bash
+  gcloud components install gke-gcloud-auth-plugin
+  ```
 
-```bash
-cd argo-apps/values/
-```
+### Phase 1: Provision the GKE Cluster with Terraform
 
-### Step 2: Deploy the "App of Apps" Chart
+This phase uses Terraform to create the foundational Kubernetes cluster on GCP.
 
-Once your configuration is set, you can deploy the parent Helm chart. This single command bootstraps your entire platform.
-From the argo-apps/ directory, run the following Helm command:
+1. **Navigate to the Terraform directory:**
 
-```bash
-helm install argo-apps . -n argo-cd
-```
+   ```bash
+   cd terraform  # Assuming your .tf files are in a 'terraform' directory
+   ```
+
+2. **Create your configuration file.** Create a file named `terraform.tfvars` and add your GCP project ID.
+
+   ```hcl
+   # terraform.tfvars
+   gcp_project_id = "your-gcp-project-id"
+   ```
+
+3. **Initialize Terraform.** This downloads the necessary providers.
+
+   ```bash
+   terraform init
+   ```
+
+4. **Apply the configuration.** This will create the GKE cluster and deploy Argo CD onto it. This process can take 10-15 minutes.
+
+   ```bash
+   terraform apply -auto-approve
+   ```
+
+5. **Connect `kubectl` to Your New Cluster.** After the `apply` command finishes, Terraform will display outputs. Copy the `gke_connect_command` and run it in your terminal.
+
+   ```bash
+   # Example output from Terraform:
+   # gke_connect_command = "gcloud container clusters get-credentials my-gke-cluster --zone asia-southeast1-a --project your-gcp-project-id"
+
+   # Run the command provided in your terminal output
+   gcloud container clusters get-credentials ...
+   ```
+
+### Phase 2: Deploy Applications via App of Apps
+
+Now that the cluster is running and Argo CD is installed, we will use a parent Helm chart to tell Argo CD what to deploy.
+
+1. **Navigate to the App of Apps chart directory:**
+
+   ```bash
+   cd ../argo-apps # Navigate to your parent chart directory
+   ```
+
+2. **Configure Your Environment.** Edit the main `values.yaml` in this directory to set your cluster-wide variables (domain, IP, tokens). For advanced settings, you can edit the files in the `values/` sub-directory.
+3. **Deploy the "App of Apps" Chart.** This single command bootstraps your entire platform by creating the Argo CD `Application` resources.
+
+   ```bash
+   helm install argo-apps . -n argo-cd
+   ```
 
 ### Step 3: Verify in Argo CD
 
-Open your Argo CD UI. You will see all the applications (traefik, cert-manager, loki, grafana, etc.) being created and moving towards a Synced and Healthy state. Due to dependencies (like CRDs), some apps may retry syncing, which is normal behavior.
+Open your Argo CD UI. You will see all the applications (`traefik`, `cert-manager`, `loki`, `grafana`, etc.) being created and moving towards a `Synced` and `Healthy` state. Due to dependencies (like CRDs), some apps may retry syncing, which is normal behavior.
 
 Expected Results
 ![](./images/argocd.png)
-
-Once all applications are synced, you will have a fully functional ingress and observability stack.
 
 Grafana Metrics Dashboard (Prometheus)
 ![](./images/cluster-metrics.png)
@@ -64,10 +113,19 @@ Grafana Logs View (Loki)
 Grafana Traces View (Tempo)
 ![](./images/traces.png)
 
-## Uninstallation
+## 💣 Uninstallation
 
-To completely remove the entire platform, you only need to uninstall the parent Helm chart. This will delete the Argo CD Application resources, which will, in turn, cause Argo CD to prune and delete all the associated Kubernetes resources from your cluster.
+To completely remove the entire platform, you must perform the steps in reverse.
 
-```bash
-helm uninstall argo-apps -n argo-cd
-```
+1. **Uninstall the App of Apps Helm chart.** This deletes the Argo CD `Application` resources, which will cause Argo CD to prune all deployed applications.
+
+   ```bash
+   helm uninstall argo-apps -n argo-cd
+   ```
+
+2. **Destroy the Infrastructure with Terraform.**
+
+   ```bash
+   cd ../terraform # Navigate back to the terraform directory
+   terraform destroy -auto-approve
+   ```

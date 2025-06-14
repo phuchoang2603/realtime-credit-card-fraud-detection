@@ -1,17 +1,17 @@
-{{- if .Values.applications.certManagerExtras.enabled }}
+{{- if .Values.applications.proxmox.enabled }}
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cert-manager-extras
+  name: proxmox
   namespace: argo-cd
 spec:
   project: default
   destination:
     server: {{ .Values.global.destinationServer | quote }}
-    namespace: {{ .Values.applications.certManagerExtras.destinationNamespace | quote }}
+    namespace: {{ .Values.applications.proxmox.destinationNamespace | quote }}
   source:
     repoURL: {{ .Values.global.repoURL | quote }}
-    path: {{ .Values.applications.certManagerExtras.path | quote }}
+    path: {{ .Values.applications.proxmox.path | quote }}
     targetRevision: {{ .Values.global.targetRevision | quote }}
   syncPolicy:
     automated: { prune: true, selfHeal: true }
