@@ -102,7 +102,9 @@ def call_predict_api():
             headers = {"X-Request-ID": str(uuid.uuid4())}
             print(f"Sending request to {API_URL}...")
 
-            response = requests.post(API_URL, json=transaction_data, headers=headers)
+            response = requests.post(
+                API_URL, json=transaction_data, headers=headers, verify=False
+            )
 
             if response.status_code == 200:
                 print("Request successful!")
