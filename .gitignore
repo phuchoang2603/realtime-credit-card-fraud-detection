@@ -75,6 +75,13 @@ simulated-data-transformed
 # SQLite database
 *.sqlite3
 
+# Terraform state
+*.tfstate
+*.tfstate.backup
+*.tfplan
+.terraform.lock.hcl
+.terraform/
+
 # OS-specific files
 .DS_Store
 Thumbs.db
