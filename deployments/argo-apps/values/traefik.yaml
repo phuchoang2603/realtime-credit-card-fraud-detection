@@ -9,13 +9,6 @@ tlsStore:
     defaultCertificate:
       secretName: wildcard-tls
 
-ingressRoute:
-  dashboard:
-    enabled: true
-    # matchRule: Host(`traefik.home.phuchoang.sbs`)
-    matchRule: Host(`traefik.cloud.phuchoang.sbs`)
-    entryPoints: ["websecure"]
-
 ports:
   web:
     redirections:
