@@ -44,8 +44,15 @@ applications:
     chartVersion: "v1.17.2"
     valuesFile: deployments/argo-apps/values/cert-manager.yaml
 
-  # Regular manifest files for ingressroute, cert-manager issuers, ...
+  # Regular manifest files of ingressroute, cert-manager issuers, ...
+  # for proxmox rke2 server or cloud (google, aws, azure,...)
+  # Must be enabled one or the another. Can not be enabled simultaneously
   proxmox:
-    enabled: true
+    enabled: false
     path: deployments/argo-apps/values/proxmox
+    destinationNamespace: default
+
+  cloud:
+    enabled: true
+    path: deployments/argo-apps/values/cloud
     destinationNamespace: default

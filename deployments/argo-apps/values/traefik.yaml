@@ -1,7 +1,8 @@
 service:
   type: LoadBalancer
-  spec:
-    loadBalancerIP: "10.69.3.3"
+  # Set default IP for proxmox rke2 cluster
+  # spec:
+  #   loadBalancerIP: "10.69.3.3"
 
 tlsStore:
   default:
@@ -11,7 +12,8 @@ tlsStore:
 ingressRoute:
   dashboard:
     enabled: true
-    matchRule: Host(`traefik.home.phuchoang.sbs`)
+    # matchRule: Host(`traefik.home.phuchoang.sbs`)
+    matchRule: Host(`traefik.cloud.phuchoang.sbs`)
     entryPoints: ["websecure"]
 
 ports:

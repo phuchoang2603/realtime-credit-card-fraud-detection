@@ -1,6 +1,7 @@
 ---
-global:
-  dnsService: "rke2-coredns-rke2-coredns"
+# Change default dns server for proxmox rke2 cluster
+# global:
+#   dnsService: "rke2-coredns-rke2-coredns"
 
 deploymentMode: SingleBinary
 
