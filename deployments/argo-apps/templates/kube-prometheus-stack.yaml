@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: kube-prometheus-stack
   namespace: argo-cd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   destination:
