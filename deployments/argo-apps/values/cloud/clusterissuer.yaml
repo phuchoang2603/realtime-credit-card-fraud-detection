@@ -1,3 +1,12 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudflare-api-token-secret
+  namespace: ssl
+type: Opaque
+stringData:
+  api-token: "lyjbLan5ApshVxTktZRxgXZm3DkzQeT8vUxK_1sW"
+---
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
