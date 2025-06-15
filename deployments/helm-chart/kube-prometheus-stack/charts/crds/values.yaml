@@ -1,4 +1,0 @@
-## Check out kube-prometheus-stack/values.yaml for more information
-## on this parameter
-upgradeJob:
-  enabled: false
