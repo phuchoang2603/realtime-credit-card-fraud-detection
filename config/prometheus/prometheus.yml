@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "prometheus"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: "fraud-detection-api"
+    metrics_path: /metrics # Default path for the OpenTelemetry exporter
+    static_configs:
+      - targets: ["api:8010"] # Tells Prometheus to scrape the 'api' service on its metrics port

@@ -1,0 +1,41 @@
+{{- if .Values.autoInstrumentation.enabled }}
+{{- $config := .Values.autoInstrumentation.beyla.config.data }}
+{{- $attributes := dict "kubernetes" (dict "enable" true "cluster_name" .Values.cluster.name) }}
+{{- $internalMetrics := dict "prometheus" (dict "port" .Values.autoInstrumentation.beyla.service.targetPort) }}
+{{- $prometheusExport := dict "port" .Values.autoInstrumentation.beyla.service.targetPort }}
+{{- $overrides := dict "attributes" $attributes "internal_metrics" $internalMetrics "prometheus_export" $prometheusExport }}
+
+{{- if and (eq .Values.autoInstrumentation.beyla.preset "network") (not .Values.autoInstrumentation.beyla.config.data.network) }}
+  {{- $network := dict "enable" true }}
+  {{- $overrides = merge $overrides (dict "network" $network) }}
+{{- end }}
+{{- if and (eq .Values.autoInstrumentation.beyla.preset "application") (not .Values.autoInstrumentation.beyla.config.data.discovery) }}
+  {{- $services := list (dict "k8s_namespace" ".") }}
+  {{- $excludeServices := list (dict "exe_path" ".*alloy.*|.*otelcol.*|.*beyla.*") }}
+  {{- $discovery := dict "services" $services "exclude_services" $excludeServices }}
+  {{- $overrides = merge $overrides (dict "discovery" $discovery) }}
+{{- end }}
+
+{{- $grpcReceiverEndpoint := include "features.applicationObservability.receiver.grpc" . | trim }}
+{{- $httpReceiverEndpoint := include "features.applicationObservability.receiver.http" . | trim }}
+{{- if or $grpcReceiverEndpoint $httpReceiverEndpoint }}
+  {{- $otelTracesExport := dict "endpoint" ($grpcReceiverEndpoint | default $httpReceiverEndpoint) }}
+  {{- $overrides = merge $overrides (dict "otel_traces_export" $otelTracesExport) }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "beyla.fullname" .Subcharts.autoInstrumentation.Subcharts.beyla }}
+  namespace: {{ include "beyla.namespace" .Subcharts.autoInstrumentation.Subcharts.beyla }}
+  labels:
+    {{- include "beyla.labels" .Subcharts.autoInstrumentation.Subcharts.beyla | nindent 4 }}
+    app.kubernetes.io/component: config
+  {{- with .Values.autoInstrumentation.beyla.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  beyla-config.yml: |-
+    {{- (merge $config $overrides) | toYaml | nindent 4 }}
+{{- end }}

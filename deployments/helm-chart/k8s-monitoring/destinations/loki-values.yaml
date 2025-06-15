@@ -1,0 +1,211 @@
+---
+# -- The name for this Loki destination.
+# @section -- General
+name: ""
+
+# -- The URL for the Loki destination.
+# @section -- General
+url: ""
+
+# -- Raw config for accessing the URL.
+# @section -- General
+urlFrom: ""
+
+# -- HTTP proxy to send requests through.
+# @section -- General
+proxyURL: ""
+
+# -- Comma-separated list of IP addresses, CIDR notations, and domain names to exclude from proxying.
+# @section -- General
+noProxy: ""
+
+# -- Specifies headers to send to proxies during CONNECT requests.
+# @section -- General
+proxyConnectHeader: {}
+
+# -- Use the proxy URL indicated by environment variables.
+# @section -- General
+proxyFromEnvironment: false
+
+# -- The tenant ID for the Loki destination.
+# @section -- General
+tenantId: ""
+# -- The key for storing the tenant ID in the secret.
+# @section -- General
+tenantIdKey: tenantId
+# -- Raw config for accessing the tenant ID.
+# @section -- General
+tenantIdFrom: ""
+
+# -- Extra headers to be set when sending data.
+# All values are treated as strings and automatically quoted.
+# @section -- General
+extraHeaders: {}
+# -- Extra headers to be set when sending data through a dynamic reference.
+# All values are treated as raw strings and not quoted.
+# @section -- General
+extraHeadersFrom: {}
+
+# -- Custom labels to be added to all logs and events.
+# All values are treated as strings and automatically quoted.
+# @section -- General
+extraLabels: {}
+# -- Custom labels to be added to all logs and events through a dynamic reference.
+# All values are treated as raw strings and not quoted.
+# @section -- General
+extraLabelsFrom: {}
+
+# -- Labels to be set with the cluster name as the value.
+# @section -- General
+clusterLabels: [cluster, k8s.cluster.name]
+
+# -- Stage blocks to be evaluated before delivering to the Loki destination. See
+# ([docs](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process/#blocks)) for more information.
+# @section -- General
+logProcessingStages: ""
+
+# -- The minimum backoff period for the Loki destination.
+# @section -- General
+minBackoffPeriod: 500ms
+
+# -- The maximum backoff period for the Loki destination.
+# @section -- General
+maxBackoffPeriod: 5m
+
+# -- The maximum number of backoff retries for the Loki destination.
+# @section -- General
+maxBackoffRetries: 10
+
+auth:
+  # -- The type of authentication to do.
+  # Options are "none" (default), "basic", "bearerToken", "oauth2".
+  # @section -- Authentication
+  type: none
+
+  # -- The username for basic authentication.
+  # @section -- Authentication - Basic
+  username: ""
+  # -- The key for storing the username in the secret.
+  # @section -- Authentication - Basic
+  usernameKey: username
+  # -- Raw config for accessing the username.
+  # @section -- Authentication - Basic
+  usernameFrom: ""
+
+  # -- The password for basic authentication.
+  # @section -- Authentication - Basic
+  password: ""
+  # -- The key for storing the password in the secret.
+  # @section -- Authentication - Basic
+  passwordKey: "password"
+  # -- Raw config for accessing the password.
+  # @section -- Authentication - Basic
+  passwordFrom: ""
+
+  # -- The bearer token for bearer token authentication.
+  # @section -- Authentication - Bearer Token
+  bearerToken: ""
+  # -- The key for storing the bearer token in the secret.
+  # @section -- Authentication - Bearer Token
+  bearerTokenKey: "bearerToken"
+  # -- Raw config for accessing the bearer token.
+  # @section -- Authentication - Bearer Token
+  bearerTokenFrom: ""
+  # -- Path to a file that containers the bearer token.
+  # @section -- Authentication - Bearer Token
+  bearerTokenFile: ""
+
+  # Authenticate to Loki using OAuth2
+  # @section -- Authentication - OAuth2
+  oauth2:
+    # -- OAuth2 client ID
+    # @section -- Authentication - OAuth2
+    clientId: ""
+    # -- The key for the client ID property in the secret
+    # @section -- Authentication - OAuth2
+    clientIdKey: clientId
+    # -- Raw config for accessing the client ID
+    # @section -- Authentication - OAuth2
+    clientIdFrom: ""
+    # -- OAuth2 client secret
+    # @section -- Authentication - OAuth2
+    clientSecret: ""
+    # -- The key for the client secret property in the secret
+    # @section -- Authentication - OAuth2
+    clientSecretKey: clientSecret
+    # -- Raw config for accessing the client secret
+    # @section -- Authentication - OAuth2
+    clientSecretFrom: ""
+    # -- File containing the OAuth2 client secret.
+    # @section -- Authentication - OAuth2
+    clientSecretFile: ""
+    # -- OAuth2 endpoint parameters
+    # @section -- Authentication - OAuth2
+    endpointParams: {}
+    # -- HTTP proxy to send requests through.
+    # @section -- Authentication - OAuth2
+    proxyURL: ""
+    # -- Comma-separated list of IP addresses, CIDR notations, and domain names to exclude from proxying.
+    # @section -- Authentication - OAuth2
+    noProxy: ""
+    # -- Use the proxy URL indicated by environment variables.
+    # @section -- Authentication - OAuth2
+    proxyFromEnvironment: false
+    # -- Specifies headers to send to proxies during CONNECT requests.
+    # @section -- Authentication - OAuth2
+    proxyConnectHeader: {}
+    # -- List of scopes to authenticate with.
+    # @section -- Authentication - OAuth2
+    scopes: []
+    # -- URL to fetch the token from.
+    # @section -- Authentication - OAuth2
+    tokenURL: ""
+
+secret:
+  # -- Whether to create a secret for this Loki destination.
+  # @section -- Secret
+  create: true
+  # -- If true, skip secret creation and embed the credentials directly into the configuration.
+  # @section -- Secret
+  embed: false
+  # -- The name of the secret to create.
+  # @section -- Secret
+  name: ""
+  # -- The namespace for the secret.
+  # @section -- Secret
+  namespace: ""
+
+tls:
+  # -- Disables validation of the server certificate.
+  # @section -- TLS
+  insecureSkipVerify: false
+
+  # -- The CA certificate for the server (as a string).
+  # @section -- TLS
+  ca: ""
+  # -- The CA certificate for the server (as a path to a file).
+  # @section -- TLS
+  caFile: ""
+  # -- Raw config for accessing the server CA certificate.
+  # @section -- TLS
+  caFrom: ""
+
+  # -- The client certificate for the server (as a string).
+  # @section -- TLS
+  cert: ""
+  # -- The client certificate for the server (as a path to a file).
+  # @section -- TLS
+  certFile: ""
+  # -- Raw config for accessing the client certificate.
+  # @section -- TLS
+  certFrom: ""
+
+  # -- The client key for the server (as a string).
+  # @section -- TLS
+  key: ""
+  # -- The client key for the server (as a path to a file).
+  # @section -- TLS
+  keyFile: ""
+  # -- Raw config for accessing the client key.
+  # @section -- TLS
+  keyFrom: ""

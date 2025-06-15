@@ -1,0 +1,229 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{- include "alloy-operator.fullname" . | nindent 4 }}-leader-election-role
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "alloy-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{- include "alloy-operator.fullname" . | nindent 4 }}-alloy-editor-role
+  labels:
+    {{- include "alloy-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - collectors.grafana.com
+    resources:
+      - alloys
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - collectors.grafana.com
+    resources:
+      - alloys/status
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{- include "alloy-operator.fullname" . | nindent 4 }}-alloy-viewer-role
+  labels:
+    {{- include "alloy-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - collectors.grafana.com
+    resources:
+      - alloys
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - collectors.grafana.com
+    resources:
+      - alloys/status
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{- include "alloy-operator.fullname" . | nindent 4 }}-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - '*'
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+  # Rules which allow the management of Alloys.
+  - apiGroups:
+      - collectors.grafana.com
+    resources:
+      - alloys
+      - alloys/status
+      - alloys/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Rules which allow the management of ConfigMaps, ServiceAccounts, and Services.
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - serviceaccounts
+      - services
+    verbs:
+      - '*'
+  # Rules which allow the management of DaemonSets, Deployments, and StatefulSets.
+  - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+      - deployments
+      - statefulsets
+    verbs:
+      - '*'
+  # Rules which allow the management of Horizontal Pod Autoscalers.
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - '*'
+  # Rules which allow for the management of Prometheus Operator objects.
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - podmonitors
+      - servicemonitors
+      - probes
+      - scrapeconfigs
+    verbs:
+      - get
+      - list
+      - watch
+  # Rules which allow the management of Ingresses.
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - '*'
+  # Rules which allow the management of PodDisruptionBudgets.
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - '*'
+  # Rules which allow mimir.rules.kubernetes to work.
+  - apiGroups: ["monitoring.coreos.com"]
+    resources:
+      - prometheusrules
+    verbs:
+      - get
+      - list
+      - watch
+  - nonResourceURLs:
+      - /metrics
+    verbs:
+      - get
+  # Rules which allow the management of ClusterRoles and ClusterRoleBindings.
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+      - clusterroles
+    verbs:
+      - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{- include "alloy-operator.fullname" . | nindent 4 }}-leader-election-rolebinding
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "alloy-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{- include "alloy-operator.fullname" . | nindent 4 }}-leader-election-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "alloy-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{- include "alloy-operator.fullname" . | nindent 4 }}-rolebinding
+  labels:
+    {{- include "alloy-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{- include "alloy-operator.fullname" . | nindent 4 }}-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "alloy-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}

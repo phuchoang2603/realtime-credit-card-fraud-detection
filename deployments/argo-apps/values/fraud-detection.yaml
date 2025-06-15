@@ -1,0 +1,30 @@
+replicaCount: 2
+imagePullSecrets: []
+service:
+  type: ClusterIP
+env:
+  - name: MODEL_PATH
+    value: /app/models/model.pkl
+  - name: TESTING_MODE
+    value: "false"
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "http://k8s-monitoring-alloy-receiver.monitoring.svc.cluster.local:4317"
+  - name: OTEL_SERVICE_NAME
+    value: "fraud-detection"
+
+# It's recommended to uncomment and adjust these for production deployments.
+resources:
+  {}
+  # limits:
+  #   cpu: 200m
+  #   memory: 256Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+podMonitor:
+  enabled: true
+  labels:
+    release: fraud-detection
+  interval: 15s
+  scrapeTimeout: 10s

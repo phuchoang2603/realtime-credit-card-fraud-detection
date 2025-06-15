@@ -1,0 +1,82 @@
+{{- if .Values.modelServer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "modelServer.fullname" . }}
+  labels:
+    {{- include "modelServer.labels" . | nindent 4 }}
+  {{- with .Values.modelServer.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.modelServer.replicas }}
+  selector:
+    matchLabels:
+      {{- include "modelServer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.modelServer.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "modelServer.selectorLabels" . | nindent 8 }}
+        {{- with .Values.modelServer.podLabels }}
+        {{- . | toYaml | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: server-api
+        args:
+        - model-server
+        image: "{{ .Values.modelServer.image.repository }}:{{ .Values.modelServer.image.tag }}"
+        imagePullPolicy: {{ .Values.modelServer.image.pullPolicy }}
+        ports:
+        - containerPort: 8100
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /mnt
+          name: mnt
+        {{- with .Values.modelServer.resources }}
+        resources:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+        {{- with .Values.modelServer.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+        startupProbe:
+          httpGet:
+            path: /best-models
+            port: http
+          initialDelaySeconds: 1
+        readinessProbe:
+          httpGet:
+            path: /best-models
+            port: http
+      volumes:
+      - name: mnt
+        emptyDir: {}
+      {{- with .Values.modelServer.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.modelServer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.modelServer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.modelServer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

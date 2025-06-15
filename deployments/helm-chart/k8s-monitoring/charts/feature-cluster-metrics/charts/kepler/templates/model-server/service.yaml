@@ -1,0 +1,21 @@
+{{- if .Values.modelServer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "modelServer.fullname" . }}
+  labels:
+    {{- include "modelServer.labels" . | nindent 4 }}
+  {{- with .Values.modelServer.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.modelServer.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.modelServer.service.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "modelServer.selectorLabels" . | nindent 4 }}
+{{- end }}

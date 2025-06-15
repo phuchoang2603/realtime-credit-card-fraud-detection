@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "alloy-operator.fullname" . }}
+  labels:
+    {{- include "alloy-operator.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.health.port }}
+      targetPort: http
+      protocol: TCP
+    - name: metrics
+      port: {{ .Values.service.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    {{- include "alloy-operator.selectorLabels" . | nindent 4 }}

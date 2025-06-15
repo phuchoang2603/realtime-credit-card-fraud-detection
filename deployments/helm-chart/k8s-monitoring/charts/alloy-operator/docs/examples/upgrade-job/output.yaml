@@ -1,0 +1,370 @@
+---
+# Source: alloy-operator/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alloy-operator
+  namespace: default
+  labels:
+    helm.sh/chart: alloy-operator-0.2.9
+    app.kubernetes.io/name: alloy-operator
+    app.kubernetes.io/instance: alloy-operator
+    app.kubernetes.io/version: "1.0.3"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+---
+# Source: alloy-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name:
+    alloy-operator-alloy-editor-role
+  labels:
+    helm.sh/chart: alloy-operator-0.2.9
+    app.kubernetes.io/name: alloy-operator
+    app.kubernetes.io/instance: alloy-operator
+    app.kubernetes.io/version: "1.0.3"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups:
+      - collectors.grafana.com
+    resources:
+      - alloys
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - collectors.grafana.com
+    resources:
+      - alloys/status
+    verbs:
+      - get
+---
+# Source: alloy-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name:
+    alloy-operator-alloy-viewer-role
+  labels:
+    helm.sh/chart: alloy-operator-0.2.9
+    app.kubernetes.io/name: alloy-operator
+    app.kubernetes.io/instance: alloy-operator
+    app.kubernetes.io/version: "1.0.3"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups:
+      - collectors.grafana.com
+    resources:
+      - alloys
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - collectors.grafana.com
+    resources:
+      - alloys/status
+    verbs:
+      - get
+---
+# Source: alloy-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name:
+    alloy-operator-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - '*'
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+  # Rules which allow the management of Alloys.
+  - apiGroups:
+      - collectors.grafana.com
+    resources:
+      - alloys
+      - alloys/status
+      - alloys/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  # Rules which allow the management of ConfigMaps, ServiceAccounts, and Services.
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - serviceaccounts
+      - services
+    verbs:
+      - '*'
+  # Rules which allow the management of DaemonSets, Deployments, and StatefulSets.
+  - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+      - deployments
+      - statefulsets
+    verbs:
+      - '*'
+  # Rules which allow the management of Horizontal Pod Autoscalers.
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - '*'
+  # Rules which allow for the management of Prometheus Operator objects.
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - podmonitors
+      - servicemonitors
+      - probes
+      - scrapeconfigs
+    verbs:
+      - get
+      - list
+      - watch
+  # Rules which allow the management of Ingresses.
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - '*'
+  # Rules which allow the management of PodDisruptionBudgets.
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - '*'
+  # Rules which allow mimir.rules.kubernetes to work.
+  - apiGroups: ["monitoring.coreos.com"]
+    resources:
+      - prometheusrules
+    verbs:
+      - get
+      - list
+      - watch
+  - nonResourceURLs:
+      - /metrics
+    verbs:
+      - get
+  # Rules which allow the management of ClusterRoles and ClusterRoleBindings.
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+      - clusterroles
+    verbs:
+      - '*'
+---
+# Source: alloy-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name:
+    alloy-operator-rolebinding
+  labels:
+    helm.sh/chart: alloy-operator-0.2.9
+    app.kubernetes.io/name: alloy-operator
+    app.kubernetes.io/instance: alloy-operator
+    app.kubernetes.io/version: "1.0.3"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name:
+    alloy-operator-role
+subjects:
+  - kind: ServiceAccount
+    name: alloy-operator
+    namespace: default
+---
+# Source: alloy-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name:
+    alloy-operator-leader-election-role
+  namespace: default
+  labels:
+    helm.sh/chart: alloy-operator-0.2.9
+    app.kubernetes.io/name: alloy-operator
+    app.kubernetes.io/instance: alloy-operator
+    app.kubernetes.io/version: "1.0.3"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+---
+# Source: alloy-operator/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name:
+    alloy-operator-leader-election-rolebinding
+  namespace: default
+  labels:
+    helm.sh/chart: alloy-operator-0.2.9
+    app.kubernetes.io/name: alloy-operator
+    app.kubernetes.io/instance: alloy-operator
+    app.kubernetes.io/version: "1.0.3"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name:
+    alloy-operator-leader-election-role
+subjects:
+  - kind: ServiceAccount
+    name: alloy-operator
+    namespace: default
+---
+# Source: alloy-operator/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy-operator
+  labels:
+    helm.sh/chart: alloy-operator-0.2.9
+    app.kubernetes.io/name: alloy-operator
+    app.kubernetes.io/instance: alloy-operator
+    app.kubernetes.io/version: "1.0.3"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http
+      protocol: TCP
+    - name: metrics
+      port: 8082
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: alloy-operator
+    app.kubernetes.io/instance: alloy-operator
+---
+# Source: alloy-operator/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy-operator
+  labels:
+    helm.sh/chart: alloy-operator-0.2.9
+    app.kubernetes.io/name: alloy-operator
+    app.kubernetes.io/instance: alloy-operator
+    app.kubernetes.io/version: "1.0.3"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alloy-operator
+      app.kubernetes.io/instance: alloy-operator
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: alloy-operator-0.2.9
+        app.kubernetes.io/name: alloy-operator
+        app.kubernetes.io/instance: alloy-operator
+        app.kubernetes.io/version: "1.0.3"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: alloy-operator
+      containers:
+        - name: alloy-operator
+          image: "ghcr.io/grafana/alloy-operator:1.0.3"
+          imagePullPolicy: IfNotPresent
+          args:
+            - --leader-elect
+            - --leader-election-id=alloy-operator
+            - --health-probe-bind-address=:8081
+            - --metrics-bind-address=:8082
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+            - name: metrics
+              containerPort: 8082
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            runAsNonRoot: true
+      nodeSelector:
+        kubernetes.io/os: linux

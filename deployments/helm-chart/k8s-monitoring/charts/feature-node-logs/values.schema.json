@@ -1,0 +1,50 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+        "deployAsConfigMap": {
+            "type": "boolean"
+        },
+        "extraDiscoveryRules": {
+            "type": "string"
+        },
+        "extraLogProcessingStages": {
+            "type": "string"
+        },
+        "fullnameOverride": {
+            "type": "string"
+        },
+        "journal": {
+            "type": "object",
+            "properties": {
+                "formatAsJson": {
+                    "type": "boolean"
+                },
+                "jobLabel": {
+                    "type": "string"
+                },
+                "maxAge": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "units": {
+                    "type": "array"
+                }
+            }
+        },
+        "labelsToKeep": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "nameOverride": {
+            "type": "string"
+        },
+        "structuredMetadata": {
+            "type": "object"
+        }
+    }
+}

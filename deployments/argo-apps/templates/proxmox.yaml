@@ -1,0 +1,19 @@
+{{- if .Values.applications.proxmox.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: proxmox
+  namespace: argo-cd
+spec:
+  project: default
+  destination:
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.proxmox.destinationNamespace | quote }}
+  source:
+    repoURL: {{ .Values.global.repoURL | quote }}
+    path: {{ .Values.applications.proxmox.path | quote }}
+    targetRevision: {{ .Values.global.targetRevision | quote }}
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]
+{{- end }}
