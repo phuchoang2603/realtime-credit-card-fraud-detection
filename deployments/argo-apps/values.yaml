@@ -1,7 +1,7 @@
 global:
   # The Git repository where the application manifests and values are stored.
   repoURL: "https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git"
-  targetRevision: "cloud"
+  targetRevision: "main"
   # The destination Kubernetes cluster URL for all applications.
   destinationServer: "https://kubernetes.default.svc"
 
@@ -9,38 +9,38 @@ global:
 applications:
   loki:
     path: deployments/helm-chart/loki
-    valuesFile: deployments/argo-apps/values/loki.yaml
     destinationNamespace: monitoring
+    valuesFile: deployments/argo-apps/values/loki.yaml
 
   k8sMonitoring:
     path: deployments/helm-chart/k8s-monitoring
-    valuesFile: deployments/argo-apps/values/k8s-monitoring.yaml
     destinationNamespace: monitoring
+    valuesFile: deployments/argo-apps/values/k8s-monitoring.yaml
 
   kubePrometheusStack:
     path: deployments/helm-chart/kube-prometheus-stack
-    valuesFile: deployments/argo-apps/values/kube-prometheus-stack.yaml
     destinationNamespace: monitoring
+    valuesFile: deployments/argo-apps/values/kube-prometheus-stack.yaml
 
   tempo:
     path: deployments/helm-chart/tempo
-    valuesFile: deployments/argo-apps/values/tempo.yaml
     destinationNamespace: monitoring
+    valuesFile: deployments/argo-apps/values/tempo.yaml
 
   fraudDetection:
     path: deployments/helm-chart/fraud-detection
-    valuesFile: deployments/argo-apps/values/fraud-detection.yaml
     destinationNamespace: model-serving
+    valuesFile: deployments/argo-apps/values/fraud-detection.yaml
 
   traefik:
     enabled: true
-    destinationNamespace: traefik
+    destinationNamespace: ssl
     chartVersion: "v36.2.0-rc1"
     valuesFile: deployments/argo-apps/values/traefik.yaml
 
   certManager:
     enabled: true
-    destinationNamespace: cert-manager
+    destinationNamespace: ssl
     chartVersion: "v1.17.2"
     valuesFile: deployments/argo-apps/values/cert-manager.yaml
 
@@ -49,10 +49,10 @@ applications:
   # Must be enabled one or the another. Can not be enabled simultaneously
   proxmox:
     enabled: false
-    path: deployments/argo-apps/values/proxmox
     destinationNamespace: default
+    path: deployments/argo-apps/values/proxmox
 
   cloud:
     enabled: true
-    path: deployments/argo-apps/values/cloud
     destinationNamespace: default
+    path: deployments/argo-apps/values/cloud
