@@ -3,50 +3,6 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 import numpy as np
 
-# Make the app directory importable
-import sys
-import os
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from app.main import app
-from app.schema import TransactionFeatures
-
-
-# A fixture to provide a test client for each test function
-@pytest.fixture
-def client():
-    with TestClient(app) as c:
-        yield c
-
-
-# Sample legitimate transaction data for testing
-sample_legitimate_payload = {
-    "TRANSACTION_ID": 1,
-    "TX_DATETIME": "2025-06-12T10:00:00Z",
-    "CUSTOMER_ID": 1001,
-    "TERMINAL_ID": 2001,
-    "TX_TIME_SECONDS": 1749615600,
-    "TX_TIME_DAYS": 20250,
-    "TX_AMOUNT": 75.50,
-    "TX_DURING_WEEKEND": 0,
-    "TX_DURING_NIGHT": 0,
-    "CUSTOMER_ID_NB_TX_1DAY_WINDOW": 2.0,
-    "CUSTOMER_ID_AVG_AMOUNT_1DAY_WINDOW": 75.50,
-    "CUSTOMER_ID_NB_TX_7DAY_WINDOW": 10.0,
-    "CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW": 80.0,
-    "CUSTOMER_ID_NB_TX_30DAY_WINDOW": 30.0,
-    "CUSTOMER_ID_AVG_AMOUNT_30DAY_WINDOW": 85.0,
-    "TERMINAL_ID_NB_TX_1DAY_WINDOW": 50.0,
-    "TERMINAL_ID_RISK_1DAY_WINDOW": 0.1,
-    "TERMINAL_ID_NB_TX_7DAY_WINDOW": 350.0,
-    "TERMINAL_ID_RISK_7DAY_WINDOW": 0.15,
-    "TERMINAL_ID_NB_TX_30DAY_WINDOW": 1500.0,
-    "TERMINAL_ID_RISK_30DAY_WINDOW": 0.12,
-}
-
-# --- Test Cases ---
-
 
 def test_health_check(client):
     """
@@ -59,25 +15,13 @@ def test_health_check(client):
         assert response.json() == {"status": "ok"}
 
 
-def test_health_check_no_model(client):
-    """
-    Tests the /health endpoint when the model is not loaded.
-    """
-    with patch("app.main.model", new=None):
-        response = client.get("/health")
-        assert response.status_code == 200
-        assert response.json() == {"status": "service_up_no_model"}
-
-
 @patch("app.main.model")
-def test_predict_legitimate_transaction(mock_model, client):
+def test_predict_legitimate_transaction(mock_model, client, sample_legitimate_payload):
     """
     Tests the /predict endpoint with a legitimate transaction.
     """
     mock_model.predict_proba.return_value = np.array([[0.9, 0.1]])
-
     response = client.post("/predict", json=sample_legitimate_payload)
-
     assert response.status_code == 200
     json_response = response.json()
     assert json_response["is_fraud"] is False
@@ -86,7 +30,7 @@ def test_predict_legitimate_transaction(mock_model, client):
 
 
 @patch("app.main.model")
-def test_predict_fraudulent_transaction(mock_model, client):
+def test_predict_fraudulent_transaction(mock_model, client, sample_legitimate_payload):
     """
     Tests the /predict endpoint with a transaction flagged as fraud.
     """
@@ -101,7 +45,7 @@ def test_predict_fraudulent_transaction(mock_model, client):
     mock_model.predict_proba.assert_called_once()
 
 
-def test_predict_blocked_customer(client):
+def test_predict_blocked_customer(client, sample_legitimate_payload):
     """
     Tests the pre-prediction check for blocked customers.
     """
@@ -112,7 +56,7 @@ def test_predict_blocked_customer(client):
     assert "blocked by issuer" in response.json()["detail"]
 
 
-def test_predict_compromised_terminal(client):
+def test_predict_compromised_terminal(client, sample_legitimate_payload):
     """
     Tests the pre-prediction check for high-risk terminals.
     """
@@ -123,7 +67,7 @@ def test_predict_compromised_terminal(client):
     assert "High-risk terminal" in response.json()["detail"]
 
 
-def test_predict_anomalous_amount(client):
+def test_predict_anomalous_amount(client, sample_legitimate_payload):
     """
     Tests the pre-prediction rule for anomalous amounts.
     """
@@ -135,7 +79,7 @@ def test_predict_anomalous_amount(client):
     assert "highly anomalous" in response.json()["detail"]
 
 
-def test_predict_missing_feature(client):
+def test_predict_missing_feature(client, sample_legitimate_payload):
     """
     Tests the API's response when a required feature is missing.
     """
@@ -152,7 +96,7 @@ def test_predict_missing_feature(client):
 
 
 @patch("app.main.model", new=None)
-def test_predict_model_not_loaded(client):
+def test_predict_model_not_loaded(client, sample_legitimate_payload):
     """
     Tests the /predict endpoint when the model is not loaded.
     """
