@@ -22,7 +22,9 @@ def setup_tracing(app: FastAPI, service_name: str):
     resource = Resource(attributes={"service.name": service_name})
     provider = TracerProvider(resource=resource)
 
-    otlp_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://alloy:12345")
+    otlp_endpoint = os.environ.get(
+        "OTEL_EXPORTER_OTLP_ENDPOINT", "http://alloy:4317/v1/traces"
+    )
     # Configure the exporter to send traces to Alloy's OTLP port
     otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
     provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
