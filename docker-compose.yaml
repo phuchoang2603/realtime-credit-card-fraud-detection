@@ -12,17 +12,18 @@ volumes:
 
 services:
   # Python client that send requests to api server continously
-  # client:
-  #   build:
-  #     context: ./client
-  #   container_name: fraud-detection-client
-  #   environment:
-  #     - API_URL=https://fraud.cloud.phuchoang.sbs/predict
-  #   networks:
-  #     - monitoring
-  #   depends_on:
-  #     - api
-  #   restart: on-failure
+  client:
+    build:
+      context: ./client
+    container_name: fraud-detection-client
+    environment:
+      # - API_URL=https://fraud.cloud.phuchoang.sbs/predict
+      - API_URL=http://api:8000/predict
+    networks:
+      - monitoring
+    depends_on:
+      - api
+    restart: on-failure
 
   # fast api server
   api:
