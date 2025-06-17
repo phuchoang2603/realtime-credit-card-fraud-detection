@@ -4,6 +4,7 @@ import time
 import pandas as pd
 from fastapi import FastAPI, Request, HTTPException
 from opentelemetry import trace
+import contextlib
 
 # Import configurations and schemas from separate modules
 from app.schema import TransactionFeatures, Prediction
@@ -24,27 +25,42 @@ from app.utils.pre_prediction_checks import (
     run_transaction_blocking_rules,
 )
 
-# --- Application Setup and Model Loading
+# --- Model and Application Setup ---
 setup_logging()
 log = get_logger(__name__)
-app = FastAPI(
-    title="Fraud Detection API",
-    description="An API to predict credit card transaction fraud.",
-)
-setup_tracing(app, service_name="fraud-detection-api")
-tracer = get_tracer(__name__)
-
+model = None
 DEFAULT_MODEL_PATH = os.path.join(
     os.path.dirname(__file__), "..", "models", "model.pkl"
 )
 MODEL_PATH = os.environ.get("MODEL_PATH", DEFAULT_MODEL_PATH)
-model = None
-try:
-    with open(MODEL_PATH, "rb") as f:
-        model = pickle.load(f)
-    log.info("Model loaded successfully.", path=MODEL_PATH)
-except Exception as e:
-    log.error("Error loading model.", error=str(e), path=MODEL_PATH)
+
+
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Manages the application's lifespan events for model loading and cleanup.
+    """
+    global model
+    try:
+        with open(MODEL_PATH, "rb") as f:
+            model = pickle.load(f)
+        log.info("Model loaded successfully.", path=MODEL_PATH)
+    except Exception as e:
+        log.error("Error loading model.", error=str(e), path=MODEL_PATH)
+        model = None
+    yield
+    # Clean up the ML model and release the resources
+    log.info("Clearing model.")
+    model = None
+
+
+app = FastAPI(
+    title="Fraud Detection API",
+    description="An API to predict credit card transaction fraud.",
+    lifespan=lifespan,
+)
+setup_tracing(app, service_name="fraud-detection-api")
+tracer = get_tracer(__name__)
 
 
 # --- Helper function for model prediction ---
