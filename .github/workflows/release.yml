@@ -80,7 +80,9 @@ jobs:
     name: Update Helm Values
     needs: build-and-push
     runs-on: ubuntu-latest
-
+    env:
+      CHART_FILE: deployments/helm-charts/fraud-detection/Chart.yaml
+      VALUE_FILE: deployments/helm-charts/fraud-detection/values.yaml
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -92,12 +94,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Define file paths
-        id: files
-        run: |
-          echo "CHART_FILE=deployments/helm-chart/fraud-detection/Chart.yaml" >> $GITHUB_ENV
-          echo "VALUE_FILE=deployments/helm-chart/fraud-detection/values.yaml" >> $GITHUB_ENV
 
       - name: Install yq
         run: |
