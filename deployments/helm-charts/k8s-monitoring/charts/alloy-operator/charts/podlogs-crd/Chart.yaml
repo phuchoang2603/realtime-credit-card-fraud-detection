@@ -1,0 +1,3 @@
+apiVersion: v2
+name: podlogs-crd
+version: 0.0.0

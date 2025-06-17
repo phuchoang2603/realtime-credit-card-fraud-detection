@@ -1,0 +1,47 @@
+prometheus:
+  prometheusSpec:
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    enableRemoteWriteReceiver: true
+    enableFeatures:
+      - exemplar-storage
+      - native-histograms
+
+grafana:
+  grafana.ini:
+    auth.anonymous:
+      enabled: true
+      org_role: Admin
+    auth:
+      disable_login_form: true
+    feature_toggles:
+      enable: traceqlEditor
+
+  plugins:
+    - grafana-exploretraces-app
+
+  additionalDataSources:
+    - name: Tempo
+      type: tempo
+      access: proxy
+      url: http://tempo:3100
+      uid: tempo
+      jsonData:
+        httpMethod: GET
+        serviceMap:
+          datasourceUid: prometheus
+        tracesToMetrics:
+          datasourceUid: prometheus
+
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki-gateway:80
+      jsonData:
+        httpHeaderName1: "X-Scope-OrgID"
+      secureJsonData:
+        httpHeaderValue1: "fake"
+
+# Disable components as k8s-monitoring already do it
+alertmanager:
+  enabled: false

@@ -1,0 +1,140 @@
+---
+# -- Name override
+# @section -- General settings
+nameOverride: ""
+
+# -- Full name override
+# @section -- General settings
+fullnameOverride: ""
+
+global:
+  # -- The specific platform for this cluster. Will enable compatibility for some platforms. Supported options: (empty) or "openshift".
+  # @section -- Global Settings
+  platform: ""
+
+# -- The method to gather pod logs. Options are "volumes", "filelog" (experimental), "kubernetesApi", "OpenShiftClusterLogForwarder" (experimental).
+# @section -- Pod Discovery
+gatherMethod: volumes
+
+# -- Only capture logs from pods in these namespaces (`[]` means all namespaces).
+# @section -- Pod Discovery
+namespaces: []
+
+# -- Do not capture logs from any pods in these namespaces.
+# @section -- Pod Discovery
+excludeNamespaces: []
+
+# -- Rules to filter pods for log gathering. Only used for "volumes" or "kubernetesApi" gather methods.
+# @section -- Pod Discovery
+extraDiscoveryRules: ""
+
+# -- Log labels to set with values copied from the Kubernetes Pod labels.
+# Format: `<log_label>: <kubernetes_label>`.
+# @section -- Log Processing
+labels:
+  app_kubernetes_io_name: app.kubernetes.io/name
+
+# -- Log labels to set with values copied from the Kubernetes Node labels.
+# Only used for "filelog" gather method.
+# Format: `<log_label>: <kubernetes_node_label>`.
+# @section -- Log Processing
+nodeLabels: {}
+
+# -- Log labels to set with values copied from the Kubernetes Namespace labels.
+# Only used for "filelog" gather method.
+# Format: `<log_label>: <kubernetes_namespace_label>`.
+# @section -- Log Processing
+namespaceLabels: {}
+
+# -- Log labels to set with static values.
+# @section -- Log Processing
+staticLabels: {}
+
+# -- Log labels to set with static values, not quoted so it can reference config components.
+# @section -- Log Processing
+staticLabelsFrom: {}
+
+# -- Log labels to set with values copied from the Kubernetes Pod annotations.
+# Format: `<log_label>: <kubernetes_annotation>`.
+# @section -- Log Processing
+annotations:
+  job: k8s.grafana.com/logs.job
+
+# -- Log labels to set with values copied from the Kubernetes Node annotations.
+# Only used for "filelog" gather method.
+# Format: `<log_label>: <kubernetes_node_annotation>`.
+# @section -- Log Processing
+nodeAnnotations: {}
+
+# -- Log labels to set with values copied from the Kubernetes Namespace annotations.
+# Only used for "filelog" gather method.
+# Format: `<log_label>: <kubernetes_namespace_annotation>`.
+# @section -- Log Processing
+namespaceAnnotations: {}
+
+# Settings specific for gathering Pod logs using the "volumes" gather method.
+volumeGatherSettings:
+  # -- Only gather new log lines since this was deployed. Do not gather historical log lines.
+  # @section -- Volume Log Gathering
+  onlyGatherNewLogLines: false
+
+filelogGatherSettings:
+  # -- Only gather new log lines since this was deployed. Do not gather historical log lines.
+  # @section -- File Log Gathering
+  onlyGatherNewLogLines: false
+
+# Check logs for secrets and mask them.
+secretFilter:
+  # -- Enable secret filtering.
+  # @section -- Secret Filtering
+  enabled: false
+
+  # -- Include the generic API key rule.
+  # @section -- Secret Filtering
+  includeGeneric: false
+
+  # -- Show the first N characters of the secret.
+  # @section -- Secret Filtering
+  partialMask: 0
+
+# -- Stage blocks to be added to the loki.process component for pod logs.
+# ([docs](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process/#blocks))
+# This value is templated so that you can refer to other values from this file.
+# @section -- Log Processing
+extraLogProcessingStages: ""
+
+# -- The list of labels to keep on the logs, all other pipeline labels will be dropped.
+# @section -- Log Processing
+labelsToKeep:
+  - app.kubernetes.io/name
+  - container
+  - instance
+  - job
+  - level
+  - namespace
+  - service.name
+  - service.namespace
+  - deployment.environment
+  - deployment.environment.name
+  - k8s.namespace.name
+  - k8s.deployment.name
+  - k8s.statefulset.name
+  - k8s.daemonset.name
+  - k8s.cronjob.name
+  - k8s.job.name
+  - k8s.node.name
+
+# -- The structured metadata mappings to set.
+# Format: `<key>: <extracted_key>`.
+# Example:
+# structuredMetadata:
+#   component: component
+#   kind: kind
+#   name: name
+# @section -- Processing settings
+structuredMetadata:
+  k8s.pod.name: k8s.pod.name
+  pod: pod
+
+# @ignore
+deployAsConfigMap: false

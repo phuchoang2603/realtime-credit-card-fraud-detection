@@ -1,0 +1,58 @@
+global:
+  # The Git repository where the application manifests and values are stored.
+  repoURL: "https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git"
+  targetRevision: "main"
+  # The destination Kubernetes cluster URL for all applications.
+  destinationServer: "https://kubernetes.default.svc"
+
+# Per-application configurations.
+applications:
+  loki:
+    path: deployments/helm-charts/loki
+    destinationNamespace: monitoring
+    valuesFile: deployments/argo-apps/values/loki.yaml
+
+  k8sMonitoring:
+    path: deployments/helm-charts/k8s-monitoring
+    destinationNamespace: monitoring
+    valuesFile: deployments/argo-apps/values/k8s-monitoring.yaml
+
+  kubePrometheusStack:
+    path: deployments/helm-charts/kube-prometheus-stack
+    destinationNamespace: monitoring
+    valuesFile: deployments/argo-apps/values/kube-prometheus-stack.yaml
+
+  tempo:
+    path: deployments/helm-charts/tempo
+    destinationNamespace: monitoring
+    valuesFile: deployments/argo-apps/values/tempo.yaml
+
+  fraudDetection:
+    path: deployments/helm-charts/fraud-detection
+    destinationNamespace: model-serving
+    valuesFile: deployments/argo-apps/values/fraud-detection.yaml
+
+  traefik:
+    enabled: true
+    path: deployments/helm-charts/traefik
+    destinationNamespace: api-gateway
+    valuesFile: deployments/argo-apps/values/traefik.yaml
+
+  certManager:
+    enabled: true
+    path: deployments/helm-charts/cert-manager
+    destinationNamespace: api-gateway
+    valuesFile: deployments/argo-apps/values/cert-manager.yaml
+
+  # Regular manifest files of ingressroute, cert-manager issuers, ...
+  # for proxmox rke2 server or cloud (google, aws, azure,...)
+  # Must be enabled one or the another. Can not be enabled simultaneously
+  proxmox:
+    enabled: false
+    destinationNamespace: default
+    path: deployments/argo-apps/values/proxmox
+
+  cloud:
+    enabled: true
+    destinationNamespace: default
+    path: deployments/argo-apps/values/cloud

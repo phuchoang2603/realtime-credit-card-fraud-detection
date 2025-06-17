@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tempo
+  namespace: argo-cd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.tempo.destinationNamespace | quote }}
+  sources:
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.tempo.repoURL | quote }}
+      path: {{ .Values.applications.tempo.path | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.tempo.targetRevision | quote }}
+      helm:
+        valueFiles:
+          - $values/{{ .Values.applications.tempo.valuesFile }}
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.tempo.repoURL | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.tempo.targetRevision | quote }}
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

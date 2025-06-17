@@ -1,0 +1,15 @@
+tempo:
+  # Metrics generator - The key feature for traces → metrics integration
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: "http://kube-prometheus-stack-prometheus:9090/api/v1/write"
+
+  # Enable service graphs and span metrics
+  overrides:
+    defaults:
+      metrics_generator:
+        processors: [service-graphs, span-metrics, local-blocks]
+
+# Enable persistence for realistic setup
+persistence:
+  enabled: false

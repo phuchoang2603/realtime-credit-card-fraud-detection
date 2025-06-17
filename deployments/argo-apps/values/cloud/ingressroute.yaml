@@ -1,0 +1,45 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: argo-cd-ingressroute
+  namespace: argo-cd
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`argo.cloud.phuchoang.sbs`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: argocd-server
+          port: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: model-serving-ingress
+  namespace: model-serving
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`fraud.cloud.phuchoang.sbs`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: fraud-detection
+          port: 8000
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana-ingress
+  namespace: monitoring
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`grafana.cloud.phuchoang.sbs`)
+      kind: Rule
+      services:
+        - name: kube-prometheus-stack-grafana
+          port: 80

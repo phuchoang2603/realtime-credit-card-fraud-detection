@@ -1,0 +1,11 @@
+apiVersion: v2
+appVersion: 1.0.0
+description: Gathers Kubernetes Events
+icon: https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg
+maintainers:
+- email: pete.wall@grafana.com
+  name: petewall
+name: feature-cluster-events
+sources:
+- https://github.com/grafana/k8s-monitoring-helm/tree/main/charts/k8s-monitoring/charts/feature-cluster-events
+version: 1.0.0

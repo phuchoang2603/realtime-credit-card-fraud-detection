@@ -1,0 +1,99 @@
+# A name for your cluster, used as a label for telemetry data.
+cluster:
+  name: fraud-detection-cluster
+
+# --- Destination ---
+destinations:
+  - name: loki
+    type: loki
+    url: http://loki-gateway/loki/api/v1/push
+
+  - name: tempo
+    type: otlp
+    url: http://tempo:4317
+    tls:
+      insecure: true
+
+# --- Log Sources ---
+clusterEvents:
+  enabled: true
+  collector: alloy-logs
+  namespaces:
+    - model-serving
+    - monitoring
+
+nodeLogs:
+  enabled: false
+
+podLogs:
+  enabled: true
+  gatherMethod: kubernetesApi
+  collector: alloy-logs
+  labelsToKeep:
+    [
+      "app_kubernetes_io_name",
+      "container",
+      "instance",
+      "job",
+      "level",
+      "namespace",
+      "service_name",
+      "service_namespace",
+      "deployment_environment",
+      "deployment_environment_name",
+    ]
+  structuredMetadata:
+    pod: pod
+  namespaces:
+    - monitoring
+    - model-serving
+
+# --- Metric Sources ---
+clusterMetrics:
+  enabled: false
+
+prometheusOperatorObjects:
+  enabled: false
+
+applicationObservability:
+  enabled: true
+  receivers:
+    otlp:
+      grpc:
+        enabled: true
+        port: 4317
+      http:
+        enabled: true
+        port: 4318
+
+# --- Collector Configuration ---
+alloy-singleton:
+  enabled: false
+
+alloy-logs:
+  enabled: true
+  alloy:
+    mounts:
+      dockercontainers: false
+      varlog: false
+    clustering:
+      enabled: true
+
+alloy-metrics:
+  enabled: false
+
+alloy-profiles:
+  enabled: false
+
+alloy-receiver:
+  enabled: true
+  alloy:
+    extraPorts:
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP

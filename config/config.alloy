@@ -1,0 +1,131 @@
+// #################################################
+// # Define Endpoints
+// #################################################
+
+loki.write "default" {
+    endpoint {
+        url = "http://loki:3100/loki/api/v1/push"
+    }
+}
+
+prometheus.remote_write "default" {
+    endpoint {
+        url = "http://prometheus:9090/api/v1/write"
+    }
+}
+
+// #################################################
+// # Data Sources
+// #################################################
+
+// --- 1. Collect Logs from Docker Containers ---
+discovery.docker "linux" {
+  host = "unix:///var/run/docker.sock"
+}
+discovery.relabel "logs_integrations_docker" {
+      targets = []
+  
+      rule {
+          source_labels = ["__meta_docker_container_name"]
+          regex = "/(.*)"
+          target_label = "service_name"
+      }
+
+  }
+loki.source.docker "default" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.linux.targets
+  labels     = {"platform" = "docker"}
+  relabel_rules = discovery.relabel.logs_integrations_docker.rules
+  forward_to = [loki.write.default.receiver]
+}
+
+// --- 2. Collect Metrics from Application ---
+// prometheus.scrape "fraud_detection_api" {
+//   targets = [{
+//     __address__ = "api:8010",
+//   }]
+//   forward_to     = [prometheus.remote_write.default.receiver]
+//   job_name = "fraud-detection-api"
+// }
+
+// --- 3. Collect Traces from Application ---
+otelcol.receiver.otlp "default" {
+  http {}
+  grpc {}
+
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
+}
+otelcol.processor.batch "default" {
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+			insecure = true
+		}
+  }
+} 
+
+// --- 4. Collect Metrics from Docker Containers (cAdvisor) ---
+prometheus.exporter.cadvisor "container_metrics" {
+  docker_host = "unix:///var/run/docker.sock"
+
+  storage_duration = "5m"
+}
+prometheus.scrape "scrape_cadvisor" {
+  targets    = prometheus.exporter.cadvisor.container_metrics.targets
+  forward_to = [prometheus.remote_write.default.receiver]
+  scrape_interval = "10s"
+}
+
+// --- 5. Collect Metrics from the Host Machine (replaces node-exporter) ---
+discovery.relabel "integrations_node_exporter" {
+  targets = prometheus.exporter.unix.integrations_node_exporter.targets
+
+  rule {
+    // Set the instance label to the hostname of the machine
+    target_label = "instance"
+    replacement  = constants.hostname
+  }
+
+  rule {
+    // Set a standard job name for all node_exporter metrics
+    target_label = "job"
+    replacement = "integrations/node_exporter"
+  }
+}
+prometheus.exporter.unix "integrations_node_exporter" {
+  disable_collectors = ["ipvs", "btrfs", "infiniband", "xfs", "zfs"]
+  enable_collectors = ["meminfo"]
+
+  filesystem {
+    fs_types_exclude     = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|tmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$"
+    mount_points_exclude = "^/(dev|proc|run/credentials/.+|sys|var/lib/docker/.+)($|/)"
+    mount_timeout        = "5s"
+  }
+
+  netclass {
+    ignored_devices = "^(veth.*|cali.*|[a-f0-9]{15})$"
+  }
+
+  netdev {
+    device_exclude = "^(veth.*|cali.*|[a-f0-9]{15})$"
+  }
+}
+prometheus.scrape "integrations_node_exporter" {
+scrape_interval = "15s"
+  // Use the targets with labels from the discovery.relabel component
+  targets    = discovery.relabel.integrations_node_exporter.output
+  // Send the scraped metrics to the relabeling component
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+livedebugging {
+  enabled = true
+}
