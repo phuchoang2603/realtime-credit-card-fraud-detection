@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import HTTPException
 from app.schema import TransactionFeatures
 from app.utils.tracing_config import traceable  # Import the decorator
@@ -8,9 +9,12 @@ from app.utils.tracing_config import traceable  # Import the decorator
 async def run_terminal_control_check(customer_id: int):
     """
     Simulates a real-time check to an issuer server for card status.
-    This check runs in its own trace span.
     """
+    # TODO: Replace the simulation below with a real API call.
+    await asyncio.sleep(0)  # This is the placeholder await.
+
     blocked_customers = {323, 1693, 4354, 4259, 3879, 3544, 2375}
+
     if customer_id in blocked_customers:
         raise HTTPException(
             status_code=403,
@@ -23,9 +27,11 @@ async def run_terminal_control_check(customer_id: int):
 async def run_transaction_blocking_rules(transaction: TransactionFeatures):
     """
     Applies handcrafted rules to block obvious fraud.
-    This check runs in its own trace span.
     """
+    await asyncio.sleep(0)
+
     compromised_terminals = {4692, 4923, 79, 3769, 5899, 9251}
+
     if transaction.TERMINAL_ID in compromised_terminals:
         raise HTTPException(
             status_code=403,
