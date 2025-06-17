@@ -1,4 +1,4 @@
-# Real-Time Credit Card Fraud Detection System
+# Scalable Real-Time Credit Card Fraud Detection System
 
 This repository contains a complete end-to-end system for real-time credit card fraud detection, including data analysis notebooks, a machine learning API, and infrastructure-as-code for cloud deployment. The system is designed with a modern, observable, and scalable architecture.
 
@@ -8,7 +8,7 @@ This repository contains a complete end-to-end system for real-time credit card 
 
 <!--toc:start-->
 
-- [Real-Time Credit Card Fraud Detection System](#real-time-credit-card-fraud-detection-system)
+- [Scalable Real-Time Credit Card Fraud Detection System](#scalable-real-time-credit-card-fraud-detection-system)
   - [Table of Contents](#table-of-contents)
   - [📺 Demo Video](#📺-demo-video)
   - [📂 Repository Structure](#📂-repository-structure)
