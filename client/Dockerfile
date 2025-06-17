@@ -4,7 +4,7 @@ FROM ghcr.io/astral-sh/uv:python3.8-bookworm
 WORKDIR /client
 
 COPY ./requirements.txt .
-COPY test_client.py .
+COPY ./test_client.py .
 
 RUN uv pip install --system -r requirements.txt
 
