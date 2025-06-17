@@ -1,0 +1,29 @@
+{{- if .Values.applications.traefik.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+  namespace: argo-cd
+spec:
+  project: default
+  destination:
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.traefik.destinationNamespace | quote }}
+  sources:
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.traefik.repoURL | quote }}
+      path: {{ .Values.applications.traefik.path | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.traefik.targetRevision | quote }}
+      helm:
+        valueFiles:
+          - $values/{{ .Values.applications.traefik.valuesFile }}
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.traefik.repoURL | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.traefik.targetRevision | quote }}
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+{{- end }}

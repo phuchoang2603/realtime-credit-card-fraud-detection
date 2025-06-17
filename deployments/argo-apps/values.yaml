@@ -8,40 +8,40 @@ global:
 # Per-application configurations.
 applications:
   loki:
-    path: deployments/helm-chart/loki
+    path: deployments/helm-charts/loki
     destinationNamespace: monitoring
     valuesFile: deployments/argo-apps/values/loki.yaml
 
   k8sMonitoring:
-    path: deployments/helm-chart/k8s-monitoring
+    path: deployments/helm-charts/k8s-monitoring
     destinationNamespace: monitoring
     valuesFile: deployments/argo-apps/values/k8s-monitoring.yaml
 
   kubePrometheusStack:
-    path: deployments/helm-chart/kube-prometheus-stack
+    path: deployments/helm-charts/kube-prometheus-stack
     destinationNamespace: monitoring
     valuesFile: deployments/argo-apps/values/kube-prometheus-stack.yaml
 
   tempo:
-    path: deployments/helm-chart/tempo
+    path: deployments/helm-charts/tempo
     destinationNamespace: monitoring
     valuesFile: deployments/argo-apps/values/tempo.yaml
 
   fraudDetection:
-    path: deployments/helm-chart/fraud-detection
+    path: deployments/helm-charts/fraud-detection
     destinationNamespace: model-serving
     valuesFile: deployments/argo-apps/values/fraud-detection.yaml
 
   traefik:
     enabled: true
-    destinationNamespace: ssl
-    chartVersion: "v36.2.0-rc1"
+    path: deployments/helm-charts/traefik
+    destinationNamespace: api-gateway
     valuesFile: deployments/argo-apps/values/traefik.yaml
 
   certManager:
     enabled: true
-    destinationNamespace: ssl
-    chartVersion: "v1.17.2"
+    path: deployments/helm-charts/cert-manager
+    destinationNamespace: api-gateway
     valuesFile: deployments/argo-apps/values/cert-manager.yaml
 
   # Regular manifest files of ingressroute, cert-manager issuers, ...

@@ -1,0 +1,29 @@
+{{- if .Values.applications.certManager.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argo-cd
+spec:
+  project: default
+  destination:
+    server: {{ .Values.global.destinationServer | quote }}
+    namespace: {{ .Values.applications.certManager.destinationNamespace | quote }}
+  sources:
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.certManager.repoURL | quote }}
+      path: {{ .Values.applications.certManager.path | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.certManager.targetRevision | quote }}
+      helm:
+        valueFiles:
+          - $values/{{ .Values.applications.certManager.valuesFile }}
+    - repoURL: {{ default .Values.global.repoURL .Values.applications.certManager.repoURL | quote }}
+      targetRevision: {{ default .Values.global.targetRevision .Values.applications.certManager.targetRevision | quote }}
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+{{- end }}

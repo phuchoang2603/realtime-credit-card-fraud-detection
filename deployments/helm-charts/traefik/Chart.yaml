@@ -1,0 +1,26 @@
+annotations:
+  artifacthub.io/changes: |
+    - "feat(CRDs): update Traefik Hub to v1.20.1"
+    - "chore: release traefik v36.2.0-rc1 and traefik-crds v1.9.0-rc1"
+apiVersion: v2
+appVersion: v3.4.1
+description: A Traefik based Kubernetes ingress controller
+home: https://traefik.io/
+icon: https://raw.githubusercontent.com/traefik/traefik/master/docs/content/assets/img/traefik.logo.png
+keywords:
+- traefik
+- ingress
+- networking
+kubeVersion: '>=1.22.0-0'
+maintainers:
+- email: michel.loiseleur@traefik.io
+  name: mloiseleur
+- email: remi.buisson@traefik.io
+  name: darkweaver87
+- name: jnoordsij
+name: traefik
+sources:
+- https://github.com/traefik/traefik-helm-chart
+- https://github.com/traefik/traefik
+type: application
+version: 36.2.0-rc1
