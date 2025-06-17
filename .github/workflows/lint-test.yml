@@ -51,10 +51,6 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Install Test Dependencies
-        run: |
-          uv pip install -r requirements-dev.txt
-
       - name: Run Pytest
         run: |
           uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=80 tests/
