@@ -14,7 +14,7 @@ services:
   # Python client that send requests to api server continously
   client:
     build:
-      context: ./client
+      context: ../../client/
     container_name: fraud-detection-client
     environment:
       # - API_URL=https://fraud.cloud.phuchoang.sbs/predict
@@ -28,7 +28,7 @@ services:
   # fast api server
   api:
     build:
-      context: .
+      context: ../../
     container_name: fraud-detection-api
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317/v1/traces
@@ -98,6 +98,8 @@ services:
     environment:
       - MEMCACHED_MAX_MEMORY=64m # Set the maximum memory usage
       - MEMCACHED_THREADS=4 # Number of threads to use
+    networks:
+      - monitoring
 
   # metrics backend
   prometheus:
