@@ -20,7 +20,7 @@ To start the Jupyter Lab environment using Docker:
 2. Navigate to the `jupyter-lab-docker` directory:
 
    ```bash
-   cd notebooks/jupyter-lab-docker
+   cd jupyter-lab-docker
    ```
 
 3. Run the following command to build and start the container in the background:
