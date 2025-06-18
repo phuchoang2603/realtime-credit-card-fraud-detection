@@ -1,6 +1,5 @@
 service:
   type: LoadBalancer
-  # Set default IP for proxmox rke2 cluster
   # spec:
   #   loadBalancerIP: "10.69.3.3"
 
