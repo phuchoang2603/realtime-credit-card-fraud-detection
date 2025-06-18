@@ -1,10 +1,12 @@
+import asyncio
+import contextlib
 import os
 import pickle
 import time
+
 import pandas as pd
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from opentelemetry import trace
-import contextlib
 
 # Import configurations and schemas from separate modules
 from app.schema import TransactionFeatures, Prediction
@@ -126,8 +128,10 @@ async def predict_fraud(request: Request, transaction: TransactionFeatures):
     span.set_attribute("terminal_id", transaction.TERMINAL_ID)
 
     # 1. Run Pre-Prediction Checks
-    await run_terminal_control_check(customer_id=transaction.CUSTOMER_ID)
-    await run_transaction_blocking_rules(transaction=transaction)
+    await asyncio.gather(
+        run_terminal_control_check(customer_id=transaction.CUSTOMER_ID),
+        run_transaction_blocking_rules(transaction=transaction),
+    )
 
     # 2. Run Model Prediction
     prediction = await run_model_prediction(
