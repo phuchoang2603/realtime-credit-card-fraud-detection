@@ -7,38 +7,17 @@ This guide outlines the technology stack and provides a complete, end-to-end gui
 1. Provisioning the GKE cluster infrastructure with **Terraform**.
 2. Bootstrapping all applications with a unified **Argo CD "App of Apps" Helm chart**.
 
-## 🏛️ Technology Stack
-
-This project uses a modern, cloud-native stack for observability and deployment.
-
-- **Terraform**: Provisions the foundational GKE cluster, networking, and firewall rules on Google Cloud.
-- **Argo CD**: The GitOps controller that deploys and continuously manages all applications inside the cluster.
-- **`k8s-monitoring-helm`**: An all-in-one chart for data collection.
-  - **Grafana Alloy**: The primary collector agent for logs, metrics, and traces.
-- **`kube-prometheus-stack`**: Provides the backend for metrics storage and alerting.
-  - **Prometheus**: The time-series database where all metrics are stored.
-  - **Alertmanager**: Handles alerts based on rules defined in Prometheus.
-- **Loki**: The backend system for storing and querying all logs.
-- **Tempo**: The backend system for storing and querying distributed traces.
-- **Grafana**: The unified visualization platform for all telemetry data.
-- **Traefik**: The Ingress Controller managing external access to services.
-- **Cert-Manager**: Provides automatic TLS certificate provisioning.
-
 ## 🚀 Deployment Instructions
 
 ### Prerequisites
 
 Before you begin, ensure you have the following tools installed and configured:
 
-- **Google Cloud SDK (`gcloud` CLI)**: Authenticated to your GCP account.
-- **Terraform** (v1.5.0+)
+- **`gcloud`**: Authenticated to your GCP account.
+- **`terraform`** (v1.5.0+)
 - **`kubectl`**
 - **`helm`**
-- **`gke-gcloud-auth-plugin`**: Required for `kubectl` to authenticate with GKE. Install it by running:
-
-  ```bash
-  gcloud components install gke-gcloud-auth-plugin
-  ```
+- **`gke-gcloud-auth-plugin`**: Required for `kubectl` to authenticate with GKE
 
 ### Phase 1: Provision the GKE Cluster with Terraform
 
