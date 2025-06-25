@@ -1,4 +1,4 @@
-{{- if .Values.applications.cloud.enabled }}
+{{- if .Values.cloud.enabled }}
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -8,11 +8,11 @@ spec:
   project: default
   destination:
     server: {{ .Values.global.destinationServer | quote }}
-    namespace: {{ .Values.applications.cloud.destinationNamespace | quote }}
+    namespace: {{ .Values.cloud.destinationNamespace | quote }}
   source:
-    repoURL: {{ .Values.global.repoURL | quote }}
-    path: {{ .Values.applications.cloud.path | quote }}
-    targetRevision: {{ .Values.global.targetRevision | quote }}
+    repoURL: {{ default .Values.global.repoURL .Values.cloud.repoURL | quote }}
+    path: {{ .Values.cloud.path | quote }}
+    targetRevision: {{ default .Values.global.targetRevision .Values.cloud.targetRevision | quote }}
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions: [ServerSideApply=true]
