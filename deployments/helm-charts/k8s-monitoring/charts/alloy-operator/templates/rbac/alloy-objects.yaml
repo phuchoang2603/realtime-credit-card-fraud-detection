@@ -1,0 +1,93 @@
+{{- define "alloy-operator.rbac.alloyObjectRules" -}}
+# Rules which allow the management of ConfigMaps, ServiceAccounts, and Services.
+- apiGroups: [""]
+  resources: ["configmaps", "secrets", "serviceaccounts", "services"]
+  verbs: ["*"]
+# Rules which allow the management of DaemonSets, Deployments, and StatefulSets.
+- apiGroups: ["apps"]
+  resources: ["daemonsets", "deployments", "statefulsets"]
+  verbs: ["*"]
+# Rules which allow the management of Horizontal Pod Autoscalers.
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["*"]
+{{- if .Capabilities.APIVersions.Has "autoscaling.k8s.io/v1" -}}
+# Rules which allow the management of VerticalPodAutoscalers.
+- apiGroups: ["autoscaling.k8s.io"]
+  resources: ["verticalpodautoscalers"]
+  verbs: ["*"]
+{{- end }}
+{{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" -}}
+# Rules which allow the management of ServiceMonitor.
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors"]
+  verbs: ["*"]
+{{- end }}
+# Rules which allow the management of Ingresses.
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["*"]
+# Rules which allow the management of PodDisruptionBudgets.
+- apiGroups: ["policy"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["*"]
+# Rules which allow the management of ClusterRoles and ClusterRoleBindings.
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterroles", "clusterrolebindings"]
+  verbs: ["*"]
+{{- end }}
+
+{{- if .Values.rbac.create }}
+  {{- if .Values.rbac.createClusterRoles }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "alloy-operator.fullname" . }}
+rules:{{ include "alloy-operator.rbac.alloyObjectRules" $ | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "alloy-operator.fullname" . }}
+  labels:{{ include "alloy-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "alloy-operator.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "alloy-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+  {{- else }}
+    {{- $namespaces := .Values.namespaces }}
+    {{- if .Values.ownNamespaceOnly }}
+      {{- $namespaces = list .Release.Namespace }}
+    {{- end }}
+    {{- range $namespace := $namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "alloy-operator.fullname" $ }}
+  namespace: {{ $namespace }}
+  labels:{{ include "alloy-operator.labels" $ | nindent 4 }}
+rules:{{ include "alloy-operator.rbac.alloyObjectRules" $ | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "alloy-operator.fullname" $ }}
+  namespace: {{ $namespace }}
+  labels:{{ include "alloy-operator.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "alloy-operator.fullname" $ }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "alloy-operator.serviceAccountName" $ }}
+    namespace: {{ $.Release.Namespace }}
+    {{- end }}
+  {{- end }}
+{{- end }}

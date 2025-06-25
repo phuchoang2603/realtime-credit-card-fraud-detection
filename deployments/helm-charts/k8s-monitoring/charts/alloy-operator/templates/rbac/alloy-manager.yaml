@@ -1,0 +1,72 @@
+{{- define "alloy-operator.rbac.alloyManagerRules" -}}
+- apiGroups:
+    - collectors.grafana.com
+  resources:
+    - alloys
+    - alloys/status
+    - alloys/finalizers
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+{{- end }}
+
+{{- if .Values.rbac.create }}
+  {{- if .Values.rbac.createClusterRoles }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "alloy-operator.fullname" . }}-alloy-manager
+  labels:{{ include "alloy-operator.labels" . | nindent 4 }}
+rules:{{ include "alloy-operator.rbac.alloyManagerRules" . | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "alloy-operator.fullname" . }}-alloy-manager
+  labels:{{ include "alloy-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "alloy-operator.fullname" . }}-alloy-manager
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "alloy-operator.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+  {{- else }}
+    {{- $namespaces := .Values.namespaces }}
+    {{- if .Values.ownNamespaceOnly }}
+      {{- $namespaces = list .Release.Namespace }}
+    {{- end }}
+    {{- range $namespace := $namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "alloy-operator.fullname" $ }}-alloy-manager
+  namespace: {{ $namespace }}
+  labels:{{ include "alloy-operator.labels" $ | nindent 4 }}
+rules:{{ include "alloy-operator.rbac.alloyManagerRules" $ | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "alloy-operator.fullname" $ }}-alloy-manager
+  namespace: {{ $namespace }}
+  labels:{{ include "alloy-operator.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "alloy-operator.fullname" $ }}-alloy-manager
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "alloy-operator.serviceAccountName" $ }}
+    namespace: {{ $.Release.Namespace }}
+    {{- end }}
+  {{- end }}
+{{- end }}

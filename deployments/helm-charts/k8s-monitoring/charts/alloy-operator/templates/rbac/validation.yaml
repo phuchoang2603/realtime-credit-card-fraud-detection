@@ -1,0 +1,17 @@
+---
+{{- if and .Values.rbac.create (not .Values.rbac.createClusterRoles) (not .Values.namespaces) (not .Values.ownNamespaceOnly) }}
+  {{- $msg := list "" "The Alloy Operator requires namespaces to be set when not using ClusterRoles." }}
+  {{- $msg = append $msg "Please set the list of namespaces to manage Alloy instances:" }}
+  {{- $msg = append $msg "alloy-operator:" }}
+  {{- $msg = append $msg "  namespaces: [\"namespace1\", \"namespace2\"]" }}
+  {{- $msg = append $msg "" }}
+  {{- $msg = append $msg (printf "Or, only allow management of Alloy instances within the same namespace (i.e. \"%s\")" $.Release.Namespace) }}
+  {{- $msg = append $msg "alloy-operator:" }}
+  {{- $msg = append $msg "  ownNamespaceOnly: true" }}
+  {{- $msg = append $msg "" }}
+  {{- $msg = append $msg "Or, allow the creation of ClusterRoles and ClusterRoleBindings:" }}
+  {{- $msg = append $msg "alloy-operator:" }}
+  {{- $msg = append $msg "  rbac:" }}
+  {{- $msg = append $msg "    createClusterRoles: true" }}
+  {{- fail (join "\n" $msg) }}
+{{- end }}

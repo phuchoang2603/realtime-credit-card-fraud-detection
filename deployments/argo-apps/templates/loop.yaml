@@ -1,0 +1,44 @@
+{{- /*
+  Loop through all defined applications in .Values.applications
+  and create an ArgoCD Application resource for each.
+*/}}
+{{- range $appName, $appConfig := .Values.applications }}
+{{- if $appConfig.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $appName | quote }}
+  namespace: argo-cd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: {{ $.Values.global.destinationServer | quote }}
+    namespace: {{ $appConfig.destinationNamespace | quote }}
+  sources:
+    # Main source for the Helm Chart
+    - repoURL: {{ default $.Values.global.repoURL $appConfig.chartURL | quote }}
+      path: {{ $appConfig.path | quote }}
+      targetRevision: {{ default $.Values.global.targetRevision $appConfig.chartTargetRevision | quote }}
+      {{- if $appConfig.valuesFile }}
+      helm:
+        valueFiles:
+          - $values/{{ $appConfig.valuesFile }}
+      {{- end }}
+
+    {{- if $appConfig.valuesFile }}
+    - repoURL: {{ default $.Values.global.repoURL $appConfig.valuesURL | quote }}
+      targetRevision: {{ default $.Values.global.targetRevision $appConfig.valuesTargetRevision | quote }}
+      ref: values
+    {{- end }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+{{- end }}
+{{- end }}

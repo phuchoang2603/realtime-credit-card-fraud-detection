@@ -5,7 +5,7 @@ dependencies:
   condition: crds.deploy
   name: prometheus-operator-crds
   repository: https://prometheus-community.github.io/helm-charts
-  version: 20.0.0
+  version: 21.0.0
 description: Gathers metrics using Prometheus Operator Objects
 icon: https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg
 maintainers:
