@@ -13,12 +13,12 @@ applications:
     valuesTargetRevision: "master"
     valuesFile: argo-apps/loki.yaml
 
-  k8sMonitoring:
+  k8s-monitoring:
     destinationNamespace: monitoring
     path: deployments/helm-charts/k8s-monitoring
     valuesFile: deployments/argo-apps/values/k8s-monitoring.yaml
 
-  kubePrometheusStack:
+  kube-prometheus-stack:
     destinationNamespace: monitoring
     path: deployments/helm-charts/kube-prometheus-stack
     valuesFile: deployments/argo-apps/values/kube-prometheus-stack.yaml
@@ -28,7 +28,7 @@ applications:
     path: deployments/helm-charts/tempo
     valuesFile: deployments/argo-apps/values/tempo.yaml
 
-  fraudDetection:
+  fraud-detection:
     destinationNamespace: model-serving
     path: deployments/helm-charts/fraud-detection
     valuesFile: deployments/argo-apps/values/fraud-detection.yaml
@@ -39,7 +39,7 @@ applications:
     path: deployments/helm-charts/traefik
     valuesFile: deployments/argo-apps/values/traefik.yaml
 
-  certManager:
+  cert-manager:
     enabled: false
     destinationNamespace: api-gateway
     path: deployments/helm-charts/cert-manager
