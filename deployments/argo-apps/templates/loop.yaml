@@ -3,12 +3,14 @@
   and create an ArgoCD Application resource for each.
 */}}
 {{- range $appName, $appConfig := .Values.applications }}
-{{- if (default true $appConfig.enabled) }}
+{{- if $appConfig.enabled }}
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: {{ $appName | quote }}
   namespace: argo-cd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   destination:
