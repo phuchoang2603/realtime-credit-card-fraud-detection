@@ -4,17 +4,17 @@ dependencies:
 - condition: kube-state-metrics.deploy
   name: kube-state-metrics
   repository: https://prometheus-community.github.io/helm-charts
-  version: 5.33.1
+  version: 5.37.0
 - alias: node-exporter
   condition: node-exporter.deploy
   name: prometheus-node-exporter
   repository: https://prometheus-community.github.io/helm-charts
-  version: 4.46.0
+  version: 4.47.0
 - alias: windows-exporter
   condition: windows-exporter.deploy
   name: prometheus-windows-exporter
   repository: https://prometheus-community.github.io/helm-charts
-  version: 0.10.1
+  version: 0.10.2
 - condition: kepler.enabled
   name: kepler
   repository: https://sustainable-computing-io.github.io/kepler-helm-chart

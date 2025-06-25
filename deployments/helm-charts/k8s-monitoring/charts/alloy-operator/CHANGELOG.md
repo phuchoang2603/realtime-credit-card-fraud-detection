@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+## 0.3.2
+
+* Add the ability to restrict the Alloy Operator to specific namespaces (@petewall)
+
+## 0.3.1
+
+* Update Alloy to 1.1.1 (@petewall)
+
+## 0.3.0
+
+* Removing default resource requests and limits (@petewall, @kespineira)
+* Adding values.schema.json to validate the inputs (@petewall)
+* Add GitHub Action linting (@petewall)
+* Add the ability to enable or disable RBAC object creation (@petewall)
+
+## 0.2.10
+
+* Update Alloy to 1.1.0 (@petewall)
+
 ## 0.2.9
 
 * Added more integration tests (@petewall)

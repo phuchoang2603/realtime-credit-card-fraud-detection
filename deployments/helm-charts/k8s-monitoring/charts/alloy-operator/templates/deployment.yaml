@@ -35,6 +35,9 @@ spec:
       securityContext:
         {{ toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName | quote }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.global.image.registry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -44,6 +47,15 @@ spec:
             - --leader-election-id={{ include "alloy-operator.fullname" . }}
             - --health-probe-bind-address=:{{ .Values.service.health.port }}
             - --metrics-bind-address=:{{ .Values.service.metrics.port }}
+{{- $namespaces := .Values.namespaces }}
+{{- if .Values.ownNamespaceOnly }}
+  {{- $namespaces = list .Release.Namespace }}
+{{- end }}
+{{- if $namespaces }}
+          env:
+            - name: WATCH_NAMESPACE
+              value: {{ $namespaces | join "," | quote }}
+{{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.health.port }}

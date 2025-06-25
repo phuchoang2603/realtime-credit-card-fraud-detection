@@ -1,9 +1,9 @@
 ---
 # -- Overrides the chart's name. Used to change the infix in the resource names.
-nameOverride: null
+nameOverride: ""
 # -- Overrides the chart's computed fullname. Used to change the full prefix of
 # resource names.
-fullnameOverride: null
+fullnameOverride: ""
 
 global:
   image:
@@ -18,6 +18,14 @@ global:
 # -- How many replicas to use for the Alloy Operator Deployment.
 # @section -- Deployment Settings
 replicaCount: 1
+
+# -- Restrict the Alloy Operator to only manage Alloy instances in the given list of namespaces.
+# @section -- Alloy Management Settings
+namespaces: []
+
+# -- Restrict the Alloy Operator to its own namespace only. Overrides the `namespaces` setting.
+# @section -- Alloy Management Settings
+ownNamespaceOnly: false
 
 image:
   # -- Alloy Operator image registry
@@ -59,18 +67,33 @@ serviceAccount:
   # @section -- Service Account Settings
   name: ""
 
-# -- Additional annotations to add to the pod.
+# RBAC settings
+rbac:
+  # -- Whether to create the necessary RBAC resources for the Alloy Operator.
+  # @section -- RBAC Settings
+  create: true
+
+  # -- Create ClusterRoles for the Alloy Operator. If set to false, only Roles and RoleBindings will be created. This
+  # setting requires the use of `namespaces` or `ownNamespaceOnly` to be set.
+  # @section -- RBAC Settings
+  createClusterRoles: true
+
+# -- Additional annotations to add to the Alloy Operator pods.
 # @section -- Pod Settings
 podAnnotations: {}
 
-# -- Additional labels to add to the pod.
+# -- Additional labels to add to the Alloy Operator pods.
 # @section -- Pod Settings
 podLabels: {}
 
-# -- Set the security context for the pod.
+# -- Set the security context for the Alloy Operator pods.
 # Example: podSecurityContext: { fsGroup: 2000 }
 # @section -- Pod Settings
 podSecurityContext: {}
+
+# -- Sets the priority class name for the Alloy Operator pods.
+# @section -- Pod Settings
+priorityClassName: ""
 
 # -- Set the security context for the operator container.
 # @section -- Container Settings
@@ -97,19 +120,19 @@ service:
     # @section -- Service
     port: 8082
 
-# Sets the resources for the pod.
+# Sets the resources for the Alloy Operator pods.
 resources:
-  # -- Set the resource requests for the pod.
+  # -- Set the resource requests for the Alloy Operator pods.
   # @section -- Resources
-  requests:
-    cpu: 10m
-    memory: 64Mi
+  requests: {}
+  # cpu: 10m
+  # memory: 64Mi
 
-  # -- Set the resource limits for the pod.
+  # -- Set the resource limits for the Alloy Operator pods.
   # @section -- Resources
-  limits:
-    cpu: 500m
-    memory: 128Mi
+  limits: {}
+  # cpu: 500m
+  # memory: 128Mi
 
 # -- Liveness probe settings
 # @section -- Probes
@@ -123,16 +146,16 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 10
 
-# -- Set the node selector for the pod.
+# -- Set the node selector for the Alloy Operator pods.
 # @section -- Pod Settings
 nodeSelector:
   kubernetes.io/os: linux
 
-# -- Set the tolerations for the pod.
+# -- Set the tolerations for the Alloy Operator pods.
 # @section -- Pod Settings
 tolerations: []
 
-# -- Set the affinity for the pod.
+# -- Set the affinity for the Alloy Operator pods.
 # @section -- Pod Settings
 affinity: {}
 

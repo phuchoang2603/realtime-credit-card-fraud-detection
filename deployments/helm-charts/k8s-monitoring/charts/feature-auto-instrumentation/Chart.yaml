@@ -4,7 +4,7 @@ dependencies:
 - condition: beyla.enabled
   name: beyla
   repository: https://grafana.github.io/helm-charts
-  version: 1.7.3
+  version: 1.8.0
 description: Gathers telemetry data via automatic instrumentation
 icon: https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg
 maintainers:

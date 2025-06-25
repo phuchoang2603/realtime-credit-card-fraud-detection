@@ -1,10 +1,10 @@
 apiVersion: v2
-appVersion: 1.0.3
+appVersion: 1.1.1
 dependencies:
 - condition: crds.deployAlloyCRD
   name: alloy-crd
-  repository: ""
-  version: 0.0.0
+  repository: https://grafana.github.io/helm-charts
+  version: 1.0.0
 - condition: crds.deployPodLogsCRD
   name: podlogs-crd
   repository: ""
@@ -19,4 +19,4 @@ name: alloy-operator
 sources:
 - https://github.com/grafana/alloy-operator
 type: application
-version: 0.2.9
+version: 0.3.2
