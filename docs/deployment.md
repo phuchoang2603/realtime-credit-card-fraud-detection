@@ -7,7 +7,7 @@ This guide outlines the technology stack and provides a complete, end-to-end gui
 1. Provisioning the GKE cluster infrastructure with **Terraform**.
 2. Bootstrapping all applications with a unified **Argo CD "App of Apps" Helm chart**.
 
-## 🚀 Deployment Instructions
+## Deployment Instructions
 
 ### Prerequisites
 
@@ -92,7 +92,7 @@ Grafana Logs View (Loki)
 Grafana Traces View (Tempo)
 ![](./images/traces.png)
 
-## 💣 Uninstallation
+## Uninstallation
 
 To completely remove the entire platform, you must perform the steps in reverse.
 

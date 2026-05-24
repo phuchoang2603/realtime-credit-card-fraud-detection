@@ -2,7 +2,7 @@
 
 This repository contains a complete end-to-end system for real-time credit card fraud detection, including data analysis notebooks, a machine learning API, and infrastructure-as-code for cloud deployment. The system is designed with a modern, observable, and scalable architecture.
 
-![mlops1-arch](./deployments/images/mlops1-arch.excalidraw.svg)
+![mlops1-arch](./docs/images/mlops1-arch.excalidraw.svg)
 
 ## Table of Contents
 
@@ -14,7 +14,6 @@ This repository contains a complete end-to-end system for real-time credit card 
   - [Repository Structure](#repository-structure)
   - [System Architecture](#system-architecture)
   - [Installation and Usage](#installation-and-usage)
-    - [Running the Notebooks](#running-the-notebooks)
     - [Local Deployment with Docker Compose](#local-deployment-with-docker-compose)
     - [Local Deployment with Kubernetes (on Proxmox)](#local-deployment-with-kubernetes-on-proxmox)
     - [Cloud Deployment on GKE with Terraform & GitOps](#cloud-deployment-on-gke-with-terraform-gitops)
@@ -36,7 +35,6 @@ The repository is organized into distinct directories, each serving a specific p
 ├── app/                  # Contains the FastAPI application source code.
 ├── client/               # A Python client to simulate requests to the API.
 ├── deployments/          # Infrastructure (Terraform) and application (Argo CD, Helm) manifests for GitOps.
-├── notebooks/            # Jupyter notebooks for data exploration, model training, and experimentation.
 ├── tests/                # Unit and integration tests for the application.
 └── pyproject.toml        # Project metadata and dependency management.
 ```
@@ -60,12 +58,6 @@ The system is designed to run in two primary environments: locally via Docker Co
 
 This project can be run locally for development or deployed to a cloud environment.
 
-### Running the Notebooks
-
-The `notebooks` directory contains all the research and analysis for this project, covering everything from data exploration to model training and evaluation.
-
-**To run the Jupyter Lab environment, see the instructions in the [notebooks](./notebooks/) folder.**
-
 ### Local Deployment with Docker Compose
 
 For a quick and easy local setup, use the provided Docker Compose configuration. This will spin up the API, the client simulator, and the entire observability stack on your local machine.
@@ -87,7 +79,7 @@ For those looking to replicate a full cloud-native environment on-premise, this 
 
 For a production-grade setup, you can provision the infrastructure on Google Kubernetes Engine (GKE) using Terraform and manage all applications via a GitOps workflow with Argo CD.
 
-**For a complete, end-to-end guide, see the instructions in the [deployments](./deployments/) folder.**
+**For a complete, end-to-end guide, see the instructions in the [deployments](./docs/deployment.md) folder.**
 
 ## CI/CD Pipeline
 
