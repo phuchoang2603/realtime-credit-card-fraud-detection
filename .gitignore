@@ -84,3 +84,9 @@ simulated-data-transformed
 # OS-specific files
 .DS_Store
 Thumbs.db
+/.agents/skills
+
+# Local development shell state
+.devenv/
+.direnv/
+.ruff_cache/

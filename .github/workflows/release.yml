@@ -3,7 +3,7 @@ name: Release to GHCR & Helm Sync
 on:
   pull_request:
     paths:
-      - pyproject.toml
+      - src/fraud-service/pyproject.toml
 
 jobs:
   check-version:
@@ -18,9 +18,9 @@ jobs:
         id: check
         run: |
           if git rev-parse HEAD^ >/dev/null 2>&1; then
-            DIFF=$(git diff -U0 HEAD^ -- pyproject.toml)
+            DIFF=$(git diff -U0 HEAD^ -- src/fraud-service/pyproject.toml)
           else
-            DIFF=$(git show HEAD:pyproject.toml)
+            DIFF=$(git show HEAD:src/fraud-service/pyproject.toml)
           fi
 
           echo "DIFF=$DIFF"
@@ -53,7 +53,7 @@ jobs:
       - name: Extract version from pyproject.toml
         id: version
         run: |
-          VERSION=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
+          VERSION=$(grep -Po '(?<=^version = ")[^"]+' src/fraud-service/pyproject.toml)
           echo "VERSION=$VERSION"
           echo "VERSION_TAG=v$VERSION" >> $GITHUB_ENV
 
@@ -70,8 +70,8 @@ jobs:
       - name: Build and Push Docker image to GHCR
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          context: src/fraud-service
+          file: ./infra/docker/fraud-service.Dockerfile
           push: true
           tags: |
             ${{ env.GHCR_IMAGE }}:${{ env.VERSION_TAG }}

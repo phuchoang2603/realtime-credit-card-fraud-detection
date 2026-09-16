@@ -14,7 +14,7 @@ This repository contains a complete end-to-end system for real-time credit card 
   - [Repository Structure](#repository-structure)
   - [System Architecture](#system-architecture)
   - [Installation and Usage](#installation-and-usage)
-    - [Local Deployment with Docker Compose](#local-deployment-with-docker-compose)
+    - [Local development](#local-development)
     - [Local Deployment with Kubernetes (on Proxmox)](#local-deployment-with-kubernetes-on-proxmox)
     - [Cloud Deployment on GKE with Terraform & GitOps](#cloud-deployment-on-gke-with-terraform-gitops)
   - [CI/CD Pipeline](#cicd-pipeline) - [Continuous Integration & Testing](#continuous-integration-testing) - [Continuous Deployment](#continuous-deployment)
@@ -32,16 +32,15 @@ The repository is organized into distinct directories, each serving a specific p
 
 ```
 .
-├── app/                  # Contains the FastAPI application source code.
-├── client/               # A Python client to simulate requests to the API.
-├── deployments/          # Infrastructure (Terraform) and application (Argo CD, Helm) manifests for GitOps.
-├── tests/                # Unit and integration tests for the application.
-└── pyproject.toml        # Project metadata and dependency management.
+├── src/fraud-service/    # Fraud service application, model, and tests.
+├── deployments/          # Existing Kubernetes and Terraform manifests.
+├── infra/                # Container and deployment configuration.
+└── devenv.nix            # Local development environment.
 ```
 
 ## System Architecture
 
-The system is designed to run in two primary environments: locally via Docker Compose for development and on Google Kubernetes Engine (GKE) for production, managed via a GitOps workflow.
+The system runs as a service under `src/fraud-service`; deployment remains managed through the existing Kubernetes/GitOps workflow.
 
 - **Fraud Detection API**: A FastAPI server that exposes a prediction endpoint. It is instrumented with OpenTelemetry for collecting metrics, logs, and traces.
 - **Client Simulator**: A Python script that continuously sends transaction data to the API to simulate real-world traffic.
@@ -58,16 +57,17 @@ The system is designed to run in two primary environments: locally via Docker Co
 
 This project can be run locally for development or deployed to a cloud environment.
 
-### Local Deployment with Docker Compose
+### Local development
 
-For a quick and easy local setup, use the provided Docker Compose configuration. This will spin up the API, the client simulator, and the entire observability stack on your local machine.
-
-**To run the local Docker environment, simply run the following command in the [deployments/docker-compose](./deployments/docker-compose/) folder:**
+Enter the Python 3.14 development shell and install locked development dependencies:
 
 ```bash
-cd deployments/docker-compose
-docker compose up --build -d
+devenv shell
+cd src/fraud-service
+uv sync --locked --dev
 ```
+
+Linting, tests, and Helm validation run in GitHub Actions. See [local setup](docs/development/local-setup.md) for exact check commands and the [service README](src/fraud-service/README.md) for API, manual client, and Docker commands. Compose has been retired.
 
 ### Local Deployment with Kubernetes (on Proxmox)
 
@@ -85,21 +85,17 @@ For a production-grade setup, you can provision the infrastructure on Google Kub
 
 ### Continuous Integration & Testing
 
-This repository uses **GitHub Actions** to automate code quality checks and testing. The workflow, defined [here](.github/workflows/lint-test.yml), runs on every push and pull request to ensure the codebase remains clean and functional.
+This repository uses **GitHub Actions** to automate code quality checks and testing. The workflow, defined [here](.github/workflows/ci.yml), runs on every pull request and push to `main`.
 
 The CI pipeline includes the following stages:
 
 - **Linting**: Code is linted using `ruff` to enforce style consistency and catch common errors.
-- **Testing**: Unit tests for the FastAPI application are executed using **Pytest**. This ensures that the core API logic remains correct and reliable. The tests can be found in the `tests/` directory.
+- **Testing**: Unit tests for the FastAPI application live in `src/fraud-service/tests/` and run with `uv run --locked pytest`.
 
 ### Continuous Deployment
 
 This project automates its release process using a **Continuous Deployment** pipeline powered by GitHub Actions, as defined [here](.github/workflows/release.yml). This workflow prepares new versions of the application for deployment in the GitOps-managed environment.
 
-The CD pipeline is triggered automatically when a new version tag (e.g., `v1.2.3`) is changed in `pyproject.toml` file and pushed to the repository. It then performs the following steps:
+The existing release workflow watches pull requests changing `src/fraud-service/pyproject.toml`. When its version check detects a version change, it builds the Python 3.14 image using `infra/docker/fraud-service.Dockerfile` and the `src/fraud-service` context, publishes the existing GHCR version tag, and updates the existing Helm chart values.
 
-1. **Build & Push Images**: It builds multi-platform Docker images for the `api` services.
-2. **Push to Registry**: The newly created images are pushed to the Github Artifact Registry (GHCR).
-3. **Update Manifests**: The workflow checks out the repository, updates the Helm chart's `values.yaml` file with the new image tag, and commits this change back to the repository.
-
-This final commit triggers Argo CD to automatically detect the change in the Git repository and deploy the new version of the application to the Kubernetes cluster, completing the GitOps cycle.
+See [CI and release details](docs/deployment/ci.md). Kubernetes/GKE and Argo CD documentation describes the legacy infrastructure; this tooling migration does not change that deployment setup.

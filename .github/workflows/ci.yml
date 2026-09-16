@@ -1,0 +1,32 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: src/fraud-service/uv.lock
+      - working-directory: src/fraud-service
+        run: uv sync --locked --dev
+      - working-directory: src/fraud-service
+        run: uv run --locked ruff check app tests tools --output-format=github
+      - working-directory: src/fraud-service
+        run: uv run --locked ruff format --check app tests tools
+      - working-directory: src/fraud-service
+        run: TESTING_MODE=true uv run --locked pytest --cov=app --cov-report=term-missing --cov-fail-under=80 tests
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint deployments/helm-charts/fraud-detection
+      - run: helm template test deployments/helm-charts/fraud-detection --namespace model-serving
