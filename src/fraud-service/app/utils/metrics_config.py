@@ -24,7 +24,7 @@ def setup_metrics(service_name: str, app_version: str):
 
 
 # Create a global meter instance
-meter = setup_metrics("fraud-detection-api", "1.0.0")
+meter = setup_metrics("fraud-service", "1.0.0")
 
 # Define specific metric instruments to be used across the application
 predictions_counter = meter.create_counter(

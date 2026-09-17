@@ -12,7 +12,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 def setup_tracing(app: FastAPI, service_name: str):
     """
-    Sets up OpenTelemetry tracing to export traces to Grafana Alloy.
+    Sets up OpenTelemetry tracing to export traces to shared VictoriaTraces.
     """
     # --- Conditionally disable tracing for tests ---
     if os.environ.get("TESTING_MODE", "false").lower() == "true":
@@ -22,8 +22,8 @@ def setup_tracing(app: FastAPI, service_name: str):
     resource = Resource(attributes={"service.name": service_name})
     provider = TracerProvider(resource=resource)
 
-    otlp_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://alloy:4317/v1/traces")
-    # Configure the exporter to send traces to Alloy's OTLP port
+    otlp_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "vtsingle-vmks.monitoring.svc.cluster.local:4317")
+    # Configure the exporter to send traces to VictoriaTraces' OTLP port
     otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
     provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
 
