@@ -1,0 +1,12 @@
+{{- if .Values.dashboards.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  fraud-service.json: |-
+    {"uid":"fraud-service","title":"Fraud Service","schemaVersion":39,"version":1,"panels":[{"id":1,"type":"timeseries","title":"Prediction rate","targets":[{"expr":"rate(fraud_predictions_total[5m])"}]},{"id":2,"type":"timeseries","title":"Prediction latency","targets":[{"expr":"histogram_quantile(0.95, rate(fraud_prediction_latency_seconds_bucket[5m]))"}]},{"id":3,"type":"histogram","title":"Fraud score distribution","targets":[{"expr":"fraud_prediction_score"}]}],"links":[{"title":"Traces","url":"/explore?query=service.name%3D%22fraud-service%22"},{"title":"Logs","url":"/explore?query=%7Bservice_name%3D%22fraud-service%22%7D%20%7C%3D%20%60trace_id%60"}]}
+{{- end }}

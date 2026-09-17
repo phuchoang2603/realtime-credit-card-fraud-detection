@@ -81,8 +81,8 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
-      CHART_FILE: deployments/helm-charts/fraud-detection/Chart.yaml
-      VALUE_FILE: deployments/helm-charts/fraud-detection/values.yaml
+      CHART_FILE: infra/charts/fraud-service/Chart.yaml
+      VALUE_FILE: infra/charts/fraud-service/values.yaml
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payment-gateway-prod-root
+  namespace: argo-cd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io/foreground
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git
+    targetRevision: main
+    path: infra/argocd/app-of-apps
+    helm:
+      releaseName: payment-gateway-prod
+      values: |
+        namePrefix: payment-gateway-prod
+        destinationName: prod
+        applications:
+          fraud-service:
+            valuesFile:
+              - infra/charts/fraud-service/values-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo-cd
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

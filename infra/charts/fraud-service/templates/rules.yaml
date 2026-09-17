@@ -1,0 +1,19 @@
+{{- if .Values.rules.enabled }}
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  groups:
+    - name: fraud-service
+      rules:
+        - alert: FraudServiceMetricsUnavailable
+          expr: absent(up{job="{{ .Release.Name }}"})
+          for: {{ .Values.rules.unavailableFor }}
+          labels:
+            severity: warning
+            service: fraud-service
+          annotations:
+            summary: Fraud service metrics are unavailable
+{{- end }}

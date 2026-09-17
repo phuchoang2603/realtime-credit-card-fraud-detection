@@ -1,0 +1,16 @@
+image:
+  pullPolicy: Always
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+env:
+  - name: MODEL_PATH
+    value: /app/models/model.pkl
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: vtsingle-vmks.monitoring.svc.cluster.local:4317
+  - name: OTEL_SERVICE_NAME
+    value: fraud-service

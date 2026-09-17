@@ -28,5 +28,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
-      - run: helm lint deployments/helm-charts/fraud-detection
-      - run: helm template test deployments/helm-charts/fraud-detection --namespace model-serving
+      - run: helm lint infra/charts/fraud-service
+      - run: helm template test infra/charts/fraud-service --namespace payment-gateway
+      - run: helm lint infra/argocd/app-of-apps
+      - run: helm template dev-root infra/argocd/app-of-apps --set destinationName=dev --set namePrefix=payment-gateway-dev
+      - run: helm template prod-root infra/argocd/app-of-apps --set destinationName=prod --set namePrefix=payment-gateway-prod
