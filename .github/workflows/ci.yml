@@ -1,10 +1,17 @@
 name: CI
+
 on:
-  pull_request:
   push:
     branches: [main]
+    paths:
+      - "src/fraud-service/**"
+  pull_request:
+    paths:
+      - "src/fraud-service/**"
+
 jobs:
   lint-test:
+    name: Lint & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1

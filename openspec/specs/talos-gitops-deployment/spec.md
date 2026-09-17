@@ -27,10 +27,13 @@ Synchronizing or deleting this repository's applications SHALL NOT create, adopt
 - **WHEN** its application-owned resources are removed
 - **THEN** shared Victoria backends, collectors, operators, Grafana, and alerting remain under the existing platform owner's control
 
-### Requirement: Lean service CI pipeline
-CI SHALL run a focused `lint-test` job for the Python fraud service covering linting, formatting, and unit/integration tests with coverage gating. CI SHALL NOT require Helm validation jobs, custom manifest scripts, devenv, Docker builds, or cluster credentials.
+### Requirement: Service quality and automated image release
+CI SHALL run a `lint-test` job for Python fraud service changes covering linting, formatting, and unit/integration tests with coverage gating. On pushes to `main` with changes under `src/fraud-service/**`, a separate release workflow SHALL build and publish the container image to GHCR without depending on `pyproject.toml` version comparison or synchronization scripts.
 
-#### Scenario: Service pull request or push
-- **WHEN** changes are pushed to a branch or pull request
-- **THEN** CI executes Ruff lint/format checks and pytest with code coverage validation
-- **AND** failures in service quality checks fail the workflow
+#### Scenario: Pull request or branch push
+- **WHEN** changes are pushed affecting `src/fraud-service/**`
+- **THEN** CI executes Ruff lint/format checks and pytest with coverage validation
+
+#### Scenario: Merged service changes
+- **WHEN** changes under `src/fraud-service/**` are pushed to `main`
+- **THEN** the release workflow builds and pushes the container image to GHCR tagged with the commit SHA and latest
