@@ -1,10 +1,14 @@
-# CI
+# CI and release
 
-`.github/workflows/ci.yml` runs for every pull request and every push to `main`, with two independent jobs:
+`.github/workflows/ci.yml` runs on every pull request and push to `main`, with two independent jobs:
 
-- `lint-test` selects Python 3.14, runs `uv sync --locked --dev` in `src/fraud-service`, then runs locked Ruff lint/format commands and pytest with the existing 80% coverage gate. Ruff, pytest, coverage, and HTTP test tooling are locked development dependencies.
-- `helm` runs lint/template validation for `infra/charts/fraud-service` and the Argo app-of-apps chart without cluster access.
+- `lint-test` selects Python 3.14, installs locked service dependencies, and runs Ruff lint/format plus pytest with the existing 80% coverage gate. Focused telemetry tests check custom/default service identity, configured OTLP/gRPC export, export-disabled HTTP requests, structured startup and active-span logs, and dashboard metric names against the real Prometheus exporter.
+- `helm` installs pinned Helm, PyYAML, and Prometheus `promtool`, then runs `scripts/ci/validate_deployments.py`. It reads the actual dev/prod root manifests, lints and renders their catalog values, resolves each child's values files, and lints/renders the fraud chart for both environments. A dev branch fixture checks revision propagation and configurable telemetry, discovery labels, datasource UIDs, and alert timing.
 
-CI does not invoke devenv, Docker builds, Docker Compose, or model verification. No deployment credentials or local telemetry services are needed. Exact check commands are in [local setup](../development/local-setup.md).
+The Helm job explicitly checks Application destinations/identities/revisions, internal ports, model path, resources/probes, pod/service/scrape selectors, namespace scoping, VMPodScrape endpoint structure, and VMRule group/rule structure. An allowlist rejects shared platform resources and public ingress. Deliberately malformed YAML/JSON, wrong destinations/selectors/ports/namespaces, invalid rule expressions, and extra CRDs must be rejected by the validator. This is application-specific structural and semantic validation, not full upstream Kubernetes/CRD schema validation; no unknown custom resources are silently skipped. Helm additionally validates the chart's values schema.
 
-The release workflow watches pull requests that change `src/fraud-service/pyproject.toml`. Its version check controls the image build and publication. It builds `infra/docker/fraud-service.Dockerfile` with `src/fraud-service` as the context, publishes the existing GHCR version tag, and updates `infra/charts/fraud-service/Chart.yaml` and `infra/charts/fraud-service/values.yaml`.
+Dashboard validation parses JSON, checks unique UIDs, query names/application labels, configured datasources, LogsQL, and links carrying the selected `trace_id`. `promtool check rules` parses the rendered alert expressions, and rule tests cover healthy, failed, and missing targets, the pending duration, and namespace isolation. The job uploads rendered Applications, workloads, and alert fixtures as `helm-validation` evidence even when later checks fail.
+
+CI uses no devenv, Docker builds, cluster credentials, or live telemetry backend. The release workflow remains separate: it builds the existing Dockerfile, publishes the existing GHCR version tag, and updates `infra/charts/fraud-service/Chart.yaml` and `values.yaml` when the service version changes.
+
+For this migration, local tests, Helm validation, and smoke checks remain unrun. After the user commits and merges to `main`, review both CI job results for that exact merge SHA and record the run URL/status in the OpenSpec verification report. Until then task 6.1 remains pending. A passing CI run establishes source/rendering behavior; live collector discovery, ingestion, dashboard navigation, and per-environment acceptance still require the [platform checklist](shared-observability.md).

@@ -7,16 +7,20 @@ metadata:
   labels:
     {{- toYaml .Values.podScrape.labels | nindent 4 }}
 spec:
+  jobLabel: app.kubernetes.io/name
   namespaceSelector:
     any: false
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ .Release.Name }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      payment-gateway/release: {{ .Release.Name }}
   # This defines which port on the pod to scrape.
   podMetricsEndpoints:
   - port: http-metrics
     path: /metrics
+    relabelConfigs:
+      - targetLabel: namespace
+        replacement: {{ .Release.Namespace | quote }}
     {{- with .Values.podScrape.interval }}
     interval: {{ . }}
     {{- end }}

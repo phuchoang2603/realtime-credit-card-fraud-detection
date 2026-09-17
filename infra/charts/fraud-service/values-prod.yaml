@@ -10,7 +10,7 @@ resources:
 env:
   - name: MODEL_PATH
     value: /app/models/model.pkl
-  - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    value: vtsingle-vmks.monitoring.svc.cluster.local:4317
-  - name: OTEL_SERVICE_NAME
-    value: fraud-service
+
+telemetry:
+  serviceName: fraud-service
+  traceEndpoint: vtsingle-vmks.monitoring.svc.cluster.local:4317

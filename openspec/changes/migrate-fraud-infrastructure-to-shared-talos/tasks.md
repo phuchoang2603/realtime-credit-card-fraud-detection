@@ -1,3 +1,5 @@
+Implementation note: the nine source-review warnings have follow-up fixes recorded in [verification.md](verification.md). Checked tasks describe implemented files and CI checks; they do not claim a passing CI execution. Per the user's instruction, actual CI evidence will be reviewed after their commit and merge to `main`; task 6.1 stays pending. Local tests and smoke checks remain excluded.
+
 ## 1. Platform contract documentation
 
 - [x] 1.1 Create docs/deployment/shared-observability.md with CRDs, configurable endpoints/data source UIDs, scrape/rule/dashboard selectors, log namespace filter, and network prerequisites; verify each dependency has an owner and dev/prod acceptance entry, with unverified live values labeled pending.

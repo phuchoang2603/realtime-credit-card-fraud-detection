@@ -8,18 +8,13 @@ service:
 env:
   - name: MODEL_PATH
     value: /app/models/model.pkl
-  - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    value: "vtsingle-vmks.monitoring.svc.cluster.local:4317"
-  - name: OTEL_SERVICE_NAME
-    value: "fraud-service"
-# It's recommended to uncomment and adjust these for production deployments.
-resources: {}
-# limits:
-#   cpu: 200m
-#   memory: 256Mi
-# requests:
-#   cpu: 100m
-#   memory: 128Mi
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
 
 livenessProbe:
   enabled: true
@@ -41,6 +36,17 @@ podScrape:
   scrapeTimeout: 10s
 rules:
   enabled: true
+  labels: {}
   unavailableFor: 10m
 dashboards:
   enabled: true
+  labels:
+    grafana_dashboard: "1"
+  datasources:
+    metrics: VictoriaMetrics
+    logs: VictoriaLogs
+    traces: VictoriaTraces
+
+telemetry:
+  serviceName: fraud-service
+  traceEndpoint: vtsingle-vmks.monitoring.svc.cluster.local:4317

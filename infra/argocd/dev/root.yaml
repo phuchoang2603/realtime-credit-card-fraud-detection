@@ -9,11 +9,13 @@ spec:
   project: default
   source:
     repoURL: https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git
-    targetRevision: main
+    targetRevision: &revision main
     path: infra/argocd/app-of-apps
     helm:
       releaseName: payment-gateway-dev
-      values: |
+      valuesObject:
+        global:
+          targetRevision: *revision
         namePrefix: payment-gateway-dev
         destinationName: dev
   destination:

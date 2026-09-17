@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "telemetry",
+    "rules",
+    "dashboards",
+    "podScrape"
+  ],
+  "properties": {
+    "telemetry": {
+      "type": "object",
+      "required": [
+        "serviceName",
+        "traceEndpoint"
+      ],
+      "properties": {
+        "serviceName": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]*$"
+        },
+        "traceEndpoint": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9.-]+:[0-9]+$"
+        }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "labels",
+        "unavailableFor"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "unavailableFor": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*[smhdw]$"
+        }
+      }
+    },
+    "dashboards": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "labels",
+        "datasources"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "datasources": {
+          "type": "object",
+          "required": [
+            "metrics",
+            "logs",
+            "traces"
+          ],
+          "properties": {
+            "metrics": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "logs": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "traces": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        }
+      }
+    },
+    "podScrape": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "labels",
+        "interval",
+        "scrapeTimeout"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "interval": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scrapeTimeout": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

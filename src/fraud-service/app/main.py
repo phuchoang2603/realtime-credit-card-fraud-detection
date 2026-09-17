@@ -59,7 +59,7 @@ app = FastAPI(
     description="An API to predict credit card transaction fraud.",
     lifespan=lifespan,
 )
-setup_tracing(app, service_name=os.environ.get("OTEL_SERVICE_NAME", "fraud-service"))
+setup_tracing(app)
 tracer = get_tracer(__name__)
 
 

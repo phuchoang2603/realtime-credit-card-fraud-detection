@@ -5,19 +5,18 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    payment-gateway/release: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ .Release.Name }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      payment-gateway/release: {{ .Release.Name }}
   template:
     metadata:
-      # The podAnnotations block is no longer needed here
       labels:
         app.kubernetes.io/name: {{ .Release.Name }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        payment-gateway/release: {{ .Release.Name }}
     spec:
       containers:
         - name: {{ .Release.Name }}
@@ -51,6 +50,10 @@ spec:
             failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
           {{- end }}
           env:
+            - name: OTEL_SERVICE_NAME
+              value: {{ .Values.telemetry.serviceName | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.telemetry.traceEndpoint | quote }}
             {{- toYaml .Values.env | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

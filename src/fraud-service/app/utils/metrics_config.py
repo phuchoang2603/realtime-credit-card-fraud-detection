@@ -4,8 +4,10 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from prometheus_client import start_http_server
 
+from app.utils.telemetry_config import service_name
 
-def setup_metrics(service_name: str, app_version: str):
+
+def setup_metrics(app_version: str):
     """
     Sets up OpenTelemetry metrics and starts the Prometheus exporter.
     Returns a meter that can be used to create metric instruments.
@@ -13,18 +15,19 @@ def setup_metrics(service_name: str, app_version: str):
     # Start Prometheus client to expose metrics on port 8010
     start_http_server(port=8010, addr="0.0.0.0")
 
-    resource = Resource(attributes={"service.name": service_name})
+    identity = service_name()
+    resource = Resource(attributes={"service.name": identity})
 
     # Set up the MeterProvider
     reader = PrometheusMetricReader()
     meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
     set_meter_provider(meter_provider)
 
-    return get_meter_provider().get_meter(service_name, app_version)
+    return get_meter_provider().get_meter(identity, app_version)
 
 
 # Create a global meter instance
-meter = setup_metrics("fraud-service", "1.0.0")
+meter = setup_metrics("1.0.0")
 
 # Define specific metric instruments to be used across the application
 predictions_counter = meter.create_counter(

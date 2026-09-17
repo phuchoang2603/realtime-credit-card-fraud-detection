@@ -1,11 +1,8 @@
 global:
   repoURL: https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git
   targetRevision: main
-  destinationServer: https://kubernetes.default.svc
 destinationName: dev
-cloud:
-  enabled: false
-namePrefix: payment-gateway
+namePrefix: payment-gateway-dev
 applications:
   fraud-service:
     enabled: true

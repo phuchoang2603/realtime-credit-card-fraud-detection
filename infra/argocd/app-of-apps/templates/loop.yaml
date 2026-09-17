@@ -21,11 +21,14 @@ spec:
     - repoURL: {{ default $.Values.global.repoURL $appConfig.chartURL | quote }}
       path: {{ $appConfig.path | quote }}
       targetRevision: {{ default $.Values.global.targetRevision $appConfig.chartTargetRevision | quote }}
-      {{- if $appConfig.valuesFile }}
       helm:
+        releaseName: {{ $appName | quote }}
+        {{- if $appConfig.valuesFile }}
         valueFiles:
-          - $values/{{ $appConfig.valuesFile }}
-      {{- end }}
+          {{- range $appConfig.valuesFile }}
+          - {{ printf "$values/%s" . | quote }}
+          {{- end }}
+        {{- end }}
 
     {{- if $appConfig.valuesFile }}
     - repoURL: {{ default $.Values.global.repoURL $appConfig.valuesURL | quote }}

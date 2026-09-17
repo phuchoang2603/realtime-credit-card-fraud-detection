@@ -4,16 +4,20 @@ kind: VMRule
 metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
+  {{- with .Values.rules.labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   groups:
     - name: fraud-service
       rules:
         - alert: FraudServiceMetricsUnavailable
-          expr: absent(up{job="{{ .Release.Name }}"})
+          expr: up{namespace="{{ .Release.Namespace }}",job="{{ .Release.Name }}"} == 0 or absent(up{namespace="{{ .Release.Namespace }}",job="{{ .Release.Name }}"})
           for: {{ .Values.rules.unavailableFor }}
           labels:
             severity: warning
-            service: fraud-service
+            service: {{ .Values.telemetry.serviceName | quote }}
           annotations:
             summary: Fraud service metrics are unavailable
 {{- end }}

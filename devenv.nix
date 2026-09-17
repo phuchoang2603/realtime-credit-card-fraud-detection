@@ -21,7 +21,10 @@
   };
   treefmt = {
     enable = true;
-    config.settings.global.excludes = [ "deployments/**" ];
+    config.settings.global.excludes = [
+      "infra/**/templates/**"
+      "infra/**/charts/*.tgz"
+    ];
     config.programs = {
       ruff-format = {
         enable = true;

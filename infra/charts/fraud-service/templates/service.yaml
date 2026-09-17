@@ -5,7 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    payment-gateway/release: {{ .Release.Name }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -19,4 +19,4 @@ spec:
       name: http-metrics
   selector:
     app.kubernetes.io/name: {{ .Release.Name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    payment-gateway/release: {{ .Release.Name }}
