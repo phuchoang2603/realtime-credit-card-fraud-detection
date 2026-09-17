@@ -27,10 +27,10 @@ Synchronizing or deleting this repository's applications SHALL NOT create, adopt
 - **WHEN** its application-owned resources are removed
 - **THEN** shared Victoria backends, collectors, operators, Grafana, and alerting remain under the existing platform owner's control
 
-### Requirement: Environment validation in CI
-CI SHALL validate the root configurations, application catalog, and fraud chart for both environments in a separate Helm job, while lint and application tests remain together. These checks SHALL NOT require devenv, Docker builds, or cluster credentials.
+### Requirement: Lean service CI pipeline
+CI SHALL run a focused `lint-test` job for the Python fraud service covering linting, formatting, and unit/integration tests with coverage gating. CI SHALL NOT require Helm validation jobs, custom manifest scripts, devenv, Docker builds, or cluster credentials.
 
-#### Scenario: Deployment configuration pull request
-- **WHEN** a pull request changes deployment configuration
-- **THEN** CI checks chart rendering and environment destinations, including application-specific custom resource structure
-- **AND** invalid configuration fails the relevant CI job
+#### Scenario: Service pull request or push
+- **WHEN** changes are pushed to a branch or pull request
+- **THEN** CI executes Ruff lint/format checks and pytest with code coverage validation
+- **AND** failures in service quality checks fail the workflow

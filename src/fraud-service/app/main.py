@@ -73,7 +73,7 @@ async def run_model_prediction(transaction: TransactionFeatures, request_id: str
 
     start_time = time.time()
     try:
-        input_df = pd.DataFrame([transaction.dict()])
+        input_df = pd.DataFrame([transaction.model_dump()])
         processed_df = align_features_for_prediction(input_df)
         fraud_probability = model.predict_proba(processed_df)[:, 1][0]
         is_fraud = bool(fraud_probability > 0.5)

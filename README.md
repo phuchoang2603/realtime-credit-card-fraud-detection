@@ -44,12 +44,3 @@ Watch a brief overview and demo of the system in action:
 
 ![System architecture](docs/architecture/mlops1-arch.excalidraw.svg)
 
-## Documentation
-
-- [Local setup](docs/development/local-setup.md)
-- [Service usage](src/fraud-service/README.md)
-- [GitOps deployment](docs/deployment/gitops.md)
-- [CI and release](docs/deployment/ci.md)
-- [Shared observability](docs/deployment/shared-observability.md)
-- [Research background](docs/research/ccfd-background.md)
-- [Experiment report](docs/research/ccfd-experiements-report.md)
