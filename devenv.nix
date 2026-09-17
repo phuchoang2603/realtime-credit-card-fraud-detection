@@ -13,7 +13,7 @@
     venv.enable = false;
     uv = {
       enable = true;
-      sync.enable = false;
+      sync.enable = true;
     };
     lsp = {
       enable = true;
