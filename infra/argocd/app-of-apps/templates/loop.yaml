@@ -12,7 +12,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default
+  project: realtime-credit-card-fraud-detection
   destination:
     name: {{ $.Values.destinationName | quote }}
     namespace: {{ $appConfig.destinationNamespace | quote }}

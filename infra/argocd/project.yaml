@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: realtime-credit-card-fraud-detection
+  namespace: argo-cd
+spec:
+  description: Applications managed by the realtime-credit-card-fraud-detection repository
+  sourceRepos:
+    - https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git
+  destinations:
+    - namespace: argo-cd
+      server: https://kubernetes.default.svc
+    - name: dev
+      namespace: "*"
+    - name: prod
+      namespace: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

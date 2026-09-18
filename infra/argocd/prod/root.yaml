@@ -6,7 +6,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io/foreground
 spec:
-  project: default
+  project: realtime-credit-card-fraud-detection
   source:
     repoURL: https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git
     targetRevision: &revision main
