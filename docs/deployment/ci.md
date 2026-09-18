@@ -18,5 +18,5 @@ Runs on pushes to `main` affecting `src/fraud-service/**`.
 
 - Runs a single `build-and-push` job.
 - Builds the container image using `infra/docker/fraud-service.Dockerfile` with context `src/fraud-service`.
-- Tags the image with the commit SHA and `latest`.
+- Tags the image with the commit SHA and `latest`; dev deployments consume `latest`, while prod selects an explicit tag from `values-prod.yaml`.
 - Publishes the container image to GitHub Container Registry (`ghcr.io`).

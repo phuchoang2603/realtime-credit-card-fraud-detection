@@ -1,7 +1,11 @@
 ingress:
-  enabled: false
+  enabled: true
+  name: payment-gateway-ingress
+  hostname: fraud.phuchoang.sbs
+  port: 80
 
 image:
+  tag: "v1.1.0"
   pullPolicy: Always
 resources:
   requests:
