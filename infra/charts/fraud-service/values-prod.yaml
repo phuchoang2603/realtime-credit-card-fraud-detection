@@ -1,3 +1,6 @@
+ingress:
+  enabled: false
+
 image:
   pullPolicy: Always
 resources:

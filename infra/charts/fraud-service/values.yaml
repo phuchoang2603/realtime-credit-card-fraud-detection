@@ -1,4 +1,9 @@
 replicaCount: 2
+ingress:
+  enabled: true
+  name: payment-gateway-ingress
+  hostname: fraud-dev.phuchoang.sbs
+  port: 80
 image:
   repository: "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection"
   tag: "v1.1.0"

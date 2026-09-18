@@ -25,7 +25,7 @@ After choosing the intended workload cluster context, inspect the service with:
 kubectl --context <workload-context> -n payment-gateway port-forward svc/fraud-service 8000:8000 8010:8010
 ```
 
-The service is a `ClusterIP` exposing HTTP 8000 and metrics 8010, with the existing `/app/models/model.pkl` configuration and `/health` probes. No public ingress or TLS controllers are installed.
+The service is a `ClusterIP` exposing HTTP 8000 and metrics 8010, with the existing `/app/models/model.pkl` configuration and `/health` probes. Dev also renders a Cilium Gateway and HTTPRoute at `fraud-dev.phuchoang.sbs`; TLS terminates upstream, so the in-cluster listener is HTTP.
 
 Complete the owner-specific [shared observability checklist](shared-observability.md) independently for dev and prod before accepting rollout. Missing discovery, CRDs, datasource configuration, or network access blocks acceptance; this repo does not add fallback shared infrastructure. See [CI and release](ci.md) for validation and publication responsibilities.
 
