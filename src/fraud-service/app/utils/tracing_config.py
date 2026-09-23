@@ -1,57 +1,55 @@
-import os
-from functools import wraps
+from __future__ import annotations
 
-from fastapi import FastAPI
-from opentelemetry import trace
+import logging
+import os
+from collections.abc import Callable
+from threading import Thread
+
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-from app.utils.telemetry_config import service_name
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
 
 
-def setup_tracing(app: FastAPI):
-    """
-    Sets up OpenTelemetry tracing to export traces to shared VictoriaTraces.
-    """
-    # --- Conditionally disable tracing for tests ---
-    if os.environ.get("TESTING_MODE", "false").lower() == "true":
-        print("TESTING_MODE is active. Skipping OpenTelemetry tracing setup.")
-        return
+class TracingRuntime:
+    """An instance-owned provider; never replaces the global OpenTelemetry provider."""
 
-    resource = Resource(attributes={"service.name": service_name()})
-    provider = TracerProvider(resource=resource)
+    def __init__(self, enabled: bool, service_name: str, exporter_factory: Callable[[], SpanExporter] | None = None):
+        self.enabled = enabled
+        self.service_name = service_name
+        self.exporter_factory = exporter_factory
+        self.provider: TracerProvider | None = None
 
-    otlp_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "vtsingle-vmks.monitoring.svc.cluster.local:4317")
-    # Configure the exporter to send traces to VictoriaTraces' OTLP port
-    otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
-    provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+    def start(self) -> None:
+        if not self.enabled:
+            return
+        provider = TracerProvider(
+            resource=Resource.create({"service.name": self.service_name}), shutdown_on_exit=False
+        )
+        try:
+            exporter = (
+                self.exporter_factory()
+                if self.exporter_factory
+                else OTLPSpanExporter(
+                    endpoint=os.environ.get(
+                        "OTEL_EXPORTER_OTLP_ENDPOINT", "http://vtsingle-vmks.monitoring.svc.cluster.local:4317"
+                    ),
+                    timeout=2,
+                )
+            )
+            provider.add_span_processor(BatchSpanProcessor(exporter))
+        except Exception:
+            provider.shutdown()
+            raise
+        self.provider = provider
 
-    trace.set_tracer_provider(provider)
-    FastAPIInstrumentor.instrument_app(app)
-
-
-def get_tracer(name: str):
-    """Returns a configured OpenTelemetry tracer instance."""
-    return trace.get_tracer(name)
-
-
-def traceable(func):
-    """
-    A decorator that adds an OpenTelemetry span to an async function.
-    """
-
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        tracer = get_tracer(func.__module__)
-        with tracer.start_as_current_span(func.__name__) as span:
-            try:
-                result = await func(*args, **kwargs)
-                return result
-            except Exception as e:
-                span.record_exception(e)
-                raise
-
-    return wrapper
+    def stop(self, timeout: float = 3) -> None:
+        provider, self.provider = self.provider, None
+        if provider is None:
+            return
+        # Exporters are external code: an unresponsive backend cannot hold process exit.
+        worker = Thread(target=provider.shutdown, daemon=True, name="trace-shutdown")
+        worker.start()
+        worker.join(timeout=timeout)
+        if worker.is_alive():
+            logging.getLogger(__name__).warning("Trace shutdown exceeded cleanup budget")

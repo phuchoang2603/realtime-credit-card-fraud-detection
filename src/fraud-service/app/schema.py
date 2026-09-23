@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TransactionFeatures(BaseModel):
@@ -9,6 +9,8 @@ class TransactionFeatures(BaseModel):
     Defines the input features for a single transaction prediction.
     Includes raw features for logging/rules and engineered features for the model.
     """
+
+    model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False)
 
     # == Raw Features (Not for ML Model) ==
     # These are used for logging, tracing, and pre-prediction rule checks.

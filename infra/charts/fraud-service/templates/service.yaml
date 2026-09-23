@@ -10,9 +10,10 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: 8000
-      targetPort: http
+      targetPort: grpc
       protocol: TCP
-      name: http
+      name: grpc
+      appProtocol: kubernetes.io/h2c
     - port: 8010
       targetPort: http-metrics
       protocol: TCP

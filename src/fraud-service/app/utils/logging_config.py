@@ -8,7 +8,7 @@ from app.utils.telemetry_config import service_name
 
 
 def add_trace_context(logger, method_name, event_dict):
-    event_dict["service"] = service_name()
+    event_dict.setdefault("service", service_name())
     context = trace.get_current_span().get_span_context()
     if context.is_valid:
         event_dict["trace_id"] = format(context.trace_id, "032x")

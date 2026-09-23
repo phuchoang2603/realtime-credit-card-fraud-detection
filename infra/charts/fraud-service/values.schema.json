@@ -21,7 +21,7 @@
         },
         "traceEndpoint": {
           "type": "string",
-          "pattern": "^[a-zA-Z0-9.-]+:[0-9]+$"
+          "pattern": "^https?://[a-zA-Z0-9.-]+:[0-9]+$"
         }
       }
     },
@@ -114,6 +114,17 @@
         "scrapeTimeout": {
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "ClusterIP"
         }
       }
     }

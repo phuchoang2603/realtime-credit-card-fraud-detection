@@ -1,13 +1,14 @@
+import json
 import os
 import random
 import time
 import uuid
 from datetime import UTC, datetime
-
-import requests
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 # Get the server URL from an environment variable, with a default for local testing
-API_URL = os.environ.get("API_URL", "http://localhost:8000/predict")
+API_URL = os.environ.get("API_URL", "http://localhost:8080/predict")
 
 # --- Lists of IDs based on the API's rules ---
 BLOCKED_CUSTOMERS = [323, 1693, 4354, 4259, 3879, 3544, 2375]
@@ -101,20 +102,14 @@ def call_predict_api():
             headers = {"X-Request-ID": str(uuid.uuid4())}
             print(f"Sending request to {API_URL}...")
 
-            response = requests.post(API_URL, json=transaction_data, headers=headers, verify=False)
-
-            if response.status_code == 200:
-                print("Request successful!")
-                print(f"  Response: {response.json()}")
-            else:
-                print(f"Request completed with status {response.status_code}:")
-                print(f"  Response: {response.text}")
-
-            print("-" * 30)
-
-        except requests.exceptions.RequestException as e:
-            print(f"Could not connect to the API: {e}")
-            print("-" * 30)
+            body = json.dumps({key.lower(): value for key, value in transaction_data.items()}).encode()
+            request = Request(API_URL, data=body, headers=headers | {"Content-Type": "application/json"})
+            with urlopen(request, timeout=5) as response:
+                print(f"Response: {response.read().decode()}")
+        except HTTPError as error:
+            print(f"HTTP {error.code}: {error.read().decode()}")
+        except URLError as error:
+            print(f"Could not connect to edge: {error.reason}")
 
         time.sleep(2)
 
