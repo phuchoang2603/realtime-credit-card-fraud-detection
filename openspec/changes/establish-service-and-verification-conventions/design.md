@@ -52,8 +52,7 @@ coverage instead of asserting framework internals or duplicating cases. Retain o
 bounded real-model property. Service tools and dedicated readiness/process-probe
 tests are removed at the user's request; runtime health checks remain configured.
 
-Independent Python, Go and Helm jobs run lint, behavior/race tests, generation
-drift and lint/render validation for every tracked chart and its values overrides.
+Independent Python, Go and Helm jobs run lint, behavior/race tests and lint/render validation for every tracked chart and its values overrides.
 There is no path-filter job or matrix. Checks and two explicit image jobs share
 `template.yml`: PRs build without
 publication and main pushes publish. Standard GitHub Actions are reused.
@@ -67,7 +66,7 @@ turn it into a pass. CI logs and the PR are the current review evidence.
 - Protobuf JSON names intentionally break the prior uppercase payload convention.
 - Native inference cannot be interrupted; retained worker slots bound concurrent work.
 - Plaintext internal gRPC assumes cluster-private networking; transport identity/TLS policy remains future routing/security work.
-- Three independent check jobs run on every PR; contract generation requires Python tooling in the Go job.
+- Three independent check jobs run on every PR; bindings regenerate through devenv instead of a custom CI drift gate.
 - Coverage/mutation scores no longer gate changes; reviewers assess the distinct behaviors exercised by tests.
 
 ## Migration Plan
@@ -78,3 +77,7 @@ Use GitHub-hosted checks for complete integration and image builds; fix actionab
 failures in follow-up commits. Do not merge, archive or deploy automatically.
 
 Go development uses `languages.go` with Delve and gopls, following the marketplace devenv pattern instead of adding `pkgs.go` directly.
+
+Protobuf bindings regenerate through the devenv `codegen:proto` task before shell
+entry when contracts or generation dependencies change. Nix supplies `protoc` and both languages' plugins; Python needs no compiler dependency. Commit generated sources alongside
+contract edits. There is no custom generation script or CI drift gate.

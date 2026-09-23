@@ -4,7 +4,7 @@ Every pull request and push to `main` runs three independent jobs through
 [the reusable template](../../.github/workflows/template.yml):
 
 1. Install locked Python dependencies, lint/format and run behavior tests.
-2. Test Go independently with the race detector and check generated protobuf bindings.
+2. Test Go independently with the race detector.
 3. Discover every tracked Helm chart and lint/render its defaults and `values-*.yaml` overrides.
 
 There is no change-detection job, service matrix or numerical

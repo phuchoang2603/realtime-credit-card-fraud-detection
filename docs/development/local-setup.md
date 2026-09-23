@@ -32,10 +32,11 @@ Service DNS name. `PREDICTION_TIMEOUT` defaults to `3s` and inherits earlier cli
 cancellation. `GRACEFUL_SHUTDOWN_TIMEOUT` defaults to 30 seconds. The chart allows
 40 seconds for drain, cleanup and forced exit if native inference is stuck.
 
-Regenerate bindings with `tools/generate-contracts.sh`, or check drift with
-`tools/generate-contracts.sh --check`. Generated sources are checked in so each
-service builds independently; do not hand-edit them. The script pins Go plugins
-and uses the locked Python compiler. Public `/predict` accepts protobuf JSON field
+The devenv `codegen:proto` task regenerates bindings on shell entry when contracts
+or generation dependencies change. Run it explicitly with
+`devenv tasks run codegen:proto`. Commit generated sources with contract changes
+so each service builds independently; do not hand-edit them. Nix supplies `protoc`, Go plugins and the Python gRPC plugin. CI runs service tests without
+a separate generated-code drift gate. Public `/predict` accepts protobuf JSON field
 names (lower snake_case or lowerCamelCase).
 Internal prediction calls use `fraud.v1.FraudService/Predict` only.
 

@@ -1,3 +1,6 @@
+Protobuf generation now uses a devenv task with Nix-provided compiler/plugins for
+both languages. The custom drift script and CI step are removed.
+
 Current follow-up removes service tools and readiness/process probes and switches
 Go devenv to `languages.go` with Delve and gopls. Runtime health checks remain.
 The focused 13-test gRPC suite passes locally. The previous successful CI links

@@ -13,14 +13,13 @@ dependencies = [
     "pandas>=2.3.3,<3",
     "prometheus-client>=0.23,<1",
     "pydantic>=2.12,<3",
-    "protobuf>=7.35.1,<8",
+    "protobuf>=7.36.1,<8",
     "scikit-learn>=1.8,<2",
     "structlog>=25.4,<26",
 ]
 
 [dependency-groups]
 dev = [
-    "grpcio-tools==1.84.0",
     "hypothesis>=6,<7",
     "pytest>=9,<10",
     "ruff>=0.14,<1",

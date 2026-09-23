@@ -24,14 +24,13 @@ inputs against the bundled model. It SHALL NOT claim accuracy or payment idempot
 ### Requirement: Minimal CI
 CI SHALL run independent Python, Go and Helm jobs on PRs and main pushes without
 change-detection jobs or matrices. One reusable template SHALL contain checks and
-image builds. Checks SHALL run lint, useful Python/Go tests, generated-contract
-drift and lint/render validation for every tracked Helm chart, including its
+image builds. Checks SHALL run lint, useful Python/Go tests and lint/render validation for every tracked Helm chart, including its
 `values-*.yaml` overrides. Custom numerical
 coverage/mutation gates and screenshot generation SHALL NOT be required.
 
 #### Scenario: Review a pull request
 - **WHEN** a PR is opened or updated
-- **THEN** CI verifies both service implementations and their shared protobuf contract
+- **THEN** CI verifies both service implementations using their checked-in protobuf bindings
 - **AND** existing reusable image tooling builds each service without publishing PR images
 
 ### Requirement: Honest evidence

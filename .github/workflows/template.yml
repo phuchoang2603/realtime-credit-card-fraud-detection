@@ -52,20 +52,11 @@ jobs:
         with:
           go-version-file: src/edge/go.mod
           cache-dependency-path: src/edge/go.sum
-      - uses: actions/setup-python@v7.0.0
-        with:
-          python-version: "3.14"
-      - uses: astral-sh/setup-uv@v10.1.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: src/fraud-service/uv.lock
       - name: Go race tests
         working-directory: src/edge
         env:
           GOWORK: "off"
         run: go test -race ./...
-      - name: Generated contract drift
-        run: tools/generate-contracts.sh --check
 
   helm:
     if: ${{ !inputs.build-image }}
