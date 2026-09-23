@@ -20,7 +20,7 @@ requested a rewritten useful test suite, minimal CI, frequent commits and a PR.
 ### New Capabilities
 
 - `service-conventions`: Independent service ownership, typed contracts and runtime lifecycle.
-- `focused-verification`: Small behavioral tests, contract/process checks and minimal CI.
+- `focused-verification`: Small behavioral tests, contract checks and minimal CI.
 
 ### Modified Capabilities
 

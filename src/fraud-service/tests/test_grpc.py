@@ -3,7 +3,6 @@ from threading import Event
 import grpc
 import numpy as np
 import pytest
-from grpc_health.v1 import health_pb2
 from opentelemetry import trace
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
@@ -12,13 +11,8 @@ from app.utils.tracing_config import TracingRuntime
 pytestmark = pytest.mark.api
 
 
-def health(client, name):
-    return client.health.Check(health_pb2.HealthCheckRequest(service=name), timeout=1).status
-
-
-def test_prediction_wire_and_model_aware_health(rpc_server, prediction_request):
+def test_prediction_response_and_unavailable_model(rpc_server, prediction_request):
     with rpc_server() as client:
-        assert health(client, "readiness") == health_pb2.HealthCheckResponse.SERVING
         result, call = client.stub.Predict.with_call(
             prediction_request, timeout=2, metadata=(("x-request-id", "caller-42"),)
         )
@@ -29,8 +23,6 @@ def test_prediction_wire_and_model_aware_health(rpc_server, prediction_request):
         raise FileNotFoundError("missing model")
 
     with rpc_server(loader=missing) as client:
-        assert health(client, "liveness") == health_pb2.HealthCheckResponse.SERVING
-        assert health(client, "readiness") == health_pb2.HealthCheckResponse.NOT_SERVING
         with pytest.raises(grpc.RpcError) as error:
             client.stub.Predict(prediction_request, timeout=2)
         assert error.value.code() == grpc.StatusCode.UNAVAILABLE
@@ -89,7 +81,7 @@ def test_model_failure_is_sanitized_and_traced(rpc_server, prediction_request, c
 
 
 @pytest.mark.parametrize("expire", [False, True], ids=["drain-completes", "drain-expires"])
-def test_slow_inference_keeps_health_responsive_and_shutdown_bounded(rpc_server, prediction_request, expire):
+def test_inflight_prediction_shutdown_is_bounded(rpc_server, prediction_request, expire):
     entered, release = Event(), Event()
 
     class Slow:
@@ -102,13 +94,11 @@ def test_slow_inference_keeps_health_responsive_and_shutdown_bounded(rpc_server,
         call = client.stub.Predict.future(prediction_request, timeout=4)
         try:
             assert entered.wait(2)
-            assert health(client, "liveness") == health_pb2.HealthCheckResponse.SERVING
             stopped = client.stop(0.05 if expire else 2)
             if not expire:
                 release.set()
                 assert call.result(2).fraud_probability == 0.2
             stopped.result(2)
-            assert not client.server.state.ready
             if expire:
                 with pytest.raises(grpc.RpcError):
                     call.result(1)
@@ -116,7 +106,7 @@ def test_slow_inference_keeps_health_responsive_and_shutdown_bounded(rpc_server,
             release.set()
 
 
-def test_client_deadline_does_not_block_subsequent_health(rpc_server, prediction_request):
+def test_canceled_inference_retains_worker_capacity(rpc_server, prediction_request):
     from app.config import Settings
 
     entered, release, second = Event(), Event(), Event()
@@ -143,7 +133,6 @@ def test_client_deadline_does_not_block_subsequent_health(rpc_server, prediction
                 client.stub.Predict(prediction_request, timeout=0.1)
             assert queued.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
             assert not second.is_set()
-            assert health(client, "liveness") == health_pb2.HealthCheckResponse.SERVING
         finally:
             release.set()
 
@@ -157,10 +146,9 @@ def test_metrics_listener_is_owned_by_server_lifecycle(rpc_server):
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
     settings = Settings(metrics_port=port, tracing_enabled=False)
-    with rpc_server(settings=settings) as client:
+    with rpc_server(settings=settings):
         with socket.create_connection(("127.0.0.1", port), timeout=1):
             pass
-        assert health(client, "readiness") == health_pb2.HealthCheckResponse.SERVING
     with socket.socket() as probe:
         assert probe.connect_ex(("127.0.0.1", port)) != 0
 

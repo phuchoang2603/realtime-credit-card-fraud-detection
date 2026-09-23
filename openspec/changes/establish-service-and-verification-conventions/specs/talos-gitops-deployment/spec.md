@@ -15,7 +15,7 @@ The deployment SHALL provide internal gRPC access on port 8000 and metrics on po
 
 ### Requirement: Service quality and automated image release
 Every PR and main push SHALL run a simple check job covering Python lint/tests,
-Go tests, generated protobuf drift, cross-language/process integration and Helm
+Go tests, generated protobuf drift and Helm
 validation. Two explicit service jobs SHALL reuse one image workflow. PRs SHALL
 build without publishing; main pushes SHALL publish SHA/latest images to GHCR.
 

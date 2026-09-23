@@ -18,3 +18,9 @@
 This task list replaces the earlier score/screenshot acceptance plan following the
 user's 2026-09-23 simplification request. The previous mutation failure (69.17%,
 38 unresolved) remains disclosed; removed requirements are not marked as passing.
+
+## 3. Development and test cleanup
+
+- [x] 3.1 Use the marketplace `languages.go` pattern with Delve and gopls.
+- [x] 3.2 Remove Python service tools and dedicated readiness/process-probe tests; update CI and guides while retaining runtime health checks.
+- [x] 3.3 Verify the cleanup, commit and push it to PR #68.

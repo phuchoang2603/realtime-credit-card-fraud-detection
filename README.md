@@ -21,7 +21,7 @@ The current repository contains a Go HTTP edge backed by a Python gRPC fraud API
 ├── openspec/              # Capability specifications and change plans
 ├── contracts/             # Versioned protobuf service contracts
 ├── src/edge/              # Public HTTP edge and generated gRPC client
-├── src/fraud-service/     # API, bundled model, tests and client tool
+├── src/fraud-service/     # API, bundled model, tests and generated bindings
 ├── devenv.nix             # Local development environment
 ├── devenv.yaml            # Devenv inputs
 └── devenv.lock            # Locked environment dependencies

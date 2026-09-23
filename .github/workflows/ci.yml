@@ -36,24 +36,15 @@ jobs:
           TESTING_MODE: "true"
         run: |
           uv sync --locked --dev
-          uv run --locked ruff check app tests tools
-          uv run --locked ruff format --check app tests tools
+          uv run --locked ruff check app tests
+          uv run --locked ruff format --check app tests
           uv run --locked pytest -q
       - name: Go tests and generated contracts
         run: |
           (cd src/edge && GOWORK=off go test -race ./...)
           tools/generate-contracts.sh --check
-          go build -o /tmp/fraud-edge ./src/edge/cmd/edge
-      - name: Cross-language prediction and process lifecycle
-        working-directory: src/fraud-service
-        run: TESTING_MODE=true uv run --locked python -m tools.lifecycle_probe --edge-binary /tmp/fraud-edge
       - name: Helm manifests
         run: |
           helm lint infra/charts/fraud-service
           helm template fraud-dev infra/charts/fraud-service > /tmp/fraud-dev.yaml
           helm template fraud-prod infra/charts/fraud-service -f infra/charts/fraud-service/values-prod.yaml > /tmp/fraud-prod.yaml
-          for manifest in /tmp/fraud-dev.yaml /tmp/fraud-prod.yaml; do
-            grep -q 'service: readiness' "$manifest"
-            grep -q 'service: liveness' "$manifest"
-            ! grep -Eq 'kind: (Gateway|HTTPRoute|Ingress)' "$manifest"
-          done

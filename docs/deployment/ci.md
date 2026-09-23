@@ -4,8 +4,7 @@ Every pull request and push to `main` runs one `CI / check` job:
 
 1. Install locked Python dependencies, lint/format and run behavior tests.
 2. Test Go independently with the race detector and check generated protobuf bindings.
-3. Run the Go-to-Python prediction and process-lifecycle check.
-4. Lint/render both Helm environments and verify distinct gRPC health probes without public fraud ingress.
+3. Lint/render both Helm environments.
 
 There is no change-detection job, conditional job graph, service matrix or numerical
 coverage/mutation gate. A newer commit cancels stale CI work.

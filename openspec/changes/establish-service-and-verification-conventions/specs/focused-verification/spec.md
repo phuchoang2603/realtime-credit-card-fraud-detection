@@ -24,7 +24,7 @@ inputs against the bundled model. It SHALL NOT claim accuracy or payment idempot
 ### Requirement: Minimal CI
 CI SHALL run one check job on PRs and main pushes without change-detection jobs or
 conditional matrices. It SHALL run lint, useful Python/Go tests, generated-contract
-drift, actual cross-language/process checks and Helm validation. Custom numerical
+drift and Helm validation. Custom numerical
 coverage/mutation gates and screenshot generation SHALL NOT be required.
 
 #### Scenario: Review a pull request

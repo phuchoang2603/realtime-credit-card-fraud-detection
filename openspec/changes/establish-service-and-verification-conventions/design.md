@@ -49,10 +49,11 @@ must roll forward/back together; use immutable image tags for deployment.
 Keep a small suite protecting decision boundaries, invalid input, model/runtime
 compatibility, safe RPC errors, observability and resource lifecycle. Reuse existing
 coverage instead of asserting framework internals or duplicating cases. Retain one
-bounded real-model property and an actual Go-to-Python/process check.
+bounded real-model property. Service tools and dedicated readiness/process-probe
+tests are removed at the user's request; runtime health checks remain configured.
 
 One `CI / check` job runs lint, Python tests, Go race tests, generation drift,
-integration and Helm checks. There is no path-filter job or conditional matrix.
+Helm checks. There is no path-filter job or conditional matrix.
 Two explicit image jobs call one reusable build workflow: PRs build without
 publication and main pushes publish. Standard GitHub Actions are reused.
 
@@ -74,3 +75,5 @@ Commit runtime/contracts first, then test/CI simplification and coherent docs.
 Run relevant lightweight checks locally, push a feature branch and open a PR.
 Use GitHub-hosted checks for complete integration and image builds; fix actionable
 failures in follow-up commits. Do not merge, archive or deploy automatically.
+
+Go development uses `languages.go` with Delve and gopls, following the marketplace devenv pattern instead of adding `pkgs.go` directly.

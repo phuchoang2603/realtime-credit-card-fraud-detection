@@ -48,7 +48,6 @@ def rpc_server():
 
     import grpc
     import numpy as np
-    from grpc_health.v1.health_pb2_grpc import HealthStub
 
     from app.config import Settings
     from app.main import FraudServer
@@ -76,8 +75,6 @@ def rpc_server():
             with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
                 yield SimpleNamespace(
                     stub=FraudServiceStub(channel),
-                    health=HealthStub(channel),
-                    server=server,
                     stop=lambda grace: asyncio.run_coroutine_threadsafe(server.stop(grace), loop),
                 )
         finally:

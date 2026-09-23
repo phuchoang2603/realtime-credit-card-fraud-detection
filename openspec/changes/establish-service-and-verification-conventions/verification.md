@@ -1,3 +1,9 @@
+Current follow-up removes service tools and readiness/process probes and switches
+Go devenv to `languages.go` with Delve and gopls. Runtime health checks remain.
+The focused 13-test gRPC suite passes locally. The previous successful CI links
+below refer to the earlier suite; current PR checks verify the cleanup. Nix syntax
+parses; the refreshed devenv shell timed out before tool activation could be verified.
+
 # Verification
 
 The rewritten Python suite passes 44 tests locally and in GitHub Actions. Ruff,
@@ -12,7 +18,7 @@ This documentation follow-up records those results; it does not change the teste
 runtime, contracts, tests or workflows.
 
 The suite protects rules, configuration, model compatibility, gRPC validation and
-errors, request correlation, model-aware readiness, canceled inference capacity,
+errors, request correlation, canceled inference capacity,
 resource cleanup and real-model repeatability. CI is one check job; image builds
 use two explicit service jobs sharing one workflow.
 

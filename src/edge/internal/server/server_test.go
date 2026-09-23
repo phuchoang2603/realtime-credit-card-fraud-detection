@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -22,34 +21,6 @@ func newTestServer(t *testing.T) *Server {
 	}
 	t.Cleanup(func() { _ = s.Close() })
 	return s
-}
-
-func TestHealthAndReadiness(t *testing.T) {
-	s := newTestServer(t)
-	ready := httptest.NewRecorder()
-	s.readiness(ready, httptest.NewRequest(http.MethodGet, "/ready", nil))
-	if ready.Code != http.StatusServiceUnavailable {
-		t.Fatalf("before serving readiness status = %d", ready.Code)
-	}
-	s.ready.Store(true)
-	ready = httptest.NewRecorder()
-	s.readiness(ready, httptest.NewRequest(http.MethodGet, "/ready", nil))
-	if ready.Code != http.StatusOK {
-		t.Fatalf("ready status = %d", ready.Code)
-	}
-	var readyPayload map[string]string
-	if err := json.NewDecoder(ready.Body).Decode(&readyPayload); err != nil || readyPayload["status"] != "ready" {
-		t.Fatalf("ready payload = %#v (decode error: %v)", readyPayload, err)
-	}
-	health := httptest.NewRecorder()
-	s.health(health, httptest.NewRequest(http.MethodGet, "/health", nil))
-	if health.Code != http.StatusOK {
-		t.Fatalf("health status = %d", health.Code)
-	}
-	var healthPayload map[string]string
-	if err := json.NewDecoder(health.Body).Decode(&healthPayload); err != nil || healthPayload["status"] != "ok" {
-		t.Fatalf("health payload = %#v (decode error: %v)", healthPayload, err)
-	}
 }
 
 func TestCorrelationHeaderIsPreservedOrGenerated(t *testing.T) {
@@ -73,36 +44,6 @@ func TestCorrelationHeaderIsPreservedOrGenerated(t *testing.T) {
 	s.Handler().ServeHTTP(recording, request)
 	if got := recording.Header().Get("X-Request-ID"); len([]rune(got)) != maxRequestIDLength {
 		t.Fatalf("bounded request ID length = %d", len([]rune(got)))
-	}
-}
-
-func TestServeWithdrawsReadinessAndStops(t *testing.T) {
-	s := newTestServer(t)
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan error, 1)
-	go func() { done <- s.Serve(ctx, listener) }()
-	deadline := time.Now().Add(time.Second)
-	for !s.ready.Load() && time.Now().Before(deadline) {
-		time.Sleep(time.Millisecond)
-	}
-	if !s.ready.Load() {
-		t.Fatal("server did not become ready")
-	}
-	cancel()
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("Serve() error = %v", err)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("server did not shut down")
-	}
-	if s.ready.Load() {
-		t.Fatal("server remained ready after shutdown")
 	}
 }
 
@@ -151,9 +92,6 @@ func TestActiveRequestDrain(t *testing.T) {
 				}
 			case <-time.After(time.Second):
 				t.Fatal("unbounded shutdown")
-			}
-			if s.ready.Load() {
-				t.Fatal("readiness not withdrawn")
 			}
 			select {
 			case <-responseDone:

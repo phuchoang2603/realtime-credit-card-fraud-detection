@@ -7,12 +7,12 @@ Keep tests that protect distinct behavior. The current Python suite has 44 cases
 | Application and rules | Strict fraud threshold, independent amount/ratio boundaries, blocklists, invalid model output |
 | Configuration and model | Invalid startup settings, model type/version compatibility |
 | gRPC | Required feature presence, validation, safe error mapping, correlation and tracing |
-| Lifecycle | Model-aware readiness, responsive health, canceled inference capacity, resource cleanup and bounded drain |
+| Lifecycle | Canceled inference capacity, resource cleanup and bounded drain |
 | Real model | Generated prediction repeatability and unchanged caller inputs |
 
-Go tests cover HTTP translation, RPC deadlines, safe public errors, readiness and
-shutdown. CI also starts the actual Go edge and Python server against the bundled
-model, verifies prediction agreement and exercises SIGTERM with active/stuck work.
+Go tests cover HTTP translation, RPC deadlines, safe public errors and bounded
+request drain. Service tools, process probes and dedicated readiness checks were
+removed at the user's request; runtime Kubernetes health checks remain configured.
 
 Run the relevant tests locally inside devenv; CI owns the full checks and image
 builds. See [local setup](local-setup.md) and [CI](../deployment/ci.md). Reuse existing

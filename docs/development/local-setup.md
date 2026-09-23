@@ -13,19 +13,17 @@ Devenv provides Python, uv, language tooling, Helm, kubectl, OpenSpec, and Pytho
 For a Python edit, run the small suite from the service directory:
 
 ```bash
-ruff check app tests tools
-ruff format --check app tests tools
+ruff check app tests
+ruff format --check app tests
 TESTING_MODE=true uv run --locked pytest -q
 ```
 
 For a Go edit, run `(cd src/edge && GOWORK=off go test ./...)` from the repository
-root. CI runs the full contract, lifecycle and chart checks and builds both images;
+root. CI runs the contract and chart checks and builds both images;
 there is no need to repeat every check locally. On NixOS use the shell-provided
 Ruff; CI uses `uv run --locked ruff`.
 
 For an intentional dependency update, edit `src/fraud-service/pyproject.toml`, run `uv lock --project src/fraud-service`, and commit the manifest and lock together. Normal installs use `--locked` to reject drift.
-
-The manual client is `src/fraud-service/tools/test_client.py`; run it against an explicitly chosen endpoint using `API_URL`. Deployment instructions target the shared Talos clusters described in `docs/deployment/gitops.md`.
 
 Start fraud with `uv run --locked python -m app` (gRPC port 8000, metrics 8010).
 From the repository root, run `go run ./src/edge/cmd/edge` (HTTP port 8080).
@@ -38,12 +36,8 @@ Regenerate bindings with `tools/generate-contracts.sh`, or check drift with
 `tools/generate-contracts.sh --check`. Generated sources are checked in so each
 service builds independently; do not hand-edit them. The script pins Go plugins
 and uses the locked Python compiler. Public `/predict` accepts protobuf JSON field
-names (lower snake_case or lowerCamelCase); the manual client targets the edge.
+names (lower snake_case or lowerCamelCase).
 Internal prediction calls use `fraud.v1.FraudService/Predict` only.
-
-For the real cross-language and process check, build the edge with
-`go build -o /tmp/fraud-edge ./src/edge/cmd/edge`, then from the Python service run
-`TESTING_MODE=true uv run --locked python -m tools.lifecycle_probe --edge-binary /tmp/fraud-edge`.
 
 Requests reject unknown fields and non-finite numbers and are immutable once validated. The [model artifact](#model-artifact) is serialized for the current locked sklearn runtime; version drift requires an explicit artifact/runtime update.
 
