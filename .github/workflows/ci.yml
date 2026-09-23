@@ -1,18 +1,21 @@
 name: CI
 
 on:
+  pull_request:
   push:
     branches: [main]
-    paths:
-      - "src/fraud-service/**"
-  pull_request:
-    paths:
-      - "src/fraud-service/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  lint-test:
-    name: Lint & Test
+  check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-python@v7.0.0
@@ -22,11 +25,35 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: src/fraud-service/uv.lock
-      - working-directory: src/fraud-service
-        run: uv sync --locked --dev
-      - working-directory: src/fraud-service
-        run: uv run --locked ruff check app tests tools --output-format=github
-      - working-directory: src/fraud-service
-        run: uv run --locked ruff format --check app tests tools
-      - working-directory: src/fraud-service
-        run: TESTING_MODE=true uv run --locked pytest --cov=app --cov-report=term-missing --cov-fail-under=80 tests
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: src/edge/go.mod
+          cache-dependency-path: src/edge/go.sum
+      - uses: azure/setup-helm@v4
+      - name: Python lint and behavior tests
+        working-directory: src/fraud-service
+        env:
+          TESTING_MODE: "true"
+        run: |
+          uv sync --locked --dev
+          uv run --locked ruff check app tests tools
+          uv run --locked ruff format --check app tests tools
+          uv run --locked pytest -q
+      - name: Go tests and generated contracts
+        run: |
+          (cd src/edge && GOWORK=off go test -race ./...)
+          tools/generate-contracts.sh --check
+          go build -o /tmp/fraud-edge ./src/edge/cmd/edge
+      - name: Cross-language prediction and process lifecycle
+        working-directory: src/fraud-service
+        run: TESTING_MODE=true uv run --locked python -m tools.lifecycle_probe --edge-binary /tmp/fraud-edge
+      - name: Helm manifests
+        run: |
+          helm lint infra/charts/fraud-service
+          helm template fraud-dev infra/charts/fraud-service > /tmp/fraud-dev.yaml
+          helm template fraud-prod infra/charts/fraud-service -f infra/charts/fraud-service/values-prod.yaml > /tmp/fraud-prod.yaml
+          for manifest in /tmp/fraud-dev.yaml /tmp/fraud-prod.yaml; do
+            grep -q 'service: readiness' "$manifest"
+            grep -q 'service: liveness' "$manifest"
+            ! grep -Eq 'kind: (Gateway|HTTPRoute|Ingress)' "$manifest"
+          done

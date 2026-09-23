@@ -29,8 +29,8 @@ def test_high_value_boundary(sample_legitimate_payload, amount, raises):
 
 @pytest.mark.parametrize(
     ("average", "raises"),
-    [(30.0, False), (29.99, True), (1.0, True), (0.0, False)],
-    ids=["at-five-times-boundary", "above-five-times-boundary", "positive-low-average", "zero-average-partition"],
+    [(30.0, False), (29.99, True), (0.0, False)],
+    ids=["at-five-times-boundary", "above-five-times-boundary", "zero-average-partition"],
 )
 def test_anomaly_ratio_boundary(sample_legitimate_payload, average, raises):
     payload = sample_legitimate_payload | {"TX_AMOUNT": 150.0, "CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW": average}

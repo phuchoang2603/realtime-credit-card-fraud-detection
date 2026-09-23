@@ -22,9 +22,7 @@ dependencies = [
 dev = [
     "grpcio-tools==1.84.0",
     "hypothesis>=6,<7",
-    "mutmut==3.8.0",
     "pytest>=9,<10",
-    "pytest-cov>=7,<8",
     "ruff>=0.14,<1",
 ]
 
@@ -42,10 +40,3 @@ select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.ruff.format]
 quote-style = "double"
-
-[tool.mutmut]
-source_paths = ["app"]
-mutate_only_covered_lines = false
-process_isolation = "forkserver"
-also_copy = ["tools", "models", "fraud"]
-pytest_add_cli_args = ["-m", "not property"]

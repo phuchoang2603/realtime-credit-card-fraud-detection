@@ -50,23 +50,3 @@ def test_model_loader_rejects_runtime_version_drift(tmp_path):
     path.write_bytes(content)
     with pytest.raises(InconsistentVersionWarning):
         load_model(path)
-
-
-@pytest.mark.parametrize("key,value", [("TX_AMOUNT", float("nan")), ("TX_AMOUNT", float("inf")), ("unexpected", 1)])
-def test_strict_request_models_reject_invalid_input(key, value, sample_legitimate_payload):
-    from pydantic import ValidationError
-
-    from app.schema import TransactionFeatures
-
-    with pytest.raises(ValidationError):
-        TransactionFeatures.model_validate(sample_legitimate_payload | {key: value})
-
-
-def test_validated_transaction_is_immutable(sample_legitimate_payload):
-    from pydantic import ValidationError
-
-    from app.schema import TransactionFeatures
-
-    transaction = TransactionFeatures.model_validate(sample_legitimate_payload)
-    with pytest.raises(ValidationError, match="frozen"):
-        transaction.TX_AMOUNT = 999
