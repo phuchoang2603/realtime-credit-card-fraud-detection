@@ -12,8 +12,8 @@
 - [x] 2.2 Replace change detection and conditional CI jobs with one straightforward check job.
 - [x] 2.3 Reuse one image workflow from explicit fraud/edge jobs; build on PRs and publish on main.
 - [x] 2.4 Update existing guides and OpenSpec context; remove nested READMEs and obsolete generated evidence.
-- [ ] 2.5 Run lightweight local checks, push reviewable commits and open a PR.
-- [ ] 2.6 Review GitHub CI/image results and fix actionable failures; record the final result.
+- [x] 2.5 Run lightweight local checks, push reviewable commits and open a PR.
+- [x] 2.6 Review GitHub CI/image results and fix actionable failures; record the final result.
 
 This task list replaces the earlier score/screenshot acceptance plan following the
 user's 2026-09-23 simplification request. The previous mutation failure (69.17%,

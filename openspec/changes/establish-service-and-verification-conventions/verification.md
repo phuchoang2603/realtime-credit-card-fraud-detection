@@ -1,9 +1,15 @@
 # Verification
 
-The rewritten Python suite passes 44 tests locally. Ruff and Actionlint pass.
-The previous migration also passed real Go-to-Python prediction, process drain,
-Go race tests and Helm checks; the current branch delegates complete integration
-and image builds to GitHub CI. Remote results will be linked after PR creation.
+The rewritten Python suite passes 44 tests locally and in GitHub Actions. Ruff,
+Actionlint and strict OpenSpec validation pass. Remote verification for commit
+`4b51126` passed:
+
+- [CI](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/actions/runs/35887863857): Python lint/tests, Go race tests, generated-contract drift, real Go-to-Python prediction, process lifecycle and Helm checks.
+- [Service images](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/actions/runs/35887864303): independent fraud and edge image builds, without publishing PR images.
+- [PR #68](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/pull/68): reviewable commits and check status.
+
+This documentation follow-up records those results; it does not change the tested
+runtime, contracts, tests or workflows.
 
 The suite protects rules, configuration, model compatibility, gRPC validation and
 errors, request correlation, model-aware readiness, canceled inference capacity,
