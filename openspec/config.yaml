@@ -1,32 +1,53 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  This repository implements a real-time payment gateway and fraud detection.
+  Go services and Python fraud serving own their runtime, contracts and dependencies.
+  Public HTTP/JSON belongs at the Go edge. Internal synchronous business APIs use
+  gRPC with versioned protobuf contracts and generated bindings; do not maintain
+  parallel internal REST/JSON APIs. Events may use protobuf over their event transport.
+  Prefer supported modern APIs and idiomatic code; use Context7 for current public
+  library, SDK and framework guidance. Prefer the repository's Nix devenv.
+  Remove obsolete code, dead paths and unnecessary compatibility layers when
+  changing an area. Preserve legacy behavior only when explicitly required.
+  Update affected producers, consumers, contracts and configuration together.
+  Choose simple designs with a concrete benefit; avoid speculative abstractions,
+  dependencies or protocol migrations just to adopt something newer.
+  Keep tests small and behavior-focused. Each test should protect a distinct
+  business rule, boundary, failure mode, resource lifecycle or integration contract.
+  Reuse coverage; avoid duplicate assertions across layers, getter/no-op tests,
+  implementation-mirroring tests and equivalent parameter combinations.
+  Prefer one simple CI check job over change-detection jobs, matrices and conditional
+  job graphs. Reuse an existing build template for explicit service jobs. Let CI own
+  full integration checks and image builds; run only relevant fast checks locally.
+  Do not add score-only tests or custom coverage/mutation gate tooling. Record real
+  failures honestly; replacing a verification policy does not turn old failures into passes.
+  Keep documentation minimal. Use the root README as the entry point and update
+  existing focused guides only when needed; do not create per-directory READMEs
+  or repeat information already maintained elsewhere.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Explain the concrete problem and expected behavior concisely.
+    - Identify intentional breaking changes; do not assume legacy compatibility is required.
+  design:
+    - Prefer supported APIs and remove obsolete paths within the changed area.
+    - Justify new abstractions, dependencies and protocols with a current requirement.
+    - Plan coordinated contract and caller updates for intentional breaking changes.
+  specs:
+    - Specify observable behavior and meaningful boundaries without mirroring implementation details.
+  tasks:
+    - Include cleanup of superseded code and affected references in implementation tasks.
+    - Reuse existing behavioral coverage; add tests only for distinct uncovered risks.
+    - Keep documentation work proportional; update existing guides instead of adding READMEs.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  apply:
+    guidance:
+      - Use devenv when available and Context7 for current public API guidance.
+      - Remove superseded implementations rather than retaining parallel legacy paths.
+      - Run checks appropriate to the change; skip runtime tests for documentation-only edits.
+      - Report actual validation results and remaining gaps without adding low-value tests.
+  archive:
+    guidance:
+      - Keep the outcome concise and report unresolved verification gaps honestly.

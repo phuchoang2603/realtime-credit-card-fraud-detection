@@ -1,0 +1,26 @@
+name: Publish documentation wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/wiki.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      # Includes link conversion for nested docs and repository source files.
+      - uses: Andrew-Chen-Wang/github-wiki-action@93c86ef70e8354bbd677185b355ba164cb29288f
+        with:
+          path: docs
+          disable-empty-commits: true

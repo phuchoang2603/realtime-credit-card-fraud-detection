@@ -1,0 +1,76 @@
+## Context
+
+The original Python HTTP service mixed transport, inference and runtime resources.
+The approved implementation moves public HTTP/JSON to a Go edge and uses gRPC
+internally. The latest user direction favors useful tests, minimal CI and remote
+verification over score tooling and repeating every check locally.
+
+## Goals / Non-Goals
+
+Provide a typed cross-language prediction path, independent builds, safe lifecycle
+and compact checks. Do not implement Payments, choose persistence/event products,
+maintain a parallel legacy REST API, or deploy to a cluster.
+
+## Decisions
+
+### Contracts and service ownership
+
+`contracts/fraud/v1/fraud.proto` owns the internal API. A pinned generation script
+writes service-local Go/Python bindings, permitting independent image builds.
+Optional scalar presence distinguishes missing features from legitimate zeros.
+The edge accepts protobuf JSON field names and maps gRPC errors to safe HTTP
+responses. It reuses its channel and propagates deadlines/cancellation, request IDs
+and W3C trace context. Future Payments owns payment orchestration; edge prediction
+is only the existing scoring capability. Async events need their own durable
+transport even if their payloads use protobuf.
+
+### Python runtime
+
+A composition root owns model, executor, metrics, tracing and gRPC resources.
+Immutable validated inputs feed synchronous rules and inference. Worker capacity
+remains occupied until native inference completes even if its RPC is canceled.
+Instance tracing avoids global provider replacement. Telemetry cleanup and RPC
+drain are bounded; a shutdown watchdog prevents stuck native calls from holding
+interpreter exit indefinitely. The converted model targets the locked sklearn
+runtime without private runtime patches; this is not retraining.
+
+### Readiness and deployment
+
+The edge keeps HTTP `/health` and `/ready`. Fraud replaces both HTTP endpoints with
+the standard gRPC health API using `liveness` and `readiness` service names.
+Liveness reports a live process; readiness additionally requires the model and
+withdraws at shutdown. A missing model stops routing without a restart loop.
+The chart uses Kubernetes 1.27+ numeric-port gRPC probes on 8000, metrics on 8010,
+a ClusterIP service and no public fraud ingress. Image and chart protocol changes
+must roll forward/back together; use immutable image tags for deployment.
+
+### Tests and CI
+
+Keep a small suite protecting decision boundaries, invalid input, model/runtime
+compatibility, safe RPC errors, observability and resource lifecycle. Reuse existing
+coverage instead of asserting framework internals or duplicating cases. Retain one
+bounded real-model property and an actual Go-to-Python/process check.
+
+One `CI / check` job runs lint, Python tests, Go race tests, generation drift,
+integration and Helm checks. There is no path-filter job or conditional matrix.
+Two explicit image jobs call one reusable build workflow: PRs build without
+publication and main pushes publish. Standard GitHub Actions are reused.
+
+Custom coverage/mutation scoring and screenshot tools are removed per the latest
+scope. The old 69.17% mutation failure remains documented; these changes do not
+turn it into a pass. CI logs and the PR are the current review evidence.
+
+## Risks / Trade-offs
+
+- Protobuf JSON names intentionally break the prior uppercase payload convention.
+- Native inference cannot be interrupted; retained worker slots bound concurrent work.
+- Plaintext internal gRPC assumes cluster-private networking; transport identity/TLS policy remains future routing/security work.
+- One CI job repeats inexpensive checks on all PRs in exchange for simpler configuration.
+- Coverage/mutation scores no longer gate changes; reviewers assess the distinct behaviors exercised by tests.
+
+## Migration Plan
+
+Commit runtime/contracts first, then test/CI simplification and coherent docs.
+Run relevant lightweight checks locally, push a feature branch and open a PR.
+Use GitHub-hosted checks for complete integration and image builds; fix actionable
+failures in follow-up commits. Do not merge, archive or deploy automatically.

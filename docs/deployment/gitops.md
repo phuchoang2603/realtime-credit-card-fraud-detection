@@ -25,7 +25,7 @@ After choosing the intended workload cluster context, inspect the service with:
 kubectl --context <workload-context> -n payment-gateway port-forward svc/fraud-service 8000:8000 8010:8010
 ```
 
-The service is a `ClusterIP` exposing HTTP 8000 and metrics 8010, with the existing `/app/models/model.pkl` configuration and `/health` probes. Dev and prod render a Cilium Gateway and HTTPRoute at `fraud-dev.phuchoang.sbs` and `fraud.phuchoang.sbs`; TLS terminates upstream, so the in-cluster listener is HTTP.
+The service is a `ClusterIP` exposing gRPC 8000 and HTTP metrics 8010, with `/app/models/model.pkl`. Kubernetes 1.27+ probes the standard gRPC health service using `liveness` and `readiness` names. The fraud chart creates no Gateway, HTTPRoute or public ingress. Public HTTP traffic belongs at the Go edge; edge deployment remains part of gateway delivery. Pair the gRPC image and chart in a rollout or rollback; the old HTTP image cannot satisfy gRPC probes. Use an immutable published image SHA for a real rollout, replacing the development `latest` default.
 
 Complete the owner-specific [shared observability checklist](shared-observability.md) independently for dev and prod before accepting rollout. Missing discovery, CRDs, datasource configuration, or network access blocks acceptance; this repo does not add fallback shared infrastructure. See [CI and release](ci.md) for validation and publication responsibilities.
 
