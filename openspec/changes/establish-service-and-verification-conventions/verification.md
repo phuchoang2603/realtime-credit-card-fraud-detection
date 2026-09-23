@@ -2,7 +2,7 @@ Current follow-up removes service tools and readiness/process probes and switche
 Go devenv to `languages.go` with Delve and gopls. Runtime health checks remain.
 The focused 13-test gRPC suite passes locally. The previous successful CI links
 below refer to the earlier suite; current PR checks verify the cleanup. Nix syntax
-parses; the refreshed devenv shell timed out before tool activation could be verified.
+parses. The refreshed shell resolves Go 1.26.7, gopls 0.23.0 and Delve 1.27.1.
 
 # Verification
 
