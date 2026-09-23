@@ -1,13 +1,17 @@
 { pkgs, ... }:
 {
   packages = [
-    pkgs.go
     pkgs.kubernetes-helm
     pkgs.kubectl
     pkgs.openspec
     pkgs.ruff
     pkgs.zlib
   ];
+  languages.go = {
+    enable = true;
+    delve.enable = true;
+    lsp.enable = true;
+  };
   languages.python = {
     enable = true;
     version = "3.14";
