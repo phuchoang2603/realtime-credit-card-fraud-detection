@@ -17,8 +17,9 @@ context: |
   business rule, boundary, failure mode, resource lifecycle or integration contract.
   Reuse coverage; avoid duplicate assertions across layers, getter/no-op tests,
   implementation-mirroring tests and equivalent parameter combinations.
-  Prefer one simple CI check job over change-detection jobs, matrices and conditional
-  job graphs. Reuse an existing build template for explicit service jobs. Let CI own
+  Keep Python tests, Go tests and Helm lint in independent CI jobs without
+  change-detection jobs or matrices. Discover and validate all Helm charts. Reuse
+  one workflow template for checks and explicit service image jobs. Let CI own
   full integration checks and image builds; run only relevant fast checks locally.
   Do not add score-only tests or custom coverage/mutation gate tooling. Record real
   failures honestly; replacing a verification policy does not turn old failures into passes.

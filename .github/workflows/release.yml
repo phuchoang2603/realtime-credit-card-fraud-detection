@@ -11,15 +11,17 @@ permissions:
 
 jobs:
   fraud:
-    uses: ./.github/workflows/build-image.yml
+    uses: ./.github/workflows/template.yml
     with:
+      build-image: true
       image: ${{ github.repository }}
       context: src/fraud-service
       dockerfile: infra/docker/fraud-service.Dockerfile
       publish: ${{ github.event_name == 'push' }}
   edge:
-    uses: ./.github/workflows/build-image.yml
+    uses: ./.github/workflows/template.yml
     with:
+      build-image: true
       image: ${{ github.repository }}/edge
       context: .
       dockerfile: infra/docker/go-service.Dockerfile

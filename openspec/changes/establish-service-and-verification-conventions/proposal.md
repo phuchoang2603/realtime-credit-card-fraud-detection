@@ -11,8 +11,8 @@ requested a rewritten useful test suite, minimal CI, frequent commits and a PR.
 - Replace Python REST, private sklearn patches and import-time runtime resources.
 - Keep distinct liveness/readiness, bounded shutdown, safe errors and correlation.
 - Make fraud internal-only with native gRPC Kubernetes health probes.
-- Replace score-focused verification with behavior tests and one simple CI job.
-- Reuse one image-build workflow from two explicit service jobs; build on PRs and publish on main.
+- Replace score-focused verification with behavior tests and independent Python, Go and Helm CI jobs.
+- Reuse one test/build workflow template from two explicit service jobs; build on PRs and publish on main.
 - Remove scattered READMEs and consolidate essential guidance in existing docs.
 
 ## Capabilities

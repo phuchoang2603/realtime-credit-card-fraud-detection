@@ -13,38 +13,5 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-python@v7.0.0
-        with:
-          python-version: "3.14"
-      - uses: astral-sh/setup-uv@v10.1.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: src/fraud-service/uv.lock
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: src/edge/go.mod
-          cache-dependency-path: src/edge/go.sum
-      - uses: azure/setup-helm@v4
-      - name: Python lint and behavior tests
-        working-directory: src/fraud-service
-        env:
-          TESTING_MODE: "true"
-        run: |
-          uv sync --locked --dev
-          uv run --locked ruff check app tests
-          uv run --locked ruff format --check app tests
-          uv run --locked pytest -q
-      - name: Go tests and generated contracts
-        run: |
-          (cd src/edge && GOWORK=off go test -race ./...)
-          tools/generate-contracts.sh --check
-      - name: Helm manifests
-        run: |
-          helm lint infra/charts/fraud-service
-          helm template fraud-dev infra/charts/fraud-service > /tmp/fraud-dev.yaml
-          helm template fraud-prod infra/charts/fraud-service -f infra/charts/fraud-service/values-prod.yaml > /tmp/fraud-prod.yaml
+  checks:
+    uses: ./.github/workflows/template.yml

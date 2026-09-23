@@ -9,8 +9,8 @@
 ## 2. Simplify verification and delivery
 
 - [x] 2.1 Rewrite the suite around useful rules, validation, model, transport and lifecycle behavior; remove score-only tooling and redundant cases.
-- [x] 2.2 Replace change detection and conditional CI jobs with one straightforward check job.
-- [x] 2.3 Reuse one image workflow from explicit fraud/edge jobs; build on PRs and publish on main.
+- [x] 2.2 Replace change detection and conditional CI jobs with independent Python, Go and all-chart Helm jobs.
+- [x] 2.3 Reuse one test/build workflow template from explicit fraud/edge jobs; build on PRs and publish on main.
 - [x] 2.4 Update existing guides and OpenSpec context; remove nested READMEs and obsolete generated evidence.
 - [x] 2.5 Run lightweight local checks, push reviewable commits and open a PR.
 - [x] 2.6 Review GitHub CI/image results and fix actionable failures; record the final result.

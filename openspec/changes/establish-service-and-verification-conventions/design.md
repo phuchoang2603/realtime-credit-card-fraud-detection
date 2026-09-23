@@ -52,9 +52,10 @@ coverage instead of asserting framework internals or duplicating cases. Retain o
 bounded real-model property. Service tools and dedicated readiness/process-probe
 tests are removed at the user's request; runtime health checks remain configured.
 
-One `CI / check` job runs lint, Python tests, Go race tests, generation drift,
-Helm checks. There is no path-filter job or conditional matrix.
-Two explicit image jobs call one reusable build workflow: PRs build without
+Independent Python, Go and Helm jobs run lint, behavior/race tests, generation
+drift and lint/render validation for every tracked chart and its values overrides.
+There is no path-filter job or matrix. Checks and two explicit image jobs share
+`template.yml`: PRs build without
 publication and main pushes publish. Standard GitHub Actions are reused.
 
 Custom coverage/mutation scoring and screenshot tools are removed per the latest
@@ -66,7 +67,7 @@ turn it into a pass. CI logs and the PR are the current review evidence.
 - Protobuf JSON names intentionally break the prior uppercase payload convention.
 - Native inference cannot be interrupted; retained worker slots bound concurrent work.
 - Plaintext internal gRPC assumes cluster-private networking; transport identity/TLS policy remains future routing/security work.
-- One CI job repeats inexpensive checks on all PRs in exchange for simpler configuration.
+- Three independent check jobs run on every PR; contract generation requires Python tooling in the Go job.
 - Coverage/mutation scores no longer gate changes; reviewers assess the distinct behaviors exercised by tests.
 
 ## Migration Plan

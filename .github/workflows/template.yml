@@ -1,0 +1,120 @@
+name: Test and build template
+
+on:
+  workflow_call:
+    inputs:
+      build-image:
+        default: false
+        type: boolean
+      image:
+        type: string
+      context:
+        type: string
+      dockerfile:
+        type: string
+      build-args:
+        default: ""
+        type: string
+      publish:
+        type: boolean
+
+jobs:
+  python:
+    if: ${{ !inputs.build-image }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: src/fraud-service/uv.lock
+      - name: Python lint and behavior tests
+        working-directory: src/fraud-service
+        env:
+          TESTING_MODE: "true"
+        run: |
+          uv sync --locked --dev
+          uv run --locked ruff check app tests
+          uv run --locked ruff format --check app tests
+          uv run --locked pytest -q
+
+  go:
+    if: ${{ !inputs.build-image }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: src/edge/go.mod
+          cache-dependency-path: src/edge/go.sum
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: src/fraud-service/uv.lock
+      - name: Go race tests
+        working-directory: src/edge
+        env:
+          GOWORK: "off"
+        run: go test -race ./...
+      - name: Generated contract drift
+        run: tools/generate-contracts.sh --check
+
+  helm:
+    if: ${{ !inputs.build-image }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: azure/setup-helm@v4
+      - name: Lint and render all charts
+        shell: bash
+        run: |
+          shopt -s nullglob
+          while IFS= read -r -d '' manifest; do
+            chart=$(dirname "$manifest")
+            helm lint "$chart"
+            helm template check "$chart" > /dev/null
+            for values in "$chart"/values-*.yaml; do
+              helm lint "$chart" -f "$values"
+              helm template check "$chart" -f "$values" > /dev/null
+            done
+          done < <(git ls-files -z -- '**/Chart.yaml' 'Chart.yaml')
+
+  build:
+    if: inputs.build-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: inputs.publish
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ inputs.image }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=,format=short
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          build-args: ${{ inputs.build-args }}
+          push: ${{ inputs.publish }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ inputs.image }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.image }}
