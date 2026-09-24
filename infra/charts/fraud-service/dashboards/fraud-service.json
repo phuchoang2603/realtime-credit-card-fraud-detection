@@ -3,9 +3,7 @@
   "title": "Fraud Service",
   "schemaVersion": 39,
   "version": 1,
-  "tags": [
-    "fraud-service"
-  ],
+  "tags": ["fraud-service"],
   "refresh": "30s",
   "time": {
     "from": "now-1h",

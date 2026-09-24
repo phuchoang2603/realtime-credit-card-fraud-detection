@@ -197,4 +197,3 @@ architectures to the fraud detection problem.
 ![DeepLearning_global-compare](./images/DeepLearning_global-compare.png)
 
 > _Fig. 9: Global Comparison of Deep Learning and Baseline Models_
-

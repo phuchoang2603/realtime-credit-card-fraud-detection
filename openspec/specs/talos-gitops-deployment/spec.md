@@ -42,8 +42,8 @@ Synchronizing or deleting this repository's applications SHALL NOT create, adopt
 ### Requirement: Service quality and automated image release
 
 Every PR and main push SHALL run independent Python, Go and Helm check jobs
-covering Python lint/format/tests, Go format/vet/build and Helm validation, using
-the checked-in protobuf bindings. Two explicit service jobs SHALL reuse one image
+covering Python lint/format/tests, Go lint and Helm validation, using the
+checked-in protobuf bindings. Two explicit service jobs SHALL reuse one image
 workflow. PRs SHALL build without publishing; main pushes SHALL publish SHA/latest
 images to GHCR.
 

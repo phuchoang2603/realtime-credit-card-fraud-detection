@@ -1,21 +1,21 @@
 [Home](Home.md)
 
-**Design**
+**Architecture**
 
-- [Architecture](architecture/payment-gateway.md)
+- [Overview](architecture/payment-gateway.md)
+- [Payment flows](architecture/payment-flows.md)
+- [Data and ML flows](architecture/data-ml-flows.md)
+- [Service conventions](architecture/service-conventions.md)
 - [Roadmap](architecture/roadmap.md)
 
-**Development**
+**Deployment**
 
-- [Setup](development/local-setup.md)
-- [Conventions](development/service-conventions.md)
-- [Verification](development/verification.md)
-
-**Operations**
-
-- [Deployment](deployment/gitops.md)
-- [CI and release](deployment/ci.md)
+- [GitOps](deployment/gitops.md)
 - [Observability](deployment/shared-observability.md)
+
+**Verification**
+
+- [Evidence](verification/evidence.md)
 
 **Research**
 

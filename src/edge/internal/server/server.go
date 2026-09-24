@@ -58,7 +58,8 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) Close() error { return s.connection.Close() }
 
 func (s *Server) Run(ctx context.Context) error {
-	defer s.Close()
+	// The client connection is process-scoped; a close error after serving is not actionable.
+	defer func() { _ = s.Close() }()
 	listener, err := net.Listen("tcp", s.config.Address)
 	if err != nil {
 		return fmt.Errorf("listen on %s: %w", s.config.Address, err)
