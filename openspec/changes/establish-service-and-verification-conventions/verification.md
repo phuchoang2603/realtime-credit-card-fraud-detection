@@ -20,10 +20,10 @@ Actionlint and strict OpenSpec validation pass. Remote verification for commit
 Those links record historical results. The current workflow refactor leaves
 runtime, contracts and behavior tests unchanged; current checks are on PR #68.
 
-The suite protects rules, configuration, model compatibility, gRPC validation and
-errors, request correlation, canceled inference capacity,
-resource cleanup and real-model repeatability. CI now uses independent Python, Go and all-chart Helm jobs; image builds
-use two explicit service jobs sharing the same `template.yml` workflow.
+The suite protects decision rules, the probability threshold and real-model
+repeatability. Configuration, observability and gRPC/HTTP transport tests were
+removed. CI now uses independent Python, Go and all-chart Helm jobs; image builds
+use two explicit service jobs sharing the image build workflow.
 
 The previous mutation run failed at 69.17% (489 killed, 218 survived, 38 unresolved).
 The user subsequently requested simpler tests/CI, superseding numerical gates and

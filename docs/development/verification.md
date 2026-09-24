@@ -1,30 +1,16 @@
 # Verification
 
-Keep tests that protect distinct behavior. The current Python suite has 44 cases:
+Keep tests that protect fraud decisions. Configuration validation, observability and gRPC/HTTP transport are not covered.
 
-| Area | What the tests protect |
-| --- | --- |
+| Area                  | What the tests protect                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------- |
 | Application and rules | Strict fraud threshold, independent amount/ratio boundaries, blocklists, invalid model output |
-| Configuration and model | Invalid startup settings, model type/version compatibility |
-| gRPC | Required feature presence, validation, safe error mapping, correlation and tracing |
-| Lifecycle | Canceled inference capacity, resource cleanup and bounded drain |
-| Real model | Generated prediction repeatability and unchanged caller inputs |
+| Real model            | Generated prediction repeatability and unchanged caller inputs                                |
 
-Go tests cover HTTP translation, RPC deadlines, safe public errors and bounded
-request drain. Service tools, process probes and dedicated readiness checks were
-removed at the user's request; runtime Kubernetes health checks remain configured.
+The Go edge has no unit tests. Its code is configuration, HTTP translation and gRPC client behavior, which this suite does not cover. CI still compiles the module with `go test -race ./...`.
 
-Run the relevant tests locally inside devenv; CI owns the full checks and image
-builds. See [local setup](local-setup.md) and [CI](../deployment/ci.md). Reuse existing
-coverage instead of repeating assertions across layers. Avoid getter/no-op tests,
-framework implementation assertions and parameter combinations with no distinct risk.
+Run the relevant tests locally inside devenv; CI owns the full checks and image builds. See [local setup](local-setup.md) and [CI](../deployment/ci.md).
 
-On 2026-09-23 the user requested a simpler behavior-focused suite and minimal CI.
-The former coverage/mutation gates, custom scoring tools and screenshot generation
-were removed as an explicit policy change. The prior mutation run failed at 69.17%
-(489 killed, 218 survived, 38 unresolved); it was not fixed or reclassified as passing.
-That historical score does not certify the rewritten tests.
+The mini-coursework covers data generation, pipelines, schemas and benchmarks. The final ML rubric later asks for greater-than-90% coverage and greater-than-80% mutation score. Neither requires these configuration, observability or transport tests. On 2026-09-23 the user requested a simpler behavior-focused suite and minimal CI. The former coverage/mutation gates, custom scoring tools and screenshot generation were removed as an explicit policy change. The prior mutation run failed at 69.17% (489 killed, 218 survived, 38 unresolved); it was not fixed or reclassified as passing. That historical score does not certify the current tests.
 
-Deployed load/SLO evidence remains future work under #56/#62. A future report must
-identify workload, dataset, resource limits, duration, latency, errors and SLOs.
-Current tests make no claim about deployed load, model accuracy or payment idempotency.
+Deployed load/SLO evidence remains future work under #56/#62. A future report must identify workload, dataset, resource limits, duration, latency, errors and SLOs. Current tests make no claim about deployed load, model accuracy or payment idempotency.

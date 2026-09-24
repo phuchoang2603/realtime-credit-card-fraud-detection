@@ -28,7 +28,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-markers = ["property: generated tests using the deployed model artifact", "api: in-process API and lifecycle integration"]
+markers = ["property: generated tests using the deployed model artifact"]
 
 [tool.ruff]
 line-length = 119

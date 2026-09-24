@@ -86,4 +86,4 @@ A missing model must stop traffic without triggering a liveness restart loop.
 The edge keeps `/health` and `/ready`: the latter withdraws before shutdown and
 reflects local serving capability, not the health of every downstream service.
 
-Tests should protect distinct observable behavior, boundaries and failure modes. Prefer reusing a focused regression over duplicate API/unit assertions, no-op/getter tests or enumerating equivalent cases. Coverage and mutation results remain honest measurements, not reasons to add low-value tests. Boolean configuration uses `true`/`false` (case-insensitive); aliases such as `yes`, `on` and `1` are intentionally unsupported.
+Tests should protect fraud decision boundaries and real-model repeatability. Configuration validation, observability and gRPC/HTTP transport do not need tests. Coverage and mutation results remain honest measurements, not reasons to add low-value tests. Boolean configuration uses `true`/`false` (case-insensitive); aliases such as `yes`, `on` and `1` are intentionally unsupported.

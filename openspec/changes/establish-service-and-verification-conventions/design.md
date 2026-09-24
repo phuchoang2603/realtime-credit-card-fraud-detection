@@ -46,16 +46,16 @@ must roll forward/back together; use immutable image tags for deployment.
 
 ### Tests and CI
 
-Keep a small suite protecting decision boundaries, invalid input, model/runtime
-compatibility, safe RPC errors, observability and resource lifecycle. Reuse existing
+Keep a small suite protecting decision boundaries and real-model repeatability.
+Configuration, observability and transport tests are out of scope. Reuse existing
 coverage instead of asserting framework internals or duplicating cases. Retain one
 bounded real-model property. Service tools and dedicated readiness/process-probe
 tests are removed at the user's request; runtime health checks remain configured.
 
 Independent Python, Go and Helm jobs run lint, behavior/race tests and lint/render validation for every tracked chart and its values overrides.
-There is no path-filter job or matrix. Checks and two explicit image jobs share
-`template.yml`: PRs build without
-publication and main pushes publish. Standard GitHub Actions are reused.
+There is no path-filter job or matrix. CI owns the check jobs. Two explicit image
+jobs reuse one image workflow: PRs build without publication and main pushes
+publish. Standard GitHub Actions are reused.
 
 Custom coverage/mutation scoring and screenshot tools are removed per the latest
 scope. The old 69.17% mutation failure remains documented; these changes do not

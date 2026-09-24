@@ -14,8 +14,7 @@ For a Python edit, run the small suite from the service directory:
 
 ```bash
 ruff check app tests
-ruff format --check app tests
-TESTING_MODE=true uv run --locked pytest -q
+uv run --locked pytest -q
 ```
 
 For a Go edit, run `(cd src/edge && GOWORK=off go test ./...)` from the repository
