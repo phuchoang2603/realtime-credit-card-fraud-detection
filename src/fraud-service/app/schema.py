@@ -1,60 +1,46 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TransactionFeatures(BaseModel):
-    """
-    Defines the input features for a single transaction prediction.
-    Includes raw features for logging/rules and engineered features for the model.
-    """
+    """Validated features for one transaction: raw identifiers for rules plus engineered model inputs."""
 
-    # == Raw Features (Not for ML Model) ==
-    # These are used for logging, tracing, and pre-prediction rule checks.
-    TRANSACTION_ID: int = Field(..., json_schema_extra={"example": 12345})
-    TX_DATETIME: datetime = Field(..., json_schema_extra={"example": "2025-06-11T12:30:00"})
-    CUSTOMER_ID: int = Field(..., json_schema_extra={"example": 1234})
-    TERMINAL_ID: int = Field(..., json_schema_extra={"example": 5678})
-    TX_TIME_SECONDS: int = Field(..., json_schema_extra={"example": 1654950600})
-    TX_TIME_DAYS: int = Field(..., json_schema_extra={"example": 19154})
+    model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False)
 
-    # == Engineered Features (For ML Model) ==
-    TX_AMOUNT: float = Field(
-        ..., json_schema_extra={"example": 100.50}, description="The monetary value of the transaction."
-    )
-    TX_DURING_WEEKEND: Literal[0, 1] = Field(
-        ...,
-        json_schema_extra={"example": 1},
-        description="1 if the transaction occurs on a weekend, 0 otherwise.",
-    )
-    TX_DURING_NIGHT: Literal[0, 1] = Field(
-        ...,
-        json_schema_extra={"example": 0},
-        description="1 if the transaction occurs during the night (0pm-6am), 0 otherwise.",
-    )
+    # Raw features used by logging and pre-prediction rules, not by the model.
+    TRANSACTION_ID: int
+    TX_DATETIME: datetime
+    CUSTOMER_ID: int
+    TERMINAL_ID: int
+    TX_TIME_SECONDS: int
+    TX_TIME_DAYS: int
 
-    # Customer-level features
-    CUSTOMER_ID_NB_TX_1DAY_WINDOW: float = Field(..., json_schema_extra={"example": 1.0})
-    CUSTOMER_ID_AVG_AMOUNT_1DAY_WINDOW: float = Field(..., json_schema_extra={"example": 75.25})
-    CUSTOMER_ID_NB_TX_7DAY_WINDOW: float = Field(..., json_schema_extra={"example": 5.0})
-    CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW: float = Field(..., json_schema_extra={"example": 90.0})
-    CUSTOMER_ID_NB_TX_30DAY_WINDOW: float = Field(..., json_schema_extra={"example": 20.0})
-    CUSTOMER_ID_AVG_AMOUNT_30DAY_WINDOW: float = Field(..., json_schema_extra={"example": 85.50})
+    # Engineered model features, in the column order the model expects.
+    TX_AMOUNT: float
+    TX_DURING_WEEKEND: Literal[0, 1]
+    TX_DURING_NIGHT: Literal[0, 1]
+    CUSTOMER_ID_NB_TX_1DAY_WINDOW: float
+    CUSTOMER_ID_AVG_AMOUNT_1DAY_WINDOW: float
+    CUSTOMER_ID_NB_TX_7DAY_WINDOW: float
+    CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW: float
+    CUSTOMER_ID_NB_TX_30DAY_WINDOW: float
+    CUSTOMER_ID_AVG_AMOUNT_30DAY_WINDOW: float
+    TERMINAL_ID_NB_TX_1DAY_WINDOW: float
+    TERMINAL_ID_RISK_1DAY_WINDOW: float
+    TERMINAL_ID_NB_TX_7DAY_WINDOW: float
+    TERMINAL_ID_RISK_7DAY_WINDOW: float
+    TERMINAL_ID_NB_TX_30DAY_WINDOW: float
+    TERMINAL_ID_RISK_30DAY_WINDOW: float
 
-    # Terminal-level features
-    TERMINAL_ID_NB_TX_1DAY_WINDOW: float = Field(..., json_schema_extra={"example": 10.0})
-    TERMINAL_ID_RISK_1DAY_WINDOW: float = Field(..., json_schema_extra={"example": 0.2})
-    TERMINAL_ID_NB_TX_7DAY_WINDOW: float = Field(..., json_schema_extra={"example": 50.0})
-    TERMINAL_ID_RISK_7DAY_WINDOW: float = Field(..., json_schema_extra={"example": 0.1})
-    TERMINAL_ID_NB_TX_30DAY_WINDOW: float = Field(..., json_schema_extra={"example": 200.0})
-    TERMINAL_ID_RISK_30DAY_WINDOW: float = Field(..., json_schema_extra={"example": 0.05})
+
+RAW_FEATURES = frozenset(
+    {"TRANSACTION_ID", "TX_DATETIME", "CUSTOMER_ID", "TERMINAL_ID", "TX_TIME_SECONDS", "TX_TIME_DAYS"}
+)
+MODEL_FEATURES = [name for name in TransactionFeatures.model_fields if name not in RAW_FEATURES]
 
 
 class Prediction(BaseModel):
-    """
-    Defines the structure of the API's prediction response.
-    """
-
     is_fraud: bool
     fraud_probability: float = Field(..., ge=0, le=1)

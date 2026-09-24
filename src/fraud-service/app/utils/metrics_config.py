@@ -1,44 +1,63 @@
-from opentelemetry.exporter.prometheus import PrometheusMetricReader
-from opentelemetry.metrics import get_meter_provider, set_meter_provider
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.resources import Resource
-from prometheus_client import start_http_server
+from __future__ import annotations
 
-from app.utils.telemetry_config import service_name
+from dataclasses import dataclass
+from threading import Thread
+from typing import Any
 
-
-def setup_metrics(app_version: str):
-    """
-    Sets up OpenTelemetry metrics and starts the Prometheus exporter.
-    Returns a meter that can be used to create metric instruments.
-    """
-    # Start Prometheus client to expose metrics on port 8010
-    start_http_server(port=8010, addr="0.0.0.0")
-
-    identity = service_name()
-    resource = Resource(attributes={"service.name": identity})
-
-    # Set up the MeterProvider
-    reader = PrometheusMetricReader()
-    meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
-    set_meter_provider(meter_provider)
-
-    return get_meter_provider().get_meter(identity, app_version)
+from prometheus_client import CollectorRegistry, Counter, Histogram, start_wsgi_server
 
 
-# Create a global meter instance
-meter = setup_metrics("1.0.0")
+@dataclass(slots=True)
+class Metrics:
+    """Owns application metrics and the optional Prometheus listener."""
 
-# Define specific metric instruments to be used across the application
-predictions_counter = meter.create_counter(
-    "predictions_total",
-    description="Total number of predictions made.",
-)
-prediction_latency = meter.create_histogram(
-    "prediction_latency_seconds",
-    description="Latency of the prediction endpoint in seconds.",
-    unit="s",
-)
-fraud_score_histogram = meter.create_histogram(
-    "fraud_prediction_score", description="Distribution of fraud prediction scores."
-)
+    registry: CollectorRegistry
+    predictions: Any
+    latency: Any
+    scores: Any
+    server: Any = None
+    thread: Thread | None = None
+
+    @classmethod
+    def create(cls) -> Metrics:
+        registry = CollectorRegistry(auto_describe=True)
+        return cls(
+            registry=registry,
+            predictions=Counter(
+                "predictions_total", "Total number of predictions made.", ["is_fraud"], registry=registry
+            ),
+            latency=Histogram(
+                "prediction_latency_seconds", "Latency of prediction endpoint in seconds.", registry=registry
+            ),
+            scores=Histogram("fraud_prediction_score", "Distribution of fraud prediction scores.", registry=registry),
+        )
+
+    def start(self, port: int, address: str = "0.0.0.0") -> None:
+        self.server, self.thread = start_wsgi_server(port=port, addr=address, registry=self.registry)
+
+    def record_prediction(self, is_fraud: bool, probability: float) -> None:
+        self.predictions.labels(is_fraud=str(is_fraud)).inc()
+        self.scores.observe(probability)
+
+    def observe_latency(self, seconds: float) -> None:
+        self.latency.observe(seconds)
+
+    def close(self) -> None:
+        if self.server is not None:
+            self.server.shutdown()
+            self.server.server_close()
+            if self.thread is not None:
+                self.thread.join(timeout=1)
+            self.server = None
+            self.thread = None
+
+
+class NoopMetrics:
+    def record_prediction(self, is_fraud: bool, probability: float) -> None:
+        del is_fraud, probability
+
+    def observe_latency(self, seconds: float) -> None:
+        del seconds
+
+    def close(self) -> None:
+        return None

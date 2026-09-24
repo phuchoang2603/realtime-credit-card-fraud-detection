@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package fraud.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/phuchoang2603/realtime-credit-card-fraud-detection/edge/gen/fraud/v1;fraudv1";
+
+service FraudService {
+  rpc Predict(PredictRequest) returns (PredictResponse);
+}
+
+// All features are required by validation. Presence distinguishes missing from zero.
+message PredictRequest {
+  optional int64 transaction_id = 1;
+  google.protobuf.Timestamp tx_datetime = 2;
+  optional int64 customer_id = 3;
+  optional int64 terminal_id = 4;
+  optional int64 tx_time_seconds = 5;
+  optional int64 tx_time_days = 6;
+  optional double tx_amount = 7;
+  optional int32 tx_during_weekend = 8;
+  optional int32 tx_during_night = 9;
+  optional double customer_id_nb_tx_1day_window = 10;
+  optional double customer_id_avg_amount_1day_window = 11;
+  optional double customer_id_nb_tx_7day_window = 12;
+  optional double customer_id_avg_amount_7day_window = 13;
+  optional double customer_id_nb_tx_30day_window = 14;
+  optional double customer_id_avg_amount_30day_window = 15;
+  optional double terminal_id_nb_tx_1day_window = 16;
+  optional double terminal_id_risk_1day_window = 17;
+  optional double terminal_id_nb_tx_7day_window = 18;
+  optional double terminal_id_risk_7day_window = 19;
+  optional double terminal_id_nb_tx_30day_window = 20;
+  optional double terminal_id_risk_30day_window = 21;
+}
+
+message PredictResponse {
+  bool is_fraud = 1;
+  double fraud_probability = 2;
+}

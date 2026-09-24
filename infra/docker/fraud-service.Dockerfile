@@ -7,8 +7,10 @@ COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --locked --no-dev
 
 COPY app ./app
+COPY fraud ./fraud
 COPY models ./models
 
 EXPOSE 8000 8010
 
-CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
+USER 65532:65532
+CMD ["/app/.venv/bin/python", "-m", "app"]

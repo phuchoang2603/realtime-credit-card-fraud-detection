@@ -1,9 +1,4 @@
 replicaCount: 2
-ingress:
-  enabled: true
-  name: payment-gateway-ingress
-  hostname: fraud-dev.phuchoang.sbs
-  port: 80
 image:
   repository: "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection"
   tag: "latest"
@@ -54,4 +49,7 @@ dashboards:
 
 telemetry:
   serviceName: fraud-service
-  traceEndpoint: vtsingle-vmks.monitoring.svc.cluster.local:4317
+  traceEndpoint: http://vtsingle-vmks.monitoring.svc.cluster.local:4317
+
+# Drain (30s) plus bounded telemetry/metrics cleanup and scheduling margin.
+terminationGracePeriodSeconds: 40

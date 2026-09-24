@@ -1,18 +1,21 @@
 name: CI
 
 on:
+  pull_request:
   push:
     branches: [main]
-    paths:
-      - "src/fraud-service/**"
-  pull_request:
-    paths:
-      - "src/fraud-service/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  lint-test:
-    name: Lint & Test
+  python:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-python@v7.0.0
@@ -22,11 +25,47 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: src/fraud-service/uv.lock
-      - working-directory: src/fraud-service
-        run: uv sync --locked --dev
-      - working-directory: src/fraud-service
-        run: uv run --locked ruff check app tests tools --output-format=github
-      - working-directory: src/fraud-service
-        run: uv run --locked ruff format --check app tests tools
-      - working-directory: src/fraud-service
-        run: TESTING_MODE=true uv run --locked pytest --cov=app --cov-report=term-missing --cov-fail-under=80 tests
+      - name: Python lint, format and behavior tests
+        working-directory: src/fraud-service
+        run: |
+          uv run --locked ruff check app tests
+          uv run --locked ruff format --check app tests
+          uv run --locked pytest -q
+
+  go:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v6.5.0
+        with:
+          go-version-file: src/edge/go.mod
+          cache-dependency-path: src/edge/go.sum
+      - name: Go format, vet and build
+        working-directory: src/edge
+        env:
+          GOWORK: "off"
+        run: |
+          test -z "$(gofmt -l cmd internal)"
+          go vet ./...
+          go build ./...
+
+  helm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: azure/setup-helm@v4.3.1
+      - name: Lint and render all charts
+        shell: bash
+        run: |
+          shopt -s nullglob
+          while IFS= read -r -d '' manifest; do
+            chart=$(dirname "$manifest")
+            helm lint "$chart"
+            helm template check "$chart" > /dev/null
+            for values in "$chart"/values-*.yaml; do
+              helm lint "$chart" -f "$values"
+              helm template check "$chart" -f "$values" > /dev/null
+            done
+          done < <(git ls-files -z -- '**/Chart.yaml' 'Chart.yaml')

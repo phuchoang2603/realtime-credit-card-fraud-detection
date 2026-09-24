@@ -7,7 +7,7 @@
 Telemetry and discovery settings are managed via `infra/charts/fraud-service/values.yaml` (or environment-specific overlays like `values-prod.yaml`):
 
 - `telemetry.serviceName`: OTLP service name (default: `fraud-service`).
-- `telemetry.traceEndpoint`: OTLP/gRPC endpoint for VictoriaTraces (default: `vtsingle-vmks.monitoring.svc.cluster.local:4317`).
+- `telemetry.traceEndpoint`: OTLP/gRPC endpoint for VictoriaTraces (default: `http://vtsingle-vmks.monitoring.svc.cluster.local:4317`).
 - `podScrape.labels`: Labels for VMAgent discovery (default: `release: victoria`).
 - `dashboards.labels`: Labels for Grafana dashboard sidecar discovery (default: `grafana_dashboard: "1"`).
 - `dashboards.datasources`: Datasource UIDs for metrics (`VictoriaMetrics`), logs (`VictoriaLogs`), and traces (`VictoriaTraces`).

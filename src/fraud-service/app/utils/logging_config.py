@@ -4,11 +4,8 @@ import sys
 import structlog
 from opentelemetry import trace
 
-from app.utils.telemetry_config import service_name
-
 
 def add_trace_context(logger, method_name, event_dict):
-    event_dict["service"] = service_name()
     context = trace.get_current_span().get_span_context()
     if context.is_valid:
         event_dict["trace_id"] = format(context.trace_id, "032x")
@@ -19,15 +16,18 @@ def add_trace_context(logger, method_name, event_dict):
     return event_dict
 
 
-def setup_logging():
-    """
-    Configures structlog for JSON-formatted, structured logging.
-    This setup is ideal for production environments where logs are parsed by machines.
-    """
+def setup_logging(service_name: str = "fraud-service"):
+    """Configure JSON structured logging with one service identity for every record."""
+
+    def add_service(logger, method_name, event_dict):
+        event_dict.setdefault("service", service_name)
+        return event_dict
+
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
 
     structlog.configure(
         processors=[
+            add_service,
             add_trace_context,
             structlog.stdlib.add_log_level,
             structlog.stdlib.add_logger_name,

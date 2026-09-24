@@ -1,135 +1,113 @@
+from __future__ import annotations
+
 import asyncio
-import contextlib
-import os
-import pickle
-import time
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
+from datetime import UTC
 
-import pandas as pd
-from fastapi import FastAPI, HTTPException, Request
-from opentelemetry import trace
+import grpc
+from grpc_health.v1 import health, health_pb2, health_pb2_grpc
+from pydantic import ValidationError
 
-# Import configurations and schemas from separate modules
-from app.schema import Prediction, TransactionFeatures
-from app.utils.data_preprocessing import align_features_for_prediction
-from app.utils.logging_config import get_logger, setup_logging
-from app.utils.metrics_config import (
-    fraud_score_histogram,
-    prediction_latency,
-    predictions_counter,
-)
-from app.utils.pre_prediction_checks import (
-    run_terminal_control_check,
-    run_transaction_blocking_rules,
-)
-from app.utils.tracing_config import (
-    get_tracer,
-    setup_tracing,
-    traceable,
-)
+from app.application import FraudApplication
+from app.config import Settings, settings_from_env
+from app.errors import FraudRuleError, ModelPredictionError, ModelUnavailableError
+from app.model import load_model
+from app.rpc import RequestContextInterceptor, request_id
+from app.runtime import ApplicationState
+from app.schema import TransactionFeatures
+from app.utils.logging_config import get_logger
+from fraud.v1 import fraud_pb2, fraud_pb2_grpc
 
-# --- Model and Application Setup ---
-setup_logging()
 log = get_logger(__name__)
-model = None
-DEFAULT_MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "model.pkl")
-MODEL_PATH = os.environ.get("MODEL_PATH", DEFAULT_MODEL_PATH)
+SERVICE = "fraud.v1.FraudService"
 
 
-@contextlib.asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    Manages the application's lifespan events for model loading and cleanup.
-    """
-    global model
-    try:
-        with open(MODEL_PATH, "rb") as f:
-            model = pickle.load(f)
-        log.info("Model loaded successfully.", path=MODEL_PATH)
-    except Exception as e:
-        log.error("Error loading model.", error=str(e), path=MODEL_PATH)
-        model = None
-    yield
-    # Clean up the ML model and release the resources
-    log.info("Clearing model.")
-    model = None
+class FraudService(fraud_pb2_grpc.FraudServiceServicer):
+    def __init__(self, state, executor):
+        self.state = state
+        self.executor = executor
+        self.capacity = asyncio.Semaphore(state.settings.inference_workers)
+
+    async def Predict(self, request, context):
+        if not self.state.ready:
+            await context.abort(grpc.StatusCode.UNAVAILABLE, "Model not available")
+        try:
+            # Scalar presence is required even when zero is a valid feature value.
+            values = {field.name.upper(): value for field, value in request.ListFields()}
+            if request.HasField("tx_datetime"):
+                values["TX_DATETIME"] = request.tx_datetime.ToDatetime(tzinfo=UTC)
+            transaction = TransactionFeatures.model_validate(values)
+        except ValidationError, ValueError, OverflowError:
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Invalid or missing transaction features")
+        application = FraudApplication(self.state.model, self.state.metrics, log)
+        try:
+            await self.capacity.acquire()
+            try:
+                work = asyncio.get_running_loop().run_in_executor(
+                    self.executor, copy_context().run, application.predict, transaction, request_id.get()
+                )
+            except BaseException:
+                self.capacity.release()
+                raise
+
+            def finished(future):
+                self.capacity.release()
+                # Retrieve failures even when the original RPC was canceled.
+                if not future.cancelled():
+                    future.exception()
+
+            work.add_done_callback(finished)
+            # Cancellation stops the RPC, not native inference. Keep its slot
+            # occupied until the actual worker completes; never queue unbounded work.
+            result = await asyncio.shield(work)
+        except FraudRuleError as exc:
+            await context.abort(grpc.StatusCode.PERMISSION_DENIED, str(exc))
+        except ModelUnavailableError:
+            await context.abort(grpc.StatusCode.UNAVAILABLE, "Model not available")
+        except ModelPredictionError:
+            await context.abort(grpc.StatusCode.INTERNAL, "Prediction failed")
+        return fraud_pb2.PredictResponse(is_fraud=result.is_fraud, fraud_probability=result.fraud_probability)
 
 
-app = FastAPI(
-    title="Fraud Detection API",
-    description="An API to predict credit card transaction fraud.",
-    lifespan=lifespan,
-)
-setup_tracing(app)
-tracer = get_tracer(__name__)
+class FraudServer:
+    """Own the model, workers, telemetry and gRPC listener as one lifecycle."""
 
-
-# --- Helper function for model prediction ---
-@traceable
-async def run_model_prediction(transaction: TransactionFeatures, request_id: str) -> Prediction:
-    """Runs the ML model inference in its own trace span."""
-    if model is None:
-        log.error("Prediction failed: Model not loaded.", request_id=request_id)
-        raise HTTPException(status_code=503, detail="Model not available")
-
-    start_time = time.time()
-    try:
-        input_df = pd.DataFrame([transaction.model_dump()])
-        processed_df = align_features_for_prediction(input_df)
-        fraud_probability = model.predict_proba(processed_df)[:, 1][0]
-        is_fraud = bool(fraud_probability > 0.5)
-
-        predictions_counter.add(1, {"is_fraud": str(is_fraud)})
-        fraud_score_histogram.record(fraud_probability)
-        log.info(
-            "Prediction successful",
-            request_id=request_id,
-            is_fraud=is_fraud,
-            fraud_probability=float(fraud_probability),
+    def __init__(self, settings: Settings | None = None, model_loader=load_model, tracing=None):
+        self.settings = settings or settings_from_env()
+        self.settings.validate()
+        self.state = ApplicationState(self.settings, model_loader, tracing)
+        self.executor = ThreadPoolExecutor(max_workers=self.settings.inference_workers, thread_name_prefix="inference")
+        self.health = health.aio.HealthServicer()
+        self.server = grpc.aio.server(
+            interceptors=[RequestContextInterceptor(self.state)],
+            maximum_concurrent_rpcs=64,
+            options=[("grpc.max_receive_message_length", 64 * 1024)],
         )
-        return Prediction(is_fraud=is_fraud, fraud_probability=fraud_probability)
-    except Exception as e:
-        log.error("Prediction error", error=str(e), request_id=request_id)
-        raise  # The decorator will capture and record the exception
-    finally:
-        latency = time.time() - start_time
-        prediction_latency.record(latency)
+        fraud_pb2_grpc.add_FraudServiceServicer_to_server(FraudService(self.state, self.executor), self.server)
+        health_pb2_grpc.add_HealthServicer_to_server(self.health, self.server)
 
+    async def start(self, address: str | None = None) -> int:
+        try:
+            self.state.start()
+            port = self.server.add_insecure_port(address or f"[::]:{self.settings.grpc_port}")
+            await self.health.set("liveness", health_pb2.HealthCheckResponse.SERVING)
+            status = (
+                health_pb2.HealthCheckResponse.SERVING
+                if self.state.ready
+                else health_pb2.HealthCheckResponse.NOT_SERVING
+            )
+            for name in ("readiness", SERVICE, ""):
+                await self.health.set(name, status)
+            await self.server.start()
+            return port
+        except BaseException:
+            await self.stop(0)
+            raise
 
-# --- API Endpoints ---
-@app.get("/health", tags=["Monitoring"])
-async def health_check():
-    """Health check endpoint to ensure the service is running."""
-    return {"status": "ok" if model is not None else "service_up_no_model"}
-
-
-@app.post("/predict", response_model=Prediction, tags=["Prediction"])
-@traceable
-async def predict_fraud(request: Request, transaction: TransactionFeatures):
-    """
-    Orchestrates the fraud detection process by calling traceable helper functions.
-    """
-    request_id = request.headers.get("X-Request-ID", "N/A")
-
-    log.info(
-        "Received prediction request",
-        request_id=request_id,
-        transaction_id=transaction.TRANSACTION_ID,
-        customer_id=transaction.CUSTOMER_ID,
-        terminal_id=transaction.TERMINAL_ID,
-    )
-
-    span = trace.get_current_span()
-    span.set_attribute("transaction_id", transaction.TRANSACTION_ID)
-    span.set_attribute("customer_id", transaction.CUSTOMER_ID)
-    span.set_attribute("terminal_id", transaction.TERMINAL_ID)
-
-    # 1. Run Pre-Prediction Checks
-    await asyncio.gather(
-        run_terminal_control_check(customer_id=transaction.CUSTOMER_ID),
-        run_transaction_blocking_rules(transaction=transaction),
-    )
-
-    # 2. Run Model Prediction
-    prediction = await run_model_prediction(transaction=transaction, request_id=request_id)
-
-    return prediction
+    async def stop(self, grace: float | None = None) -> None:
+        self.state.shutting_down = True
+        await self.health.enter_graceful_shutdown()
+        await self.server.stop(self.settings.graceful_shutdown_timeout if grace is None else grace)
+        self.executor.shutdown(wait=False, cancel_futures=True)
+        self.state.stop()
