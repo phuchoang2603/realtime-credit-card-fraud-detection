@@ -90,6 +90,4 @@ Thumbs.db
 .devenv/
 .direnv/
 .ruff_cache/
-
-# Rendered CI evidence
-/artifacts/
+/.pre-commit-config.yaml

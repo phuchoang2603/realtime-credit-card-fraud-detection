@@ -41,14 +41,12 @@ jobs:
         with:
           go-version-file: src/edge/go.mod
           cache-dependency-path: src/edge/go.sum
-      - name: Go format, vet and build
-        working-directory: src/edge
+      - uses: golangci/golangci-lint-action@v9.3.0
+        with:
+          version: v2.13.2
+          working-directory: src/edge
         env:
           GOWORK: "off"
-        run: |
-          test -z "$(gofmt -l cmd internal)"
-          go vet ./...
-          go build ./...
 
   helm:
     runs-on: ubuntu-latest

@@ -9,11 +9,13 @@ The GitHub project contains the accepted roadmap, including mini baseline accept
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Make architectural ownership and data movement understandable without reading the conversation.
 - Map coursework capabilities to planned work and concrete evidence, preserving mini-coursework as the final ML baseline.
 - Separate observed repository facts, accepted target decisions, deferred implementation choices, and unverified operational claims.
 
 **Non-Goals:**
+
 - Implement services, select frameworks/stores/brokers, change deployment or CI behavior, or complete later tickets.
 - Define full API schemas or the final payment event catalog; those belong to PG-03 through PG-05.
 - Claim PCI certification, five-nines availability, live processor connectivity, or production model quality.
@@ -58,13 +60,13 @@ Preserve greater-than-90% coverage, greater-than-80% changed-code mutation score
 
 The coursework guide maps baseline assets to extensions:
 
-| Mini baseline | Final ML extension |
-| --- | --- |
-| Configurable historical/streaming generators | Drift scenarios and delayed labels |
-| DP1/DP2 and governed schemas | Versioned training inputs and extended lineage |
-| DP3 historical features | Point-in-time training and incremental materialization |
-| Streaming windows | Offline and online feature writers with TTL/freshness |
-| Baselines, benchmarks and evidence | Regression checks and versioned handoff |
+| Mini baseline                                | Final ML extension                                     |
+| -------------------------------------------- | ------------------------------------------------------ |
+| Configurable historical/streaming generators | Drift scenarios and delayed labels                     |
+| DP1/DP2 and governed schemas                 | Versioned training inputs and extended lineage         |
+| DP3 historical features                      | Point-in-time training and incremental materialization |
+| Streaming windows                            | Offline and online feature writers with TTL/freshness  |
+| Baselines, benchmarks and evidence           | Regression checks and versioned handoff                |
 
 Baseline acceptance #67 records source/data/schema/configuration versions, seeds, manifests, run IDs and evidence. Training acceptance #53 depends on that baseline; exploratory work may overlap. Keep miniature-coursework novelty evidence achievable at baseline (data-quality monitoring and deterministic batch/stream replay parity); later online parity and payment reconciliation extend it.
 

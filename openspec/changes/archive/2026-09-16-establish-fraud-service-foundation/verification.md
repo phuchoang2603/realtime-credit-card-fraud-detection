@@ -15,11 +15,11 @@ The initial verification found Python 3.14 installation failures from legacy dep
 
 Change: `establish-fraud-service-foundation` (schema: `spec-driven`).
 
-| Dimension | Status |
-| --- | --- |
-| Completeness | 18/18 tasks complete; implementation evidence found for all task groups |
-| Correctness | Task criteria checked; 8/8 tests passed, 87.91% coverage against an 80% gate |
-| Coherence | All five design decisions followed; no material migration divergence found |
+| Dimension    | Status                                                                       |
+| ------------ | ---------------------------------------------------------------------------- |
+| Completeness | 18/18 tasks complete; implementation evidence found for all task groups      |
+| Correctness  | Task criteria checked; 8/8 tests passed, 87.91% coverage against an 80% gate |
+| Coherence    | All five design decisions followed; no material migration divergence found   |
 
 ### Evidence
 

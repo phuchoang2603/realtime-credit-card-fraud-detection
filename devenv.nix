@@ -1,39 +1,56 @@
 { pkgs, config, ... }:
 {
-  packages = [
-    pkgs.kubernetes-helm
-    pkgs.kubectl
-    pkgs.openspec
-    pkgs.ruff
-    pkgs.protobuf
-    pkgs.grpc
-    pkgs.protoc-gen-go
-    pkgs.protoc-gen-go-grpc
-    pkgs.zlib
+  packages = with pkgs; [
+    kubernetes-helm
+    kubectl
+
+    ruff
+    gofumpt
+    golangci-lint
+    oxfmt
+
+    grpc
+    protobuf
+    protoc-gen-go
+    protoc-gen-go-grpc
+
+    openspec
+    zlib
   ];
-  languages.go = {
-    enable = true;
-    delve.enable = true;
-    lsp.enable = true;
-  };
-  languages.python = {
-    enable = true;
-    version = "3.14";
-    directory = "src/fraud-service";
-    venv.enable = false;
-    uv = {
+
+  languages = {
+    go = {
+      delve = {
+        enable = true;
+      };
       enable = true;
-      sync.enable = true;
+      lsp = {
+        enable = true;
+      };
     };
-    lsp = {
+    python = {
+      directory = "src/fraud-service";
       enable = true;
+      lsp = {
+        enable = true;
+      };
+      uv = {
+        enable = true;
+        sync = {
+          enable = true;
+        };
+      };
+      venv = {
+        enable = false;
+      };
+      version = "3.14";
     };
   };
+
   tasks."codegen:proto" = {
     exec = ''
       set -euo pipefail
       cd "${config.git.root}"
-      mkdir -p src/edge/gen
       while IFS= read -r -d $'\0' proto; do
         protoc \
           -I contracts \
@@ -52,16 +69,34 @@
       "devenv.nix"
     ];
   };
+
+  git-hooks.hooks = {
+    treefmt.enable = true;
+  };
+
   treefmt = {
     enable = true;
     config.settings.global.excludes = [
       "infra/**/templates/**"
       "infra/**/charts/*.tgz"
-      "src/fraud-service/fraud/**"
     ];
     config.programs = {
       ruff-format = {
         enable = true;
+        excludes = [
+          "src/**/fraud/v1/**"
+        ];
+      };
+      gofumpt = {
+        enable = true;
+        extra = true;
+        excludes = [
+          "src/**/gen/fraud/v1/**"
+        ];
+      };
+      oxfmt = {
+        enable = true;
+        excludes = [ ];
       };
     };
   };

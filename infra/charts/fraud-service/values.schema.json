@@ -1,19 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": [
-    "telemetry",
-    "rules",
-    "dashboards",
-    "podScrape"
-  ],
+  "required": ["telemetry", "rules", "dashboards", "podScrape"],
   "properties": {
     "telemetry": {
       "type": "object",
-      "required": [
-        "serviceName",
-        "traceEndpoint"
-      ],
+      "required": ["serviceName", "traceEndpoint"],
       "properties": {
         "serviceName": {
           "type": "string",
@@ -27,11 +19,7 @@
     },
     "rules": {
       "type": "object",
-      "required": [
-        "enabled",
-        "labels",
-        "unavailableFor"
-      ],
+      "required": ["enabled", "labels", "unavailableFor"],
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -50,11 +38,7 @@
     },
     "dashboards": {
       "type": "object",
-      "required": [
-        "enabled",
-        "labels",
-        "datasources"
-      ],
+      "required": ["enabled", "labels", "datasources"],
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -67,11 +51,7 @@
         },
         "datasources": {
           "type": "object",
-          "required": [
-            "metrics",
-            "logs",
-            "traces"
-          ],
+          "required": ["metrics", "logs", "traces"],
           "properties": {
             "metrics": {
               "type": "string",
@@ -91,12 +71,7 @@
     },
     "podScrape": {
       "type": "object",
-      "required": [
-        "enabled",
-        "labels",
-        "interval",
-        "scrapeTimeout"
-      ],
+      "required": ["enabled", "labels", "interval", "scrapeTimeout"],
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -119,9 +94,7 @@
     },
     "service": {
       "type": "object",
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "properties": {
         "type": {
           "const": "ClusterIP"
