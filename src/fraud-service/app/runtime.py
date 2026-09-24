@@ -22,7 +22,6 @@ class ApplicationState:
         self.tracing = tracing or TracingRuntime(settings.tracing_enabled, settings.service_name)
 
     def start(self) -> None:
-        self.settings.validate()
         self.metrics = Metrics.create()
         if self.settings.metrics_enabled:
             self.metrics.start(self.settings.metrics_port)

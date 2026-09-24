@@ -70,7 +70,6 @@ class RequestContextInterceptor(grpc.aio.ServerInterceptor):
                         span.set_status(StatusCode.ERROR)
                     log.info(
                         "RPC request",
-                        service=self.runtime.settings.service_name,
                         request_id=identifier,
                         method=details.method,
                         status=code.name,

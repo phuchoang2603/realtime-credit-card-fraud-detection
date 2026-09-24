@@ -16,7 +16,7 @@ from app.model import load_model
 from app.rpc import RequestContextInterceptor, request_id
 from app.runtime import ApplicationState
 from app.schema import TransactionFeatures
-from app.utils.logging_config import get_logger, setup_logging
+from app.utils.logging_config import get_logger
 from fraud.v1 import fraud_pb2, fraud_pb2_grpc
 
 log = get_logger(__name__)
@@ -74,7 +74,6 @@ class FraudServer:
     """Own the model, workers, telemetry and gRPC listener as one lifecycle."""
 
     def __init__(self, settings: Settings | None = None, model_loader=load_model, tracing=None):
-        setup_logging()
         self.settings = settings or settings_from_env()
         self.settings.validate()
         self.state = ApplicationState(self.settings, model_loader, tracing)

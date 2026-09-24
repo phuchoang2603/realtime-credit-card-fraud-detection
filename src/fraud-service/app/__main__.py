@@ -1,18 +1,18 @@
 import asyncio
 import os
 import signal
+import sys
 from threading import Timer
 
-from app.config import settings_from_env
+from app.config import Settings, settings_from_env
 from app.main import FraudServer
 from app.model import load_model
-from app.utils.logging_config import get_logger
+from app.utils.logging_config import get_logger, setup_logging
 
 log = get_logger(__name__)
 
 
-async def serve(model_loader=load_model) -> None:
-    settings = settings_from_env()
+async def serve(settings: Settings, model_loader=load_model) -> None:
     server = FraudServer(settings, model_loader=model_loader)
     stopping = asyncio.Event()
     watchdog = None
@@ -43,7 +43,14 @@ async def serve(model_loader=load_model) -> None:
 
 
 def main() -> None:
-    asyncio.run(serve())
+    try:
+        settings = settings_from_env()
+    except ValueError as exc:
+        setup_logging()
+        log.error("Invalid fraud configuration", error=str(exc))
+        sys.exit(1)
+    setup_logging(settings.service_name)
+    asyncio.run(serve(settings))
 
 
 if __name__ == "__main__":
