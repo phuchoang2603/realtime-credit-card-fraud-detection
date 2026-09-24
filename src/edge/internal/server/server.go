@@ -123,7 +123,10 @@ func (s *Server) withCorrelation(next http.Handler) http.Handler {
 			requestID = rand.Text()
 		}
 		w.Header().Set("X-Request-ID", requestID)
-		slog.Info("edge request", "service", "edge", "request_id", requestID, "path", r.URL.Path)
+		// Kubernetes probes poll continuously; keep them out of the request log.
+		if r.URL.Path != "/health" && r.URL.Path != "/ready" {
+			slog.Info("edge request", "service", "edge", "request_id", requestID, "path", r.URL.Path)
+		}
 		next.ServeHTTP(w, r)
 	})
 }
