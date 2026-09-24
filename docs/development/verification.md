@@ -7,7 +7,7 @@ Keep tests that protect fraud decisions. Configuration validation, observability
 | Application and rules | Strict fraud threshold, independent amount/ratio boundaries, blocklists, invalid model output |
 | Real model            | Generated prediction repeatability and unchanged caller inputs                                |
 
-The Go edge has no unit tests. Its code is configuration, HTTP translation and gRPC client behavior, which this suite does not cover. CI still compiles the module with `go test -race ./...`.
+The Go edge has no unit tests. Its code is configuration, HTTP translation and gRPC client behavior, which this suite does not cover. CI formats, vets and builds the module (`gofmt -l`, `go vet ./...`, `go build ./...`).
 
 Run the relevant tests locally inside devenv; CI owns the full checks and image builds. See [local setup](local-setup.md) and [CI](../deployment/ci.md).
 

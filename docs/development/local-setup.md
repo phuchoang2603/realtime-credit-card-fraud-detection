@@ -14,13 +14,14 @@ For a Python edit, run the small suite from the service directory:
 
 ```bash
 ruff check app tests
+ruff format --check app tests
 uv run --locked pytest -q
 ```
 
-For a Go edit, run `(cd src/edge && GOWORK=off go test ./...)` from the repository
-root. CI runs the contract and chart checks and builds both images;
-there is no need to repeat every check locally. On NixOS use the shell-provided
-Ruff; CI uses `uv run --locked ruff`.
+For a Go edit, run `(cd src/edge && GOWORK=off go vet ./... && GOWORK=off go build ./...)`
+from the repository root; treefmt applies gofumpt. CI runs the chart checks and
+builds both images; there is no need to repeat every check locally. On NixOS use
+the shell-provided Ruff; CI uses `uv run --locked ruff`.
 
 For an intentional dependency update, edit `src/fraud-service/pyproject.toml`, run `uv lock --project src/fraud-service`, and commit the manifest and lock together. Normal installs use `--locked` to reject drift.
 

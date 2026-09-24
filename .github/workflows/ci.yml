@@ -25,11 +25,11 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: src/fraud-service/uv.lock
-      - name: Python lint and behavior tests
+      - name: Python lint, format and behavior tests
         working-directory: src/fraud-service
         run: |
-          uv sync --locked --dev
           uv run --locked ruff check app tests
+          uv run --locked ruff format --check app tests
           uv run --locked pytest -q
 
   go:
@@ -37,22 +37,25 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: src/edge/go.mod
           cache-dependency-path: src/edge/go.sum
-      - name: Go race tests
+      - name: Go format, vet and build
         working-directory: src/edge
         env:
           GOWORK: "off"
-        run: go test -race ./...
+        run: |
+          test -z "$(gofmt -l cmd internal)"
+          go vet ./...
+          go build ./...
 
   helm:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v4.3.1
       - name: Lint and render all charts
         shell: bash
         run: |

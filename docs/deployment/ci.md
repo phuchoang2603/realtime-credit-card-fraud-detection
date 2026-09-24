@@ -3,8 +3,8 @@
 Every pull request and push to `main` runs three independent jobs in
 [CI](../../.github/workflows/ci.yml):
 
-1. Install locked Python dependencies, lint and run behavior tests.
-2. Test Go independently with the race detector.
+1. Install locked Python dependencies, lint, check formatting and run behavior tests.
+2. Format-check, vet and build the Go edge module independently.
 3. Discover every tracked Helm chart and lint/render its defaults and `values-*.yaml` overrides.
 
 There is no change-detection job, service matrix or numerical
