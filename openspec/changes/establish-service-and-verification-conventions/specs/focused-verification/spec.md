@@ -25,9 +25,10 @@ inputs against the bundled model. It SHALL NOT claim accuracy or payment idempot
 
 CI SHALL run independent Python, Go and Helm jobs on PRs and main pushes without
 change-detection jobs or matrices. Checks live in the CI workflow; image builds
-reuse one image workflow. Checks SHALL run lint, useful Python/Go tests and lint/render validation for every tracked Helm chart, including its
-`values-*.yaml` overrides. Custom numerical
-coverage/mutation gates and screenshot generation SHALL NOT be required.
+reuse one image workflow. Checks SHALL run Python lint/format and behavior tests,
+Go format/vet/build, and lint/render validation for every tracked Helm chart,
+including its `values-*.yaml` overrides. Custom numerical coverage/mutation gates
+and screenshot generation SHALL NOT be required.
 
 #### Scenario: Review a pull request
 

@@ -1,33 +1,37 @@
-Protobuf generation now uses a devenv task with Nix-provided compiler/plugins for
-both languages. The custom drift script and CI step are removed.
-
-Current follow-up removes service tools and readiness/process probes and switches
-Go devenv to `languages.go` with Delve and gopls. Runtime health checks remain.
-The focused 13-test gRPC suite passes locally. The previous successful CI links
-below refer to the earlier suite; current PR checks verify the cleanup. Nix syntax
-parses. The refreshed shell resolves Go 1.26.7, gopls 0.23.0 and Delve 1.27.1.
-
 # Verification
 
-The rewritten Python suite passes 44 tests locally and in GitHub Actions. Ruff,
-Actionlint and strict OpenSpec validation pass. Remote verification for commit
-`4b51126` passed:
+## Current state
 
-- [CI](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/actions/runs/35887863857): Python lint/tests, Go race tests, generated-contract drift, real Go-to-Python prediction, process lifecycle and Helm checks.
-- [Service images](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/actions/runs/35887864303): independent fraud and edge image builds, without publishing PR images.
-- [PR #68](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/pull/68): reviewable commits and check status.
-
-Those links record historical results. The current workflow refactor leaves
-runtime, contracts and behavior tests unchanged; current checks are on PR #68.
-
-The suite protects decision rules, the probability threshold and real-model
+The Python suite has 16 tests in `test_rules.py`, `test_application.py` and
+`test_prediction_property.py`. They protect the blocklists, the independent
+amount/ratio boundaries including the zero-average partition, the strict 0.5
+probability threshold, invalid model output rejection and bounded real-model
 repeatability. Configuration, observability and gRPC/HTTP transport tests were
-removed. CI now uses independent Python, Go and all-chart Helm jobs; image builds
-use two explicit service jobs sharing the image build workflow.
+removed at the user's request on 2026-09-23. The Go edge has no unit tests; CI
+formats, vets and builds the module.
+
+Local checks inside devenv pass: Ruff lint and format, pytest (16 passed),
+`go vet`, `go build`, gofumpt and strict OpenSpec validation. Protobuf bindings
+regenerate through the devenv `codegen:proto` task; there is no CI drift gate.
+
+CI runs three independent jobs (`python`, `go`, `helm`) in `ci.yml` and two
+explicit image jobs (`fraud`, `edge`) in `release.yml` through `build-image.yml`.
+Pull requests build without publishing; `main` pushes publish to GHCR. Current
+results are on [PR #68](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/pull/68).
+
+Runtime health checks remain configured: the edge serves `/health` and `/ready`;
+fraud serves gRPC health `liveness` and `readiness`, probed by the chart.
+
+No merge, archive or deployment has been performed.
+
+## History
+
+Commit `4b51126` carried a 44-test suite including transport and lifecycle
+coverage; its [CI](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/actions/runs/35887863857)
+and [image](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/actions/runs/35887864303)
+runs passed. Those links record that earlier suite, not the current one.
 
 The previous mutation run failed at 69.17% (489 killed, 218 survived, 38 unresolved).
 The user subsequently requested simpler tests/CI, superseding numerical gates and
 screenshot requirements. No current coverage/mutation score is claimed. See the
 [verification guide](../../../docs/development/verification.md) for current scope.
-
-No merge, archive or deployment has been performed.

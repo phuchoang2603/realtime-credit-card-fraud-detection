@@ -24,5 +24,6 @@ user's 2026-09-23 simplification request. The previous mutation failure (69.17%,
 - [x] 3.1 Use the marketplace `languages.go` pattern with Delve and gopls.
 - [x] 3.2 Remove Python service tools and dedicated readiness/process-probe tests; update CI and guides while retaining runtime health checks.
 - [x] 3.3 Verify the cleanup, commit and push it to PR #68.
-
-- [x] Use the marketplace devenv codegen task pattern and remove the custom protobuf drift check.
+- [x] 3.4 Use the marketplace devenv codegen task pattern and remove the custom protobuf drift check.
+- [x] 3.5 Remove Go and transport/config/observability Python tests; split CI into independent check jobs and a dedicated image workflow.
+- [x] 3.6 Apply verification follow-ups: sanitized Python startup diagnostics, single logging identity, dead-config cleanup, schema-derived model columns, probe-free edge logs and pinned CI actions.

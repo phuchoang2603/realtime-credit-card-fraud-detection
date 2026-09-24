@@ -52,7 +52,7 @@ coverage instead of asserting framework internals or duplicating cases. Retain o
 bounded real-model property. Service tools and dedicated readiness/process-probe
 tests are removed at the user's request; runtime health checks remain configured.
 
-Independent Python, Go and Helm jobs run lint, behavior/race tests and lint/render validation for every tracked chart and its values overrides.
+Independent Python, Go and Helm jobs run Python lint/format/behavior tests, Go format/vet/build and lint/render validation for every tracked chart and its values overrides. The Go edge has no unit tests; its configuration, HTTP translation and gRPC client code is verified by compilation and review.
 There is no path-filter job or matrix. CI owns the check jobs. Two explicit image
 jobs reuse one image workflow: PRs build without publication and main pushes
 publish. Standard GitHub Actions are reused.
