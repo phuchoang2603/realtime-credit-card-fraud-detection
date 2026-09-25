@@ -8,7 +8,7 @@ Design, deployment and coursework evidence live in [`docs/`](docs/Home.md) and p
 devenv shell
 ```
 
-Devenv provides CPython 3.14 with uv, Go with gopls, Delve and golangci-lint, `protoc` with the Go and Python gRPC plugins, Helm, kubectl, OpenSpec and treefmt. Shell entry synchronizes the locked Python environment under `.devenv/state/venv`, regenerates protobuf bindings when contracts change, and installs the git hook that runs treefmt (Ruff format, gofumpt, oxfmt) on commit.
+Devenv provides CPython 3.14 with uv, Go with gopls, Delve and golangci-lint, `protoc` with the Go and Python gRPC plugins, Helm, kubectl, OpenSpec and treefmt. Shell entry synchronizes the locked Python environment under `.devenv/state/venv`, regenerates protobuf bindings when contracts change, and installs the git hook that runs treefmt (Ruff format, gofumpt) on commit.
 
 ## Local checks
 

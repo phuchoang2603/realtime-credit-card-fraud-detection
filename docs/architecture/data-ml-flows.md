@@ -27,9 +27,9 @@ flowchart TB
     MT["Incremental materialization job"]
     TR["Training pipeline and distributed workers"]
     MR[("ML-owned incremental datasets and model registry")]
-    F["Fraud feature API"]
-    I["Independent inference workload"]
-    D["Drift API and scheduled comparison job"]
+    F["Fraud feature API - Knative"]
+    I["Model inference - KServe"]
+    D["Drift API - Knative, and scheduled comparison job"]
     H -->|"1. seeded valid histories"| S
     H -->|"2. decision IDs and delayed truth"| T
     L -->|"3. live payment commands"| G
@@ -52,7 +52,7 @@ flowchart TB
     O -->|"20. point-in-time training features"| TR
     T -->|"21. labels available by training cutoff"| TR
     TR -->|"22. data versions, candidate model and metrics"| MR
-    MR -->|"23. approved compatible model"| I
+    MR -->|"23. approved compatible model via storageUri"| I
     N -->|"24. fresh feature values and metadata"| F
     F -->|"25. validated vector"| I
     I -->|"26. score and model version"| F
@@ -75,4 +75,4 @@ Streaming windows specify event time, watermarks, allowed lateness, deduplicatio
 
 Training grain is one scored attempt/decision, not one payment event. Joins use scoped identity plus decision/attempt IDs; labels remain separate with `label_available_at`. Features use only information available at decision time, including ingestion/availability timestamps when events arrive late. Future outcomes, fraud truth and the decision itself must not leak into its features. Temporal evaluation splits, cold starts and late-label cases require explicit proof.
 
-Training extends the accepted [mini baseline (#67)](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/67): [notebook acceptance (#53)](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/53) requires that baseline, although exploration can overlap. Distributed training, incremental dataset storage, model registration and approved-model rollout add capabilities without replacing mini generators, pipelines, windows or evidence. Drift compares versioned distributions without assuming immediate labels; retraining is deduplicated and cooldown-controlled, and promotion remains separately gated. See the [handoff checklist](roadmap.md#mini-to-final-handoff).
+Training extends the accepted [mini baseline (#67)](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/67): [notebook acceptance (#53)](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/53) requires that baseline, although exploration can overlap. Distributed training, incremental dataset storage, model registration and approved-model rollout to KServe ([#70](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/70)) add capabilities without replacing mini generators, pipelines, windows or evidence. Drift compares versioned distributions without assuming immediate labels; retraining is deduplicated and cooldown-controlled, and promotion remains separately gated. See the [handoff checklist](roadmap.md#mini-to-final-handoff).

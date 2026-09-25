@@ -7,7 +7,6 @@
     ruff
     gofumpt
     golangci-lint
-    oxfmt
 
     grpc
     protobuf
@@ -93,10 +92,6 @@
         excludes = [
           "src/**/gen/fraud/v1/**"
         ];
-      };
-      oxfmt = {
-        enable = true;
-        excludes = [ ];
       };
     };
   };
