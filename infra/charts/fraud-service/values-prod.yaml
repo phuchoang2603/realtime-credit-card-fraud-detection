@@ -14,4 +14,3 @@ env:
 
 telemetry:
   serviceName: fraud-service
-  traceEndpoint: http://vtsingle-vmks.monitoring.svc.cluster.local:4317

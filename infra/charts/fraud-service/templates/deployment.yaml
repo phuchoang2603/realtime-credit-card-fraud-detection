@@ -53,8 +53,8 @@ spec:
           env:
             - name: OTEL_SERVICE_NAME
               value: {{ .Values.telemetry.serviceName | quote }}
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: {{ .Values.telemetry.traceEndpoint | quote }}
+            - name: TRACING_ENABLED
+              value: "false"
             {{- toYaml .Values.env | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

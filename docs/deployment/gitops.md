@@ -1,6 +1,6 @@
 # GitOps deployment
 
-The fraud service targets shared Talos `dev` and `prod` clusters through Argo CD. [talos-proxmox](https://github.com/phuchoang2603/talos-proxmox/blob/main/apps/README.md) owns cluster infrastructure, Argo CD and the Victoria operators/backends. This repository owns payment-gateway application resources.
+The fraud service targets shared Talos `dev` and `prod` clusters through Argo CD. [talos-proxmox](https://github.com/phuchoang2603/talos-proxmox/blob/main/apps/README.md) owns cluster infrastructure, Argo CD and the shared ClickStack/OTel platform. This repository owns payment-gateway application resources.
 
 Argo roots are [`infra/argocd/dev/root.yaml`](../../infra/argocd/dev/root.yaml) and [`infra/argocd/prod/root.yaml`](../../infra/argocd/prod/root.yaml). Both roots and their child Application CRs reside in the management cluster's `argo-cd` namespace. Children target registered cluster names `dev`/`prod` and namespace `payment-gateway`.
 
@@ -9,7 +9,7 @@ Argo roots are [`infra/argocd/dev/root.yaml`](../../infra/argocd/dev/root.yaml) 
 | Dev         | `payment-gateway-dev-root`  | `payment-gateway-dev-fraud-service`  | `fraud-service` | Chart defaults (`latest`, pulled always)     |
 | Prod        | `payment-gateway-prod-root` | `payment-gateway-prod-fraud-service` | `fraud-service` | `values-prod.yaml` (currently also `latest`) |
 
-The child template renders each `valuesFile` entry separately using its `$values/` repository reference. It explicitly sets the Helm release name, so the internal Service is `fraud-service` in both separate workload clusters. Pod and scrape selectors use the application-owned `payment-gateway/release` label instead of Argo's `app.kubernetes.io/instance` tracking label; Argo may change the latter without breaking selectors.
+The child template renders each `valuesFile` entry separately using its `$values/` repository reference. It explicitly sets the Helm release name, so the internal Service is `fraud-service` in both separate workload clusters. Pod and Service selectors use the application-owned `payment-gateway/release` label instead of Argo's `app.kubernetes.io/instance` tracking label; Argo may change the latter without breaking selectors.
 
 ## Revisions and dev branches
 
@@ -28,9 +28,9 @@ Both services validate configuration at startup and exit non-zero with a sanitiz
 | fraud   | `MODEL_PATH`                       | bundled `models/model.pkl`                               | Model artifact; a missing model fails readiness, not liveness    |
 | fraud   | `INFERENCE_WORKERS`                | `4`                                                      | Bounded native inference capacity                                |
 | fraud   | `GRACEFUL_SHUTDOWN_TIMEOUT`        | `30`                                                     | RPC drain seconds; a watchdog forces exit 5 s later              |
-| fraud   | `TRACING_ENABLED`                  | `true`                                                   | Instance-owned OpenTelemetry provider                            |
+| fraud   | `TRACING_ENABLED`                  | `false`                                                  | Opt-in instance-owned OpenTelemetry provider                     |
 | fraud   | `OTEL_SERVICE_NAME`                | `fraud-service`                                          | Identity for logs, metrics and traces                            |
-| fraud   | `OTEL_EXPORTER_OTLP_ENDPOINT`      | `http://vtsingle-vmks.monitoring.svc.cluster.local:4317` | OTLP/gRPC collector; the scheme is explicit (`https://` for TLS) |
+| fraud   | `OTEL_EXPORTER_OTLP_ENDPOINT`      | unset                                                    | Required only when tracing is enabled; explicit OTLP/gRPC target |
 | edge    | `EDGE_HTTP_ADDR`                   | `:8080`                                                  | Public HTTP listener                                             |
 | edge    | `FRAUD_GRPC_TARGET`                | `dns:///localhost:8000`                                  | Fraud service target; use the cluster Service DNS name           |
 | edge    | `PREDICTION_TIMEOUT`               | `3s`                                                     | Per-request RPC deadline; also inherits client cancellation      |
@@ -48,6 +48,6 @@ kubectl --context <workload-context> -n payment-gateway port-forward svc/fraud-s
 
 The service is a `ClusterIP` exposing gRPC 8000 and HTTP metrics 8010. Kubernetes 1.27+ probes the standard gRPC health service using the `liveness` and `readiness` names. The fraud chart creates no Gateway, HTTPRoute or public ingress. This Deployment/ClusterIP layout is current; the planned target replaces it with a cluster-local Knative Service and a KServe predictor ([#70](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/70)). Public HTTP traffic belongs at the Go edge; edge deployment remains part of gateway delivery. Pair the gRPC image and chart in a rollout or rollback; the old HTTP image cannot satisfy gRPC probes. Use an immutable published image SHA for a real rollout, replacing the development `latest` default.
 
-Complete the owner-specific [shared observability checklist](shared-observability.md) independently for dev and prod before accepting rollout. Missing discovery, CRDs, datasource configuration or network access blocks acceptance; this repo does not add fallback shared infrastructure. Image publication is described in [CONTRIBUTING](../../CONTRIBUTING.md#ci-and-images).
+The [shared observability guide](shared-observability.md) describes the interim limits: platform-collected stdout logs, an exposed but uncollected fraud metrics endpoint, and disabled trace export. No application dashboard or alert is installed; telemetry integration is not a rollout prerequisite. Image publication is described in [CONTRIBUTING](../../CONTRIBUTING.md#ci-and-images).
 
 ![Historical Argo CD application dashboard](images/argocd.png)

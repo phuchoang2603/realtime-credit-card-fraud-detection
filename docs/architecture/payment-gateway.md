@@ -14,7 +14,7 @@ Source and configuration observations, not a fresh verification of running syste
 | Fraud      | [`contracts/fraud/v1`](../../contracts/fraud/v1/fraud.proto), [`src/fraud-service`](../../src/fraud-service)                                                                                                                               | `fraud.v1.FraudService/Predict` with strict feature presence, rules, bundled model and gRPC health `liveness`/`readiness`. Online feature retrieval and independent inference are planned.    |
 | Quality    | [`ci.yml`](../../.github/workflows/ci.yml), [evidence](../verification/evidence.md)                                                                                                                                                        | Behavior tests for decision rules and real-model repeatability; Go lint; all-chart Helm validation; CI-owned image builds. Numerical coverage/mutation gates were removed as a policy change. |
 | Deployment | [chart](../../infra/charts/fraud-service/Chart.yaml), [dev](../../infra/argocd/dev/root.yaml) and [prod](../../infra/argocd/prod/root.yaml) roots, [GitOps guide](../deployment/gitops.md)                                                 | Application resources for shared Talos environments in `payment-gateway`; configured targets do not establish live rollout success.                                                           |
-| Telemetry  | [metrics](../../src/fraud-service/app/utils/metrics_config.py), [logs](../../src/fraud-service/app/utils/logging_config.py), [traces](../../src/fraud-service/app/utils/tracing_config.py), [guide](../deployment/shared-observability.md) | Instrumentation, scrape/rule/dashboard configuration and historical screenshots. End-to-end collection needs current operational proof.                                                       |
+| Telemetry  | [metrics](../../src/fraud-service/app/utils/metrics_config.py), [logs](../../src/fraud-service/app/utils/logging_config.py), [traces](../../src/fraud-service/app/utils/tracing_config.py), [guide](../deployment/shared-observability.md) | Structured stdout logs; metrics exposed but not collected; trace export disabled by default. Application dashboards and alerts are deferred.                                                       |
 | Research   | [background](../research/ccfd-background.md), [experiments](../research/ccfd-experiements-report.md)                                                                                                                                       | Prior fraud research is context, not acceptance of the planned ecommerce data or model.                                                                                                       |
 
 The [Excalidraw diagram](mlops1-arch.excalidraw.svg) and [editable source](mlops1-arch.excalidraw) describe historical work and are preserved separately from the target diagram below.
@@ -23,7 +23,7 @@ The [Excalidraw diagram](mlops1-arch.excalidraw.svg) and [editable source](mlops
 
 The [marketplace gateway note](https://github.com/phuchoang2603/refurbished-marketplace/blob/main/docs/ecommerce-fraud-gateway.md) supplies commerce context. Marketplace owns buyers, sellers, catalog/prices, carts, orders, shipping choices, and inventory reservation/commit/release. Gateway stores scoped references and immutable checkout snapshots; it does not become their system of record.
 
-The [marketplace architecture](https://github.com/phuchoang2603/refurbished-marketplace/blob/main/docs/architecture.md) is the reference for composition roots, Go modules, transport/domain/persistence separation, service-owned data, inbox/outbox patterns and shared telemetry conventions; this repository's adoption is recorded in [service conventions](service-conventions.md). Shared cluster provisioning, networking, storage operators, secret operators, Argo CD and Victoria backends/collectors belong to [talos-proxmox](https://github.com/phuchoang2603/talos-proxmox/blob/main/apps/README.md). This repository owns its application deployments, service policies, dashboards, scrape resources and rules.
+The [marketplace architecture](https://github.com/phuchoang2603/refurbished-marketplace/blob/main/docs/architecture.md) is the reference for composition roots, Go modules, transport/domain/persistence separation, service-owned data, inbox/outbox patterns and shared telemetry conventions; this repository's adoption is recorded in [service conventions](service-conventions.md). Shared cluster provisioning, networking, storage operators, secret operators, Argo CD and ClickStack/OTel infrastructure belong to [talos-proxmox](https://github.com/phuchoang2603/talos-proxmox/blob/main/apps/README.md). This repository owns its application deployments and service policies; application telemetry integration is deferred.
 
 | Planned deployable unit                        | Language / role                                                      | Owned state                                                                                 |
 | ---------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -71,7 +71,7 @@ flowchart TB
         D["Python drift API and periodic drift job"]
     end
     subgraph platform["Shared platform - externally owned"]
-        O["Victoria metrics, logs, traces and Grafana"]
+        O["ClickStack/OTel platform (app integration deferred)"]
         K["Talos workload clusters and management Argo CD"]
     end
     M -->|"1. credentials and checkout snapshot"| E
@@ -98,7 +98,7 @@ flowchart TB
     DS -->|"22. reference and current datasets"| D
     D -.->|"23. controlled retraining request"| J
     DS -->|"24. approved model artifact"| I
-    P -.->|"25. application telemetry, representative path"| O
+    P -.->|"25. future application telemetry (not yet integrated)"| O
     K -.->|"26. application deployment reconciliation"| E
 ```
 

@@ -2,12 +2,19 @@
 
 Build the reproducible data platform first, then extend it with online features, training, serving and drift monitoring. Track delivery in the [GitHub project](https://github.com/users/phuchoang2603/projects/3); the [architecture overview](payment-gateway.md), [payment flows](payment-flows.md) and [data and ML flows](data-ml-flows.md) define service ownership and flows.
 
+- [Planned data-platform direction](#planned-data-platform-direction)
 - [Data-platform baseline (mini-coursework)](#data-platform-baseline)
 - [ML extension (final coursework)](#ml-extension)
 - [Baseline handoff](#mini-to-final-handoff)
 - [Acceptance and evidence](#acceptance-and-evidence)
 
 The tables preserve required capabilities, implementation tickets and proof. Expected artifacts are deliverables to create. **Planned** means implementation or proof is missing; **Existing-but-unverified** means a foundation exists without complete execution evidence; **Verified-with-proof** applies only to the linked, demonstrated scope. See [verification evidence](../verification/evidence.md) for the current service checks and their limits.
+
+## Planned data-platform direction
+
+This is a **target**, not a deployed pipeline. The historical generator's existing plan writes immutable Parquet and manifests to a TrueNAS MinIO `synthetic-source` bucket; source data remains separate from future bronze/silver/gold Iceberg tables. Strimzi/Kafka is the event transport, on-prem Flink handles event-time streaming and local checkpoints, and on-prem Spark runs DP1–DP3 batch jobs orchestrated by Argo Workflows. A shared Iceberg-compatible catalog and governed MinIO lake storage, plus a **separate** on-prem analytical ClickHouse warehouse, are prerequisites tracked in [#71](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/71). The existing prod ClickHouse/HyperDX deployment is for observability, not analytical data.
+
+Start with local Spark and Flink baselines, reproducible correctness, and table maintenance (file compaction and snapshot cleanup). Benchmark ClickHouse reading catalog-backed Iceberg against loading selected data into local analytical tables; neither zero-copy access nor automatic compaction is assumed. After an on-prem batch baseline, [#72](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/72) evaluates **optional** AWS Spark bursting: one-way staging of immutable snapshots to S3, cloud-local outputs, and bounded approved import back on premises. No two-way replication, WAN-dependent streaming state, or default cloud batch placement. Measure worker capacity, WAN/Spot recovery, end-to-end time, correctness and total transfer/egress cost before adopting it. Platform provisioning and secrets remain with their respective owners.
 
 ## Data-platform baseline
 

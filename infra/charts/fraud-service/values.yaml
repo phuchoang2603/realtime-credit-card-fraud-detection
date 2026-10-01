@@ -28,28 +28,8 @@ readinessProbe:
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
-podScrape:
-  enabled: true
-  labels:
-    release: victoria
-  interval: 15s
-  scrapeTimeout: 10s
-rules:
-  enabled: true
-  labels: {}
-  unavailableFor: 10m
-dashboards:
-  enabled: true
-  labels:
-    grafana_dashboard: "1"
-  datasources:
-    metrics: VictoriaMetrics
-    logs: VictoriaLogs
-    traces: VictoriaTraces
-
 telemetry:
   serviceName: fraud-service
-  traceEndpoint: http://vtsingle-vmks.monitoring.svc.cluster.local:4317
 
 # Drain (30s) plus bounded telemetry/metrics cleanup and scheduling margin.
 terminationGracePeriodSeconds: 40

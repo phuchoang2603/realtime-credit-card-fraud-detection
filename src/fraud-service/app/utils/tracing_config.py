@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from collections.abc import Callable
 from threading import Thread
 
@@ -14,15 +13,24 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
 class TracingRuntime:
     """An instance-owned provider; never replaces the global OpenTelemetry provider."""
 
-    def __init__(self, enabled: bool, service_name: str, exporter_factory: Callable[[], SpanExporter] | None = None):
+    def __init__(
+        self,
+        enabled: bool,
+        service_name: str,
+        endpoint: str | None = None,
+        exporter_factory: Callable[[], SpanExporter] | None = None,
+    ):
         self.enabled = enabled
         self.service_name = service_name
+        self.endpoint = endpoint
         self.exporter_factory = exporter_factory
         self.provider: TracerProvider | None = None
 
     def start(self) -> None:
         if not self.enabled:
             return
+        if self.exporter_factory is None and not (self.endpoint and self.endpoint.strip()):
+            raise ValueError("OTEL_EXPORTER_OTLP_ENDPOINT is required when tracing is enabled")
         provider = TracerProvider(
             resource=Resource.create({"service.name": self.service_name}), shutdown_on_exit=False
         )
@@ -30,12 +38,7 @@ class TracingRuntime:
             exporter = (
                 self.exporter_factory()
                 if self.exporter_factory
-                else OTLPSpanExporter(
-                    endpoint=os.environ.get(
-                        "OTEL_EXPORTER_OTLP_ENDPOINT", "http://vtsingle-vmks.monitoring.svc.cluster.local:4317"
-                    ),
-                    timeout=2,
-                )
+                else OTLPSpanExporter(endpoint=self.endpoint, timeout=2)
             )
             provider.add_span_processor(BatchSpanProcessor(exporter))
         except Exception:

@@ -16,7 +16,8 @@ class Settings:
     metrics_enabled: bool = True
     metrics_port: int = 8010
     graceful_shutdown_timeout: float = 30.0
-    tracing_enabled: bool = True
+    tracing_enabled: bool = False
+    trace_endpoint: str | None = None
     service_name: str = "fraud-service"
 
     def validate(self) -> None:
@@ -32,6 +33,8 @@ class Settings:
             raise ValueError("GRACEFUL_SHUTDOWN_TIMEOUT must be finite and at least one second")
         if not self.service_name.strip():
             raise ValueError("OTEL_SERVICE_NAME must not be empty")
+        if self.tracing_enabled and not (self.trace_endpoint and self.trace_endpoint.strip()):
+            raise ValueError("OTEL_EXPORTER_OTLP_ENDPOINT is required when TRACING_ENABLED is true")
 
 
 def settings_from_env() -> Settings:
@@ -42,7 +45,8 @@ def settings_from_env() -> Settings:
         metrics_enabled=_env_bool("METRICS_ENABLED", True),
         metrics_port=_env_int("METRICS_PORT", 8010),
         graceful_shutdown_timeout=_env_float("GRACEFUL_SHUTDOWN_TIMEOUT", 30.0),
-        tracing_enabled=_env_bool("TRACING_ENABLED", True),
+        tracing_enabled=_env_bool("TRACING_ENABLED", False),
+        trace_endpoint=os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"),
         service_name=os.environ.get("OTEL_SERVICE_NAME", "fraud-service"),
     )
     settings.validate()

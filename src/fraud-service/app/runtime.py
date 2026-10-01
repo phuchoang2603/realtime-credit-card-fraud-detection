@@ -19,7 +19,9 @@ class ApplicationState:
         self.started = False
         self.shutting_down = False
         self.metrics: Metrics | NoopMetrics = NoopMetrics()
-        self.tracing = tracing or TracingRuntime(settings.tracing_enabled, settings.service_name)
+        self.tracing = tracing or TracingRuntime(
+            settings.tracing_enabled, settings.service_name, settings.trace_endpoint
+        )
 
     def start(self) -> None:
         self.metrics = Metrics.create()
