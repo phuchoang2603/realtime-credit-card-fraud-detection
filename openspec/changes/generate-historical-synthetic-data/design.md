@@ -12,7 +12,7 @@
 
 **Non-Goals:**
 
-- Live/streaming generation, transport faults, Kafka (change 4, strict via the gateway).
+- Live generation, transport faults and Kafka (`simulate-live-traffic-with-transport-faults`, which drives the gateway and continues datasets from this generator).
 - A container image, Kubernetes job or orchestrator. DP1 decides how generation is scheduled.
 - Bronze tables, analytical schemas (#45) or feature definitions.
 - Configurable drift for the final coursework (#44 extension). The config leaves room for it.
@@ -63,6 +63,16 @@ s3://synthetic-source/historical/<dataset_version>/
 
 The manifest records configured and observed values for each, which is the numeric side of the evidence.
 
+### Continuity with live simulation
+
+The live simulator continues a dataset through the gateway, so three things must match across the handoff:
+
+- **Random streams:** derived as `SeedSequence(seed, stage)` for profiles and `SeedSequence(seed, stage, day)` for each day's scenario selection and purchases. Profiles and any day's schedule can then be rebuilt without replaying purchases. Scenario windows that started earlier are recovered by re-evaluating selection over the maximum window length before that day.
+- **Identities:** merchant and customer IDs are UUIDv5 values of the configured synthetic `integration_id` and the external seller or buyer ID, matching Accounts. Fingerprints are HMAC-SHA256 values under the non-secret synthetic key, matching the edge for synthetic integrations. Both are checked against `contracts/synthetic/identity-vectors.json`.
+- **Time:** the manifest records the history end. The live simulator refuses a gap larger than its configured maximum, so evidence runs generate a continuation dataset ending on the run date.
+
+The manifest also stores a SHA-256 digest of the canonical profile records. The live simulator compares it after rebuilding and refuses to run on a mismatch, which catches generator changes made after the dataset was written. Alternative considered: writing profiles as a dataset that the simulator reads. Rejected because profiles carry raw synthetic addresses and compromise truth that bronze consumers should not ingest.
+
 ### Validation before write
 
 A Python history validator implements the lifecycle rules and runs over every payment before any file is written. Golden histories in `contracts/payments/v1/testdata/` (one protobuf-JSON history per file, with a `valid` or `invalid: <rule>` header) are the conformance suite. The simulator tests use them now, and the Go Payments aggregate reuses them later. Generation is in-memory per day-chunk, and validation failure aborts the run before the manifest exists.
@@ -73,7 +83,7 @@ A Python history validator implements the lifecycle rules and runs over every pa
 
 ### Libraries
 
-numpy `Generator` (PCG64) seeded once and split per stage for determinism; pyarrow for Parquet and S3; pydantic for config; PyYAML for the config file. The notebook dependency group adds DuckDB (fast `approx_count_distinct` on Parquet), matplotlib, scikit-learn and Jupyter. Polars was considered, but pyarrow plus DuckDB covers writing and analysis without a third dataframe library.
+numpy `Generator` (PCG64) with streams derived per stage and per day from the seed; pyarrow for Parquet and S3; pydantic for config; PyYAML for the config file. The notebook dependency group adds DuckDB (fast `approx_count_distinct` on Parquet), matplotlib, scikit-learn and Jupyter. Polars was considered, but pyarrow plus DuckDB covers writing and analysis without a third dataframe library.
 
 ### Sanity notebook
 

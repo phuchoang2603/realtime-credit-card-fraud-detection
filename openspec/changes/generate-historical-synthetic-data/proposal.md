@@ -7,6 +7,7 @@ DP1–DP3, the analytical schemas and the offline rubric rows (#43) need reprodu
 - Add a Python `src/simulator` project with a seeded `historical` command. It builds customer, merchant, device and payment-method profiles, generates legitimate purchases and eight fraud scenarios, and emits contract-valid `payments.v1` lifecycle events and `labels.v1` labels.
 - Simulate the offline data problems the rubric names, through configuration: merchant/category skew, high-cardinality identifiers, schema evolution (a field absent before a cutover date), and duplicate exports of the same event.
 - Validate every generated payment history against the lifecycle transitions before writing. Add shared golden valid/invalid histories under `contracts/payments/v1/testdata/` that Payments will reuse.
+- Make datasets continuable by the live simulator: profiles and daily scenario schedules can be rebuilt from the seed, IDs and fingerprints match the gateway through shared identity vectors, and the manifest records the history end and a profile digest.
 - Write immutable, versioned Parquet datasets with a manifest to the `synthetic-source` bucket on the TrueNAS-hosted MinIO at `minio.home.phuchoang.sbs`, partitioned by event date. Local filesystem output is supported for tests.
 - Add a sanity notebook that reports distributions, approximate distinct counts, old-schema nulls, duplicate rates, fraud rate by scenario, and whether the scenarios are learnable but not trivial. Record its output as #43 evidence.
 - Run simulator lint and tests in the existing Python CI job.

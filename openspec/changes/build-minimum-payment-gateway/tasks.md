@@ -2,13 +2,13 @@
 
 - [ ] 1.1 Add `contracts/accounts/v1/accounts.proto` (AuthenticateIntegration, ProvisionMerchant, ResolveCustomer), `contracts/payments/v1/payments.proto` (CreatePayment, StartAttempt, GetPayment) and `contracts/processor/v1/processor.proto` (Sale, GetOperation); verify all compile with `protoc -I contracts`
 - [ ] 1.2 Remove `go_package` options and extend `codegen:proto` with per-module Go generation using `M` import overrides for edge, accounts, payments and processor-simulator; verify each module's `gen/` contains only the packages it imports and `GOWORK=off go build ./...` passes per module
-- [ ] 1.3 Ensure golden histories exist under `contracts/payments/v1/testdata/` (add them if `generate-historical-synthetic-data` has not landed); verify they parse
+- [ ] 1.3 Ensure golden histories exist under `contracts/payments/v1/testdata/` and `contracts/synthetic/identity-vectors.json` exists with the UUIDv5 namespace, merchant and customer ID cases, and synthetic-key address, network and payment-method fingerprint cases (add them if `generate-historical-synthetic-data` has not landed); verify they parse
 
 ## 2. Accounts
 
 - [ ] 2.1 Scaffold `src/accounts` (composition root, config, gRPC health with DB readiness, bounded shutdown, slog, metrics and optional OTel without a configured exporter); verify readiness is NOT_SERVING with the database down
-- [ ] 2.2 Add goose migrations and sqlc queries for integrations (hashed key, synthetic flag), merchants and customers, plus the `migrate` and `create-integration [--synthetic]` subcommands; verify migrations apply to a fresh database and the key is printed once
-- [ ] 2.3 Implement authentication, idempotent merchant provisioning with conflict on changed data, and lazy customer mapping; verify with tests for repeated provisioning, conflict and stable customer IDs
+- [ ] 2.2 Add goose migrations and sqlc queries for integrations (hashed key, synthetic flag), merchants and customers, plus the `migrate` and `create-integration [--synthetic [--id <uuid>]]` subcommands; verify migrations apply to a fresh database, the key is printed once, and a duplicate `--id` is rejected
+- [ ] 2.3 Implement authentication, idempotent merchant provisioning with conflict on changed data, and lazy customer mapping with UUIDv5-derived merchant and customer IDs; verify with tests for repeated provisioning, conflict and the identity vector cases
 
 ## 3. Processor simulator
 
@@ -28,13 +28,13 @@
 
 - [ ] 5.1 Restructure the edge into transport/application packages with Accounts and Payments gRPC clients, deadlines and correlation propagation; verify `golangci-lint` passes
 - [ ] 5.2 Implement the four public routes, integration-key and checkout-token authentication, `Idempotency-Key` enforcement, return URL validation and error mapping; verify with a local end-to-end run against all services
-- [ ] 5.3 Implement address, IP-network and payment-method fingerprints and the synthetic-only simulated client context; verify formatting-insensitive address fingerprints and rejection of simulated context from a real integration
+- [ ] 5.3 Implement address, IP-network and payment-method fingerprints with the secret key for real integrations and the non-secret synthetic key for synthetic ones, and the synthetic-only simulated client context; verify formatting-insensitive address fingerprints, the identity vector fingerprint cases, and rejection of simulated context from a real integration
 
 ## 6. CI, images and deployment
 
 - [ ] 6.1 Change the CI Go job to lint and test every Go module with a Postgres service container; verify CI passes on the PR
 - [ ] 6.2 Add explicit accounts, payments and processor-simulator jobs to `release.yml` using `build-image.yml`; verify PR builds do not publish
-- [ ] 6.3 Add the CNPG cluster chart with per-service databases, owner roles and revoked public connect; add charts for accounts, payments, processor-simulator and edge (ClusterIP, gRPC or HTTP probes, migrate init containers, ExternalSecrets for keys), without application telemetry dashboards, alerts or trace endpoints; verify `helm lint` and `helm template` for base and prod values
+- [ ] 6.3 Add the CNPG cluster chart with per-service databases, owner roles, revoked public connect, `wal_level: logical` and replication for the `payments` role; add charts for accounts, payments, processor-simulator and edge (ClusterIP, gRPC or HTTP probes, migrate init containers, ExternalSecrets for keys), without application telemetry dashboards, alerts or trace endpoints; verify `helm lint` and `helm template` for base and prod values
 - [ ] 6.4 Register child applications in the dev and prod app-of-apps roots; verify rendered application names are environment-qualified and target only their cluster
 
 ## 7. Evidence and documentation

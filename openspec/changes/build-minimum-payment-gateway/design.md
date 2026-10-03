@@ -12,7 +12,7 @@ After `define-payment-and-decision-contracts`, the repository has `payments.v1` 
 
 **Non-Goals:**
 
-- Kafka publication, outbox relay, live simulator (next change).
+- Kafka publication, live simulator and transport faults (`simulate-live-traffic-with-transport-faults`).
 - Hosted checkout HTML page and browser redirect, webhooks (#40), marketplace integration (#41), public routing and rate limits (#63).
 - Financial journal and postings (#36), capture/refund (#58), reconciliation reports (#59).
 - Credential rotation, integration disablement flows beyond a flag, dashboards (#66).
@@ -39,9 +39,7 @@ The edge resolves identity through Accounts and passes gateway IDs to Payments. 
 
 ### Event store in Postgres
 
-The `events` table stores `global_position bigserial`, `event_id uuid unique`, `payment_id`, `aggregate_version` (unique with `payment_id`), `event_type`, `payload bytea` (serialized `PaymentEvent`), `occurred_at` and `recorded_at`. An append runs in one transaction: insert events at `expected_version + 1…`, update the `payment_status` view row, and write the idempotency result. A unique violation on `(payment_id, aggregate_version)` means a stale writer. The event table with its global position is the commit-log boundary. The next change's relay tails `global_position`, so no separate outbox table exists yet. Alternatives: EventStoreDB or Kafka as the store. Rejected because they add infrastructure, and a broker is not an authoritative store (payment-flows).
-
-`bigserial` can commit out of order across concurrent transactions. The relay will read only below a safe watermark (for example, positions committed before the oldest in-flight transaction via `pg_snapshot_xmin`). That relay design is recorded here so this change's schema supports it.
+The `events` table stores `global_position bigserial`, `event_id uuid unique`, `payment_id`, `aggregate_version` (unique with `payment_id`), `event_type`, `payload bytea` (serialized `PaymentEvent`), `occurred_at` and `recorded_at`. An append runs in one transaction: insert events at `expected_version + 1…`, update the `payment_status` view row, and write the idempotency result. A unique violation on `(payment_id, aggregate_version)` means a stale writer. The event table is the commit-log boundary. In `simulate-live-traffic-with-transport-faults`, a Debezium outbox connector reads it from the WAL in commit order, the same pattern refurbished-marketplace uses, so no separate outbox table or publisher code exists in Payments. `bigserial` positions can commit out of order across concurrent transactions; consumers rely on WAL commit order and per-payment versions, not on positions. Alternatives: EventStoreDB or Kafka as the store. Rejected because they add infrastructure, and a broker is not an authoritative store (payment-flows).
 
 ### Domain aggregate replays golden histories
 
@@ -61,6 +59,12 @@ Fail closed on fraud errors records a real `RiskDecisionRecorded` (`DECLINE`, `F
 
 The edge normalizes (trim, case-fold, collapse whitespace) the full shipping address and computes `HMAC-SHA256(fingerprint_key, normalized)` for the address fingerprint. It does the same for the client IP's /24 (IPv4) or /48 (IPv6) network. The payment-method fingerprint is the HMAC of the synthetic token's card identity. Only fingerprints and country/region/postal code cross into internal services. For synthetic integrations, a `simulated_client` object supplies IP country and network directly. For real integrations, the network comes from the connection address, and the country is absent until a geolocation source is chosen.
 
+Real integrations use the secret key from the ExternalSecret. Synthetic integrations use a separate, non-secret synthetic key in chart values, the same key the historical generator uses. Historical and live fingerprints of one synthetic entity are therefore equal, the generator needs no secret, and synthetic and real fingerprints can never collide. Alternative considered: accepting precomputed fingerprints from synthetic integrations. Rejected because the edge's normalization would then go unexercised for all simulated traffic. Normalization and HMAC cases live in `contracts/synthetic/identity-vectors.json`, which the Go edge and the Python generator both test against.
+
+### Deterministic gateway identities
+
+Accounts derives `merchant_id` as UUIDv5 of `"{integration_id}:merchant:{external_seller_id}"` and `customer_id` as UUIDv5 of `"{integration_id}:customer:{external_buyer_id}"`, under a fixed namespace recorded in the identity vectors. Rows still store creation times and categories. `create-integration --synthetic --id <uuid>` creates a synthetic integration with the ID that the historical dataset's configuration declares. A live simulator continuing that dataset then produces the same gateway IDs without importing mappings. Alternative considered: random IDs plus a mapping import from the dataset. Rejected because it adds an import path and ties Accounts state to a dataset version.
+
 ### Synthetic token format
 
 Tokens look like `tok_<card-id>_<behavior>` with behavior `ok`, `nsf`, `issuer` or `invalid`. The card identity drives the payment-method fingerprint, so the same card always has the same fingerprint regardless of behavior. The live simulator chooses behaviors per scenario, for example stolen cards that are often issuer-declined.
@@ -79,7 +83,7 @@ Each Go module keeps its own `gen/` with only the packages it uses. `codegen:pro
 
 ### Database layout
 
-One CNPG `Cluster` (`payment-gateway-pg`, one instance in dev, three in prod) with declarative `Database` resources and managed roles `accounts`, `payments`, `processor`. Each role owns only its database, with `CONNECT` revoked from `PUBLIC`. Each service's migrations (goose, embedded SQL) run as an init container invoking `<service> migrate`, so a service can only migrate its own schema. Alternative: one cluster per service. Rejected for homelab resource cost; the role separation gives the ownership guarantee.
+One CNPG `Cluster` (`payment-gateway-pg`, one instance in dev, three in prod) with declarative `Database` resources and managed roles `accounts`, `payments`, `processor`. Each role owns only its database, with `CONNECT` revoked from `PUBLIC`. As in the marketplace, the cluster sets `wal_level: logical` and the `payments` role has `replication: true`, so the later Debezium connector can read the events table. Each service's migrations (goose, embedded SQL) run as an init container invoking `<service> migrate`, so a service can only migrate its own schema. Alternative: one cluster per service. Rejected for homelab resource cost; the role separation gives the ownership guarantee.
 
 ### Libraries
 

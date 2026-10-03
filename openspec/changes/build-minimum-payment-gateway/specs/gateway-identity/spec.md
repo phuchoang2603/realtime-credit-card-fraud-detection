@@ -20,7 +20,7 @@ Accounts SHALL authenticate an integration from its API key and return its `inte
 
 ### Requirement: Explicit merchant provisioning
 
-Accounts SHALL create a merchant for `(integration_id, external_seller_id)` with category and account creation time. Repeating the same request SHALL return the same `merchant_id`. A repeated request with a different category or creation time SHALL be rejected as a conflict. Payments SHALL NOT be created for unprovisioned merchants.
+Accounts SHALL create a merchant for `(integration_id, external_seller_id)` with category and account creation time. The `merchant_id` SHALL be derived deterministically from the integration and external seller ID, as defined by the shared identity vectors. Repeating the same request SHALL return the same `merchant_id`. A repeated request with a different category or creation time SHALL be rejected as a conflict. Payments SHALL NOT be created for unprovisioned merchants.
 
 #### Scenario: Repeated provisioning
 
@@ -29,16 +29,21 @@ Accounts SHALL create a merchant for `(integration_id, external_seller_id)` with
 
 ### Requirement: Lazy customer mapping
 
-Accounts SHALL map `(integration_id, external_buyer_id)` to a stable `customer_id` on first use, recording the buyer's account creation time. Later lookups SHALL return the same `customer_id`.
+Accounts SHALL map `(integration_id, external_buyer_id)` to a `customer_id` on first use, recording the buyer's account creation time. The `customer_id` SHALL be derived deterministically from the integration and external buyer ID, as defined by the shared identity vectors. Later lookups SHALL return the same `customer_id`.
 
 #### Scenario: First payment for a buyer
 
 - **WHEN** a payment names a buyer never seen for that integration
 - **THEN** a customer is created and later payments reuse it
 
+#### Scenario: Identity vectors
+
+- **WHEN** Accounts resolves each merchant and customer case in the shared identity vectors
+- **THEN** it returns exactly the IDs the vectors list
+
 ### Requirement: Synthetic integrations
 
-Integrations SHALL be created as synthetic or real, and the flag SHALL NOT change afterwards. Synthetic integrations SHALL be the only ones permitted to supply simulated client context.
+Integrations SHALL be created as synthetic or real, and the flag SHALL NOT change afterwards. A synthetic integration MAY be created with an operator-supplied `integration_id`; creation SHALL fail if that ID already exists. Synthetic integrations SHALL be the only ones permitted to supply simulated client context.
 
 #### Scenario: Real integration sends simulated context
 

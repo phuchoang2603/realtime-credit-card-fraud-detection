@@ -24,12 +24,22 @@ Payment creation SHALL accept the marketplace session shape: order reference, ex
 
 ### Requirement: Personal data minimization
 
-The edge SHALL keep shipping country, region and postal code, replace the recipient name, street lines and city with a keyed address fingerprint over the normalized full address, drop buyer email, and the client IP with a keyed network fingerprint, before calling internal services. It SHALL NOT log names, emails, street lines, raw IPs or tokens.
+The edge SHALL keep shipping country, region and postal code, replace the recipient name, street lines and city with a keyed address fingerprint over the normalized full address, drop buyer email, and replace the client IP with a keyed network fingerprint, before calling internal services. Real integrations SHALL use a secret fingerprint key. Synthetic integrations SHALL use a separate, non-secret synthetic key shared with the historical generator. The edge SHALL NOT log names, emails, street lines, raw IPs or tokens.
 
 #### Scenario: Same address, different formatting
 
 - **WHEN** two payments differ only in address letter case and surrounding whitespace
 - **THEN** their address fingerprints are equal
+
+#### Scenario: Synthetic fingerprint vectors
+
+- **WHEN** the edge fingerprints each address, network and payment-method case in the shared identity vectors for a synthetic integration
+- **THEN** it produces exactly the fingerprints the vectors list
+
+#### Scenario: Same address under real and synthetic integrations
+
+- **WHEN** a real and a synthetic integration submit the same address
+- **THEN** their address fingerprints differ
 
 ### Requirement: Simulated client context
 

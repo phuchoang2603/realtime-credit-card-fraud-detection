@@ -22,6 +22,20 @@ The same configuration, seed and generator revision SHALL produce the same recor
 - **WHEN** a dataset is generated twice to separate locations with the same configuration and revision
 - **THEN** both outputs contain identical records and identical manifest row counts
 
+### Requirement: Continuable by live simulation
+
+Profiles, and any single day's scenario schedule, SHALL be reproducible from the configuration and seed without generating purchases for earlier days. Merchant and customer IDs SHALL be derived from the configured synthetic `integration_id` and external seller and buyer IDs, and address, IP-network and payment-method fingerprints SHALL use the synthetic fingerprint key, both exactly as in the shared identity vectors. The manifest SHALL record the history end time, a digest of the generated profiles and the synthetic fingerprint key version.
+
+#### Scenario: Rebuild profiles from a manifest
+
+- **WHEN** profiles are rebuilt from a dataset manifest's configuration and seed with the same generator logic
+- **THEN** their digest equals the manifest's profile digest
+
+#### Scenario: Identity vectors
+
+- **WHEN** the generator derives IDs and fingerprints for each case in the shared identity vectors
+- **THEN** it produces exactly the listed values
+
 ### Requirement: Ecommerce behavior and fraud scenarios
 
 Legitimate customers SHALL purchase mostly from familiar merchants, categories, devices, IP countries and shipping addresses, with amounts drawn per category. The generator SHALL support these fraud scenarios, each individually enabled and parameterized: `obvious_high_value`, `stolen_card_new_device`, `compromised_device_farm`, `account_takeover`, `reshipping_mule`, `card_testing`, `retry_attack`, and `friendly_fraud` label noise. Except for `obvious_high_value`, a scenario SHALL NOT be identifiable from a single attempt's fields alone; detecting it SHALL require history over customers, devices, addresses, payment methods or merchants.
