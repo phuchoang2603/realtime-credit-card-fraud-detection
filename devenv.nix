@@ -46,16 +46,21 @@
     };
   };
 
+  enterShell = ''
+    export PYTHONPATH="${config.git.root}/src/fraud-service/gen:$PYTHONPATH"
+  '';
+
   tasks."codegen:proto" = {
     exec = ''
       set -euo pipefail
       cd "${config.git.root}"
+      mkdir -p src/fraud-service/gen
       while IFS= read -r -d $'\0' proto; do
         protoc \
           -I contracts \
-          --python_out=src/fraud-service --pyi_out=src/fraud-service \
+          --python_out=src/fraud-service/gen --pyi_out=src/fraud-service/gen \
           --plugin=protoc-gen-grpc_python=${pkgs.grpc}/bin/grpc_python_plugin \
-          --grpc_python_out=src/fraud-service \
+          --grpc_python_out=src/fraud-service/gen \
           "$proto"
       done < <(find contracts -type f -name '*.proto' -print0)
     '';
@@ -81,9 +86,7 @@
       ruff-format = {
         enable = true;
         excludes = [
-          "src/**/fraud/v2/**"
-          "src/**/payments/v1/**"
-          "src/**/labels/v1/**"
+          "src/fraud-service/gen/**"
         ];
       };
       gofumpt = {

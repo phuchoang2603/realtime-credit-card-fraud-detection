@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/phuchoang2603/realtime-credit-card-fraud-detection/edge/internal/config"
-	"github.com/phuchoang2603/realtime-credit-card-fraud-detection/edge/internal/server"
+	"github.com/phuchoang2603/realtime-credit-card-fraud-detection/edge/internal/transport"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 		slog.Error("invalid edge configuration", "error", err)
 		os.Exit(1)
 	}
-	edge, err := server.New(cfg)
+	edge, err := transport.New(cfg)
 	if err != nil {
 		slog.Error("create edge service", "error", err)
 		os.Exit(1)

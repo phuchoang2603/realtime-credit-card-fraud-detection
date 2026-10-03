@@ -23,10 +23,12 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "gen"]
 
 [tool.ruff]
+extend-exclude = ["gen"]
 line-length = 119
+src = [".", "gen"]
 target-version = "py314"
 
 [tool.ruff.lint]

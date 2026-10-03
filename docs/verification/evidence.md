@@ -6,6 +6,8 @@ Current verification scope for the fraud service and Go edge, with the honest re
 
 The Python behavior suite checks the `rules-v1` high-amount and geo-mismatch boundaries, absent signals, required fields, USD-only policy and snapshot totals. It does not test configuration validation, metrics or transport. The Go edge has no unit tests; it currently exposes only health and readiness and is type-checked and linted in CI. CI keeps independent Python, Go and Helm jobs and two image builds.
 
+On 2026-10-03, local verification passed the 13 Python tests, Ruff, `go test ./...`, Go lint, Helm lint/render (base and overrides), `uv lock --check` and strict OpenSpec validation. A live gRPC smoke check also confirmed decision metrics on an ephemeral `/metrics` listener, readiness NOT_SERVING while liveness remained SERVING during a controlled drain, and decision RPCs returning UNAVAILABLE while draining. This smoke check is not part of the behavior test suite or deployed-load evidence; PR #73 image checks cover its published head, not uncommitted workspace edits.
+
 ## Retired handbook model
 
 The bundled credit-card handbook model and its terminal-feature contract were removed because the ecommerce checkout does not supply their terminal-window features. The current fraud service applies request-only `rules-v1` and reports `policy_version=rules-v1`; it produces no risk score, model version or feature-set version. These boundary tests make no claim about model quality or deployed load. Training provenance and held-out evaluation are future work.

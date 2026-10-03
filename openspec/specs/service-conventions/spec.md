@@ -20,15 +20,14 @@ Services SHALL build and run without starting another service or accessing its d
 - **THEN** its documented ownership restricts reads, writes and migrations to its own state
 - **AND** communication with another service uses a versioned external contract
 
-### Requirement: Distinct liveness and readiness
+### Requirement: Liveness and readiness probes
 
-The edge SHALL expose HTTP `/health` for liveness and `/ready` for readiness (200 when ready, 503 otherwise). Fraud SHALL expose standard gRPC health checks with distinct `liveness` and `readiness` service names; readiness SHALL report SERVING only when required resources are initialized and requests can be accepted, and NOT_SERVING otherwise. Fraud readiness SHALL require a usable loaded model. An unavailable telemetry backend SHALL NOT alone make a service unready.
+The edge SHALL expose HTTP `/health` for liveness and `/ready` for readiness (200 when ready, 503 otherwise). Fraud SHALL expose standard gRPC health checks with distinct `liveness` and `readiness` service names; readiness SHALL report SERVING only when startup has completed, the decision policy is active and shutdown has not started, and NOT_SERVING otherwise. An unavailable telemetry backend SHALL NOT alone make a service unready.
 
-#### Scenario: Model unavailable
+#### Scenario: Shutdown started
 
-- **WHEN** fraud model loading fails
-- **THEN** gRPC liveness reports SERVING
-- **AND** gRPC readiness reports NOT_SERVING and Predict returns UNAVAILABLE
+- **WHEN** fraud shutdown begins
+- **THEN** gRPC readiness reports NOT_SERVING while liveness remains SERVING for as long as the server accepts health checks
 
 #### Scenario: Service ready
 
@@ -37,7 +36,7 @@ The edge SHALL expose HTTP `/health` for liveness and `/ready` for readiness (20
 
 ### Requirement: Bounded resource lifecycle
 
-Service startup SHALL validate configuration before reporting ready. Shutdown SHALL withdraw readiness, stop accepting new work, allow active work a configured bounded drain period, and release resources with bounded telemetry flush. Imports and isolated application construction SHALL NOT open listeners or load model artifacts.
+Service startup SHALL validate configuration before reporting ready. Shutdown SHALL withdraw readiness, stop accepting new work, allow active work a configured bounded drain period, and release resources with bounded telemetry flush. Imports and isolated application construction SHALL NOT open listeners or start telemetry.
 
 #### Scenario: Invalid configuration
 
@@ -54,17 +53,17 @@ Service startup SHALL validate configuration before reporting ready. Shutdown SH
 #### Scenario: Isolated instances
 
 - **WHEN** the application is imported and multiple isolated instances are constructed
-- **THEN** no metrics-port collision or model load occurs until the respective lifecycle is started
-- **AND** closing one instance does not clear another instance's model
+- **THEN** no metrics-port collision occurs until the respective lifecycle is started
+- **AND** closing one instance does not change another instance's readiness
 
-### Requirement: Compatible contracts and safe errors
+### Requirement: Versioned contracts and safe errors
 
-The supported fraud request/response schemas, decision thresholds, validation semantics and operational endpoints SHALL be explicit in the versioned contract, the edge translation and the documentation; decision rules and thresholds SHALL be protected by behavior tests. Legacy compatibility SHALL NOT constrain modernization; intentional changes SHALL update implementation, contracts and tests together. Internal synchronous business contracts SHALL use versioned protobuf services with generated Go/Python bindings; legacy internal JSON APIs SHALL be removed. Contract conventions SHALL state ownership, compatibility rules and breaking-version handling. Public errors SHALL NOT expose stack traces, credentials or storage internals; new contracts SHALL use stable error categories mapped at the transport boundary.
+The supported fraud decision request/response schemas, policy thresholds, validation semantics and operational endpoints SHALL be explicit in the versioned contract and the documentation; decision rules and thresholds SHALL be protected by behavior tests. Legacy compatibility SHALL NOT constrain modernization; intentional changes SHALL update implementation, contracts and tests together. Internal synchronous business contracts SHALL use versioned protobuf services with generated bindings for each consuming language; legacy internal JSON APIs SHALL be removed. Contract conventions SHALL state ownership, compatibility rules and breaking-version handling. Public errors SHALL NOT expose stack traces, credentials or storage internals; new contracts SHALL use stable error categories mapped at the transport boundary.
 
-#### Scenario: Supported prediction caller
+#### Scenario: Supported decision caller
 
-- **WHEN** a request matching the supported schema is submitted after a refactor or complete implementation rewrite
-- **THEN** its status, response schema and risk decision match the documented current contract
+- **WHEN** a request matching the supported decision schema is submitted after a refactor or complete implementation rewrite
+- **THEN** its status, response schema, outcome and reason codes match the documented current contract
 
 #### Scenario: Unexpected application failure
 
@@ -73,7 +72,7 @@ The supported fraud request/response schemas, decision thresholds, validation se
 
 ### Requirement: Consistent operational identity
 
-Both language examples SHALL emit structured logs with a consistent service identity and real trace/span identifiers when available. Request correlation SHALL be propagated or generated when absent. Metric dimensions SHALL avoid unbounded request, customer or transaction identifiers. Existing fraud metrics SHALL remain available from the application metrics endpoint. Trace export SHALL be disabled by default and SHALL require both explicit enablement and a configured OTLP endpoint; when disabled, service startup and requests SHALL NOT require a trace backend.
+Both language examples SHALL emit structured logs with a consistent service identity and real trace/span identifiers when available. Request correlation SHALL be propagated or generated when absent. Metric dimensions SHALL avoid unbounded request, customer, payment or transaction identifiers. The current fraud decision metrics (`fraud_decisions_total{outcome,reason}` and `fraud_decision_latency_seconds`) SHALL be documented and available from the application metrics endpoint; retired prediction metrics are not retained. Trace export SHALL be disabled by default and SHALL require explicit enablement and a configured OTLP endpoint; disabled tracing SHALL NOT require a trace backend for service startup or requests. Application dashboards and alerts are deferred.
 
 #### Scenario: Request without an incoming correlation identifier
 
@@ -83,30 +82,15 @@ Both language examples SHALL emit structured logs with a consistent service iden
 
 #### Scenario: Unconfigured trace export
 
-- **WHEN** a service starts with trace export disabled and no endpoint configured
-- **THEN** it serves requests without attempting to export traces to a backend
+- **WHEN** the fraud service starts without trace export enabled or an endpoint configured
+- **THEN** requests succeed without attempting to contact a trace backend
 
 #### Scenario: Explicit trace export
 
-- **WHEN** tracing is enabled with an explicit OTLP endpoint
-- **THEN** spans use the configured service identity and are exported to that endpoint
+- **WHEN** trace export is enabled with an explicit OTLP endpoint
+- **THEN** spans use the configured service identity and export to that endpoint
 
 #### Scenario: Trace export enabled without endpoint
 
-- **WHEN** tracing is explicitly enabled without configuring an endpoint
-- **THEN** service startup rejects the invalid configuration rather than silently selecting a backend
-
-### Requirement: Edge translation and internal RPC
-
-The public edge SHALL expose the existing prediction capability through JSON HTTP and call the fraud service using a reused gRPC channel, finite deadlines and propagated cancellation/correlation. Internal fraud SHALL NOT expose an HTTP business API.
-
-#### Scenario: Public prediction
-
-- **WHEN** a valid public prediction request reaches the edge
-- **THEN** it invokes the generated fraud RPC and returns the prediction in public JSON
-- **AND** invalid input, unavailable service and unexpected errors map to safe HTTP responses
-
-#### Scenario: Missing protobuf field
-
-- **WHEN** a prediction omits a required feature
-- **THEN** fraud rejects it with INVALID_ARGUMENT rather than using an implicit scalar zero
+- **WHEN** tracing is explicitly enabled without an OTLP endpoint
+- **THEN** startup rejects the invalid configuration rather than selecting a backend

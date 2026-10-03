@@ -75,7 +75,7 @@ Inference was CPU-bound native code, so it needed a thread pool with a capacity 
 
 ### Edge becomes a health-only shell
 
-With `/predict` removed, the edge has no gRPC client and no generated bindings. It keeps its composition root, config, correlation middleware and health endpoints, because `build-minimum-payment-gateway` adds checkout routes to it. `codegen:proto` generates Python bindings for all contracts into `src/fraud-service/` and no Go bindings until Payments exists.
+With `/predict` removed, the edge has no gRPC client and no generated bindings. It keeps its composition root, config, correlation middleware and health endpoints, because `build-minimum-payment-gateway` adds checkout routes to it. `codegen:proto` generates Python bindings for all contracts into `src/fraud-service/gen/` and no Go bindings until Payments exists. The fraud service keeps its single rule evaluation in `app/domain`, protocol mapping in `app/transport`, and service-owned observability in `app/telemetry`; no pass-through application or empty storage layer is needed.
 
 ## Risks / Trade-offs
 

@@ -7,7 +7,7 @@ The edge SHALL expose HTTP `/health` for liveness and `/ready` for readiness (20
 #### Scenario: Shutdown started
 
 - **WHEN** fraud shutdown begins
-- **THEN** gRPC readiness reports NOT_SERVING while liveness remains SERVING until the process exits
+- **THEN** gRPC readiness reports NOT_SERVING while liveness remains SERVING for as long as the server accepts health checks
 
 #### Scenario: Service ready
 
@@ -54,7 +54,7 @@ Service startup SHALL validate configuration before reporting ready. Shutdown SH
 
 ### Requirement: Consistent operational identity
 
-Both language examples SHALL emit structured logs with a consistent service identity and real trace/span identifiers when available. Request correlation SHALL be propagated or generated when absent. Metric dimensions SHALL avoid unbounded request, customer, payment or transaction identifiers. Fraud metric names and labels SHALL be documented, and existing fraud metrics SHALL remain available from the application metrics endpoint. Trace export SHALL be disabled by default and SHALL require explicit enablement and a configured OTLP endpoint; disabled tracing SHALL NOT require a trace backend for service startup or requests. Application dashboards and alerts are deferred.
+Both language examples SHALL emit structured logs with a consistent service identity and real trace/span identifiers when available. Request correlation SHALL be propagated or generated when absent. Metric dimensions SHALL avoid unbounded request, customer, payment or transaction identifiers. The current fraud decision metrics (`fraud_decisions_total{outcome,reason}` and `fraud_decision_latency_seconds`) SHALL be documented and available from the application metrics endpoint; retired prediction metrics are not retained. Trace export SHALL be disabled by default and SHALL require explicit enablement and a configured OTLP endpoint; disabled tracing SHALL NOT require a trace backend for service startup or requests. Application dashboards and alerts are deferred.
 
 #### Scenario: Request without an incoming correlation identifier
 

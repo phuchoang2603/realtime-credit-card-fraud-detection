@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from app.config import Settings
-from app.utils.metrics_config import Metrics, NoopMetrics
-from app.utils.tracing_config import TracingRuntime
+from app.telemetry.metrics_config import Metrics, NoopMetrics
+from app.telemetry.tracing_config import TracingRuntime
 
 
-class ApplicationState:
+class RuntimeState:
     def __init__(self, settings: Settings, tracing: TracingRuntime | None = None):
         self.settings = settings
         self.started = False

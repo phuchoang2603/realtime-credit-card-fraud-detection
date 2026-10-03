@@ -1,29 +1,22 @@
 ## Purpose
 
-Keep verification small and honest: behavior tests that protect fraud decisions, a bounded real-model check, and minimal independent CI without score-only tooling.
+Keep verification small and honest: behavior tests that protect fraud decisions and minimal independent CI without score-only tooling.
 
 ## Requirements
 
 ### Requirement: Behavior-directed tests
 
-Tests SHALL protect fraud decision rules, the probability threshold and real-model
-repeatability. Tests SHALL NOT cover configuration validation, observability or
-gRPC/HTTP transport. Tests SHALL NOT be added solely to raise scores.
+Tests SHALL protect fraud decision rules, their thresholds and required decision inputs. Tests SHALL NOT cover configuration validation, observability or gRPC/HTTP transport. Tests SHALL NOT be added solely to raise scores.
 
 #### Scenario: Decision boundaries
 
 - **WHEN** fraud decisions are tested
-- **THEN** tests distinguish strict probability and independent amount/ratio boundaries, including zero historical average
+- **THEN** tests distinguish the high-amount boundary, the account-age and amount boundaries of the geo-mismatch rule, and the absent-IP-country partition
 
-### Requirement: Real-model repeatability
+#### Scenario: Required inputs
 
-A bounded property test SHALL verify repeatable predictions and unchanged caller
-inputs against the bundled model. It SHALL NOT claim accuracy or payment idempotency.
-
-#### Scenario: Repeated valid prediction
-
-- **WHEN** generated valid input is evaluated twice with the same model
-- **THEN** decisions agree, probabilities match within a declared tolerance and input remains unchanged
+- **WHEN** a decision request lacks a required input
+- **THEN** a test shows it is rejected instead of evaluated with an implicit default
 
 ### Requirement: Minimal CI
 
@@ -38,7 +31,7 @@ generation SHALL NOT be required.
 #### Scenario: Review a pull request
 
 - **WHEN** a PR is opened or updated
-- **THEN** CI verifies both service implementations using their checked-in protobuf bindings
+- **THEN** CI verifies each service implementation, using checked-in protobuf bindings where the service consumes contracts
 - **AND** the reusable image workflow builds each service without publishing PR images
 
 #### Scenario: Go defect or formatting drift

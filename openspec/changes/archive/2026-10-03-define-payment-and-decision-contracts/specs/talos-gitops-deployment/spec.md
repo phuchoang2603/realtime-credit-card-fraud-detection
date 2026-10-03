@@ -13,7 +13,7 @@ The deployment SHALL provide internal gRPC access on port 8000 and metrics on po
 #### Scenario: Pod termination
 
 - **WHEN** a fraud-service pod is terminating
-- **THEN** its readiness probe fails before its liveness probe
+- **THEN** readiness is withdrawn before the gRPC listener closes, while liveness remains SERVING until health checks are no longer accepted
 - **AND** it stops qualifying as a ready decision endpoint
 
 ## REMOVED Requirements

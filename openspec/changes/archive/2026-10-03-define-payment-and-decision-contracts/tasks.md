@@ -8,17 +8,17 @@
 
 ## 2. Code generation
 
-- [x] 2.1 Change `codegen:proto` in `devenv.nix` to generate Python bindings for all contracts into `src/fraud-service/` and no Go bindings; update treefmt exclusions to the generated package paths; verify `devenv tasks run codegen:proto` produces `payments/`, `fraud/v2/` and `labels/` bindings
-- [ ] 2.2 Delete `src/fraud-service/fraud/v1/` and `src/edge/gen/`, commit the regenerated bindings, and verify the fraud service imports `fraud.v2` bindings
+- [x] 2.1 Change `codegen:proto` in `devenv.nix` to generate Python bindings for all contracts into `src/fraud-service/gen/` and no Go bindings; update treefmt exclusions; verify it produces `payments/`, `fraud/v2/` and `labels/` bindings under `gen/`
+- [x] 2.2 Delete `src/fraud-service/fraud/v1/` and `src/edge/gen/`, include the regenerated bindings in the change, and verify the fraud service imports `fraud.v2` bindings from `gen/`
 
 ## 3. Fraud service
 
 - [x] 3.1 Replace `app/schema.py` with validated decision-input and decision-result models mapped from `fraud.v2` requests, enforcing required presence and snapshot consistency; verify with the required-input tests in 3.4
-- [x] 3.2 Implement `rules-v1` in the application service (USD only, `HIGH_AMOUNT`, `NEW_ACCOUNT_GEO_MISMATCH`, all matching reasons, rules-only version fields); delete `pre_prediction_checks.py`, `data_preprocessing.py`, `model.py` and the rule error classes; verify with the boundary tests in 3.4
-- [x] 3.3 Serve `Decide` inline in `app/main.py`; remove the executor, capacity semaphore, model loading and model readiness from `main.py`, `runtime.py` and `config.py` (drop `MODEL_PATH`, `INFERENCE_WORKERS`); verify the server starts with `uv run --locked python -m app` and `grpc_health_probe`/grpcurl reports readiness SERVING
+- [x] 3.2 Implement `rules-v1` in `app/domain` (USD only, `HIGH_AMOUNT`, `NEW_ACCOUNT_GEO_MISMATCH`, all matching reasons, rules-only version fields); delete `pre_prediction_checks.py`, `data_preprocessing.py`, `model.py` and the rule error classes; verify with the boundary tests in 3.4
+- [x] 3.3 Serve `Decide` through `app/transport/grpc.py`, evaluating rules directly; remove the executor, capacity semaphore, model loading and model readiness from `main.py`, `runtime.py` and `config.py` (drop `MODEL_PATH`, `INFERENCE_WORKERS`); verify the server starts and the gRPC health checks report readiness SERVING
 - [x] 3.4 Rewrite tests: parametrized `HIGH_AMOUNT` boundary, account-age and amount boundaries, absent IP country, unsupported currency and a missing required input; delete `test_prediction_property.py` and the model fixtures; verify `uv run --locked pytest -q` passes
 - [x] 3.5 Replace prediction metrics with `fraud_decisions_total{outcome,reason}` and `fraud_decision_latency_seconds`; verify the metrics endpoint exposes them after one decision
-- [ ] 3.6 Remove scikit-learn, pandas, numpy and hypothesis from `pyproject.toml`, relock, delete `models/`, stop copying models in `infra/docker/fraud-service.Dockerfile`; verify `uv lock --check` and CI image build pass
+- [x] 3.6 Remove scikit-learn, pandas, numpy and hypothesis from `pyproject.toml`, relock, delete `models/`, stop copying models in `infra/docker/fraud-service.Dockerfile`; verify `uv lock --check` and CI image build pass
 
 ## 4. Edge
 

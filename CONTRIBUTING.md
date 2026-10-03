@@ -25,12 +25,12 @@ On NixOS use the shell-provided Ruff; CI uses `uv run --locked ruff`. The Python
 
 ## Contracts and generated code
 
-`contracts/payments/v1/` defines checkout snapshots and lifecycle events, `contracts/fraud/v2/` defines the internal decision RPC, and `contracts/labels/v1/` defines delayed labels. The devenv task `codegen:proto` regenerates the Python bindings under `src/fraud-service/{payments,fraud,labels}/` on shell entry when contracts or generation dependencies change; run it explicitly with `devenv tasks run codegen:proto`. Keep generated sources with contract edits and never hand-edit them; Go bindings are added when a Go service consumes the contracts.
+`contracts/payments/v1/` defines checkout snapshots and lifecycle events, `contracts/fraud/v2/` defines the internal decision RPC, and `contracts/labels/v1/` defines delayed labels. The devenv task `codegen:proto` regenerates the Python bindings under `src/fraud-service/gen/` on shell entry when contracts or generation dependencies change; run it explicitly with `devenv tasks run codegen:proto`. The generated modules retain their `fraud.v2`, `payments.v1` and `labels.v1` import paths; `gen/` must be on `PYTHONPATH` (set by devenv, pytest and the container). Keep generated sources with contract edits and never hand-edit them; Go bindings are added when a Go service consumes the contracts.
 
 ## Running the services
 
 ```bash
-(cd src/fraud-service && uv run --locked python -m app)   # gRPC 8000, metrics 8010
+(cd src/fraud-service && PYTHONPATH=gen uv run --locked python -m app)   # gRPC 8000, metrics 8010
 go run ./src/edge/cmd/edge                               # HTTP 8080
 ```
 

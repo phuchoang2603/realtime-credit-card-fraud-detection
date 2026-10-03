@@ -6,7 +6,7 @@ from threading import Timer
 
 from app.config import Settings, settings_from_env
 from app.main import FraudServer
-from app.utils.logging_config import get_logger, setup_logging
+from app.telemetry.logging_config import get_logger, setup_logging
 
 log = get_logger(__name__)
 

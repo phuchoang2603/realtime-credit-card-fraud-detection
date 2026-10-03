@@ -9,7 +9,7 @@ import grpc
 from opentelemetry import propagate, trace
 from opentelemetry.trace import SpanKind, StatusCode
 
-from app.utils.logging_config import get_logger
+from app.telemetry.logging_config import get_logger
 
 log = get_logger(__name__)
 request_id: ContextVar[str] = ContextVar("request_id", default="")
