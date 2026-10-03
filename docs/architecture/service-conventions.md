@@ -6,32 +6,36 @@ Each service is an independently buildable and deployable unit that owns its run
 
 ```text
 contracts/
-  fraud/v1/                      # versioned protobuf contracts
+  payments/v1/                   # payment types and lifecycle events
+  fraud/v2/                      # internal decision RPC
+  labels/v1/                     # delayed fraud labels
 src/
   edge/                          # Go module; cmd/edge is the composition root
     cmd/edge/main.go
-    gen/fraud/v1/                # generated client bindings, committed
     internal/config/             # validated environment configuration
-    internal/server/             # HTTP adapters and gRPC client translation
+    internal/transport/          # HTTP health endpoints and correlation middleware
   fraud-service/                 # Python package; app.main:FraudServer is the composition root
-    app/                         # composition, application service, rules, schema, runtime
-    fraud/v1/                    # generated server bindings, committed
+    app/main.py                  # gRPC composition and lifecycle
+    app/domain/                  # validated decision values and pure policy rules
+    app/transport/               # gRPC adapter, request mapping and correlation
+    app/telemetry/               # logging, metrics and tracing setup
+    gen/fraud/v2/                # generated decision bindings
+    gen/payments/v1/             # generated shared payment types
+    gen/labels/v1/               # generated label types
     tests/
 shared/                          # only technical helpers or wire contracts (none yet)
 ```
 
-Future Go services (Accounts, Payments, webhook delivery) follow the edge shape with `internal/transport`, `internal/application`, `internal/domain` and `internal/adapters`. Fraud serving, feature work and training remain Python.
+Both languages keep business rules separate from transport. The edge has no business domain yet, so it needs only HTTP transport and configuration. Python fraud serving evaluates a single stateless policy in `app/domain`, maps protobuf at `app/transport` and keeps telemetry in `app/telemetry`. Add an application/use-case layer only when a service coordinates multiple domain or I/O operations, and add storage adapters only when it persists data. Do not create empty layers for symmetry.
 
 ## Dependency direction
 
 ```text
-transport -> application -> domain
-                ^             ^
-                |             |
-           adapters implement ports
+transport -> domain
+transport -> telemetry
 ```
 
-Composition roots validate configuration, construct adapters and assemble the application; they contain no business decisions. Transport handlers map protocol input and errors. Application services coordinate use cases. Domain code owns decisions and stable errors without importing gRPC, HTTP frameworks, SQL drivers or broker clients. Adapters implement interfaces owned by the consuming application. A service never imports another service's `internal` package or reads another service's database.
+Composition roots validate configuration and assemble the service; they contain no business decisions. Transport handlers map protocol input and errors. Domain code owns decisions and stable errors without importing gRPC, HTTP frameworks, SQL drivers or broker clients. When persistence or multi-step use cases arrive, add a storage adapter and a use-case coordinator around the domain rather than putting I/O in the policy. A service never imports another service's `internal` package or reads another service's database.
 
 ## Persistence and contracts
 
@@ -39,7 +43,7 @@ Each service owns its schema, migrations and persistence adapter; a deployment o
 
 Internal synchronous communication uses versioned protobuf services under `contracts/<capability>/vN/` with generated, committed Go and Python bindings; no parallel internal REST/JSON API is maintained. Additive changes require compatible readers; breaking semantics require a new version and an announced migration window. Public HTTP/JSON belongs only at the Go edge. Asynchronous events may use protobuf payloads but need their own durable transport with an outbox or equivalent boundary.
 
-A shared package may provide logging, tracing, metrics, lifecycle or wire-contract support; it must not provide mutable domain models or cross-service repositories. No database, broker, event store or application framework is chosen by these conventions; Payments will add event storage under [#33](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/33) and [#35](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/35).
+The versioned protobufs in `contracts/` are the shared wire contracts. Extract technical helpers only when multiple services in the same language actually reuse them; Go and Python cannot share runtime code directly. Do not share mutable domain models or cross-service repositories. No database, broker, event store or application framework is chosen by these conventions; Payments will add event storage under [#33](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/33) and [#35](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/35).
 
 ## Images and reference material
 

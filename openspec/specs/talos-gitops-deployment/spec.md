@@ -14,21 +14,21 @@ The deployment configuration SHALL define distinct payment-gateway dev and prod 
 - **THEN** each root and child application has a distinct environment-qualified identity and its child targets only the corresponding workload cluster
 - **AND** application resources remain within payment-gateway
 
-### Requirement: Internal fraud-service contract
+### Requirement: Internal fraud-service deployment
 
-The deployment SHALL provide internal gRPC access on port 8000 and metrics on port 8010, preserve the configured model path and prediction rules, and SHALL NOT provision public ingress or TLS controllers. Liveness SHALL use the standard gRPC health service named `liveness`; readiness SHALL use `readiness` and SHALL fail when the model is unavailable.
+The deployment SHALL provide internal gRPC access on port 8000 and metrics on port 8010 and SHALL NOT provision public ingress or TLS controllers. Liveness SHALL use the standard gRPC health service named `liveness`; readiness SHALL use `readiness` and SHALL fail once shutdown begins. The deployment SHALL NOT supply model artifacts or model configuration.
 
 #### Scenario: Internal deployment
 
 - **WHEN** fraud-service is deployed with either environment configuration
-- **THEN** it is exposed through a ClusterIP service and the existing model configuration is supplied
+- **THEN** it is exposed through a ClusterIP service without model path configuration
 - **AND** no public ingress, cert-manager, or Traefik resources are created
 
-#### Scenario: Missing model in a running process
+#### Scenario: Pod termination
 
-- **WHEN** fraud-service starts without a usable model
-- **THEN** its liveness probe succeeds and its readiness probe fails
-- **AND** it does not qualify as a ready prediction endpoint
+- **WHEN** a fraud-service pod is terminating
+- **THEN** readiness is withdrawn before the gRPC listener closes, while liveness remains SERVING until health checks are no longer accepted
+- **AND** it stops qualifying as a ready decision endpoint
 
 ### Requirement: Shared platform ownership isolation
 

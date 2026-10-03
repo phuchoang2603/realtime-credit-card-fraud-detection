@@ -55,6 +55,8 @@ spec:
               value: {{ .Values.telemetry.serviceName | quote }}
             - name: TRACING_ENABLED
               value: "false"
-            {{- toYaml .Values.env | nindent 12 }}
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

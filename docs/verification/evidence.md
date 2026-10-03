@@ -4,25 +4,15 @@ Current verification scope for the fraud service and Go edge, with the honest re
 
 ## Current tests
 
-The Python suite keeps tests that protect fraud decisions. Configuration validation, observability and gRPC/HTTP transport are not covered.
+The Python behavior suite checks the `rules-v1` high-amount and geo-mismatch boundaries, absent signals, required fields, USD-only policy and snapshot totals. It does not test configuration validation, metrics or transport. The Go edge has no unit tests; it currently exposes only health and readiness and is type-checked and linted in CI. CI keeps independent Python, Go and Helm jobs and two image builds.
 
-| Area                  | What the tests protect                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Application and rules | Strict 0.5 fraud threshold, independent amount/ratio boundaries with the zero-average partition, customer and terminal blocklists, invalid model output |
-| Real model            | Bounded property test: repeated predictions agree within 1e-12 and caller input is unchanged                                                            |
+On 2026-10-03, local verification passed the 13 Python tests, Ruff, `go test ./...`, Go lint, Helm lint/render (base and overrides), `uv lock --check` and strict OpenSpec validation. A live gRPC smoke check also confirmed decision metrics on an ephemeral `/metrics` listener, readiness NOT_SERVING while liveness remained SERVING during a controlled drain, and decision RPCs returning UNAVAILABLE while draining. This smoke check is not part of the behavior test suite or deployed-load evidence; PR #73 image checks cover its published head, not uncommitted workspace edits.
 
-The Go edge has no unit tests. Its code is configuration, HTTP translation and gRPC client behavior. CI lints it with golangci-lint (type-check, default analyzers, gofumpt) and the image job compiles the binary.
+## Retired handbook model
 
-CI runs Python lint/format/tests, Go lint and lint/render of every tracked Helm chart with its `values-*.yaml` overrides on each pull request and `main` push; two image jobs build both services and publish only from `main`. Run results are the verification record for each pull request.
+The bundled credit-card handbook model and its terminal-feature contract were removed because the ecommerce checkout does not supply their terminal-window features. The current fraud service applies request-only `rules-v1` and reports `policy_version=rules-v1`; it produces no risk score, model version or feature-set version. These boundary tests make no claim about model quality or deployed load. Training provenance and held-out evaluation are future work.
 
-## Model artifact
-
-`src/fraud-service/models/model.pkl` is a trusted repository-owned pickle (protocol 5) for the locked scikit-learn runtime. Loading rejects sklearn version drift and objects without `predict_proba`; artifact and runtime updates are published together and covered by the real-model property test.
-
-On 2026-09-20 the original 1.0 artifact was converted once by adding the zero-initialized `missing_go_to_left` tree field and normalizing leaf counts to probabilities. This removed private sklearn runtime patches; it was not retraining or evidence of improved accuracy. Future models need training provenance and held-out evaluation independently of serving repeatability.
-
-- Original SHA-256: `ac4a3e306fa7c552ac69537f14410f786b3637cb35c0efaf89c3754ba815b899`
-- Current SHA-256: `7da9bec39ac963b5b15459ebc7fef62914e1dac1a5f2da2a7a34d35cddb5339f`
+The retired artifact was converted on 2026-09-20 without retraining or demonstrating improved accuracy. Its last recorded SHA-256 was `7da9bec39ac963b5b15459ebc7fef62914e1dac1a5f2da2a7a34d35cddb5339f`.
 
 ## Superseded gates and limitations
 

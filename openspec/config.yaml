@@ -6,6 +6,18 @@ context: |
   Public HTTP/JSON belongs at the Go edge. Internal synchronous business APIs use
   gRPC with versioned protobuf contracts and generated bindings; do not maintain
   parallel internal REST/JSON APIs. Events may use protobuf over their event transport.
+  Keep transport (HTTP/gRPC and wire mapping) separate from domain (business
+  rules and validated values) in Go and Python. Add application/use-case
+  coordination and storage adapters only when concrete workflows or persistence
+  require them. Telemetry remains service-owned; composition roots wire the code.
+  Domain code must not depend on transport, generated protobuf, databases or
+  observability. Create only layers with real responsibilities: the current Go
+  edge has no business domain until checkout behavior is added. Extract shared
+  runtime helpers only for real reuse within the same language; contracts/ is
+  the existing cross-language shared boundary.
+  Keep protobuf definitions under root contracts/ and generated Python bindings
+  under src/fraud-service/gen/ outside app/; make gen/ importable without
+  coupling domain code to generated modules.
   Prefer supported modern APIs and idiomatic code; use Context7 for current public
   library, SDK and framework guidance. Prefer the repository's Nix devenv.
   Remove obsolete code, dead paths and unnecessary compatibility layers when
@@ -35,6 +47,7 @@ rules:
     - Identify intentional breaking changes; do not assume legacy compatibility is required.
   design:
     - Prefer supported APIs and remove obsolete paths within the changed area.
+    - Keep transport separate from domain in both languages; add storage and use-case coordination only when behavior needs them, without empty packages.
     - Justify new abstractions, dependencies and protocols with a current requirement.
     - Plan coordinated contract and caller updates for intentional breaking changes.
   specs:

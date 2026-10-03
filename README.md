@@ -2,7 +2,7 @@
 
 This project is evolving from a terminal-oriented fraud prediction API into an ecommerce payment gateway with fraud decisioning. The planned gateway owns hosted checkout, payment execution and risk decisions; the marketplace keeps ownership of customers, sellers, orders and inventory. Initial processing uses synthetic payment-method tokens and a processor simulator.
 
-The current repository contains a Go HTTP edge backed by a Python gRPC fraud service, a bundled model, behavior tests, container/CI configuration, Talos GitOps manifests and application telemetry. Gateway services, ecommerce feature pipelines and the coursework extensions are planned. Source/configuration presence does not establish a live deployment or completed coursework.
+The current repository contains a health-only Go HTTP edge and a Python gRPC fraud decision service with a stateless rules baseline, behavior tests, container/CI configuration, Talos GitOps manifests and application telemetry. Gateway services, ecommerce feature pipelines and the coursework extensions are planned. Source/configuration presence does not establish a live deployment or completed coursework.
 
 ## Repository structure
 
@@ -22,7 +22,7 @@ The current repository contains a Go HTTP edge backed by a Python gRPC fraud ser
 │   └── docker/            # Service Dockerfiles and reusable Go template
 ├── openspec/              # Capability specifications and change plans
 ├── src/edge/              # Public HTTP edge and generated gRPC client
-├── src/fraud-service/     # gRPC fraud service, bundled model, tests and generated bindings
+├── src/fraud-service/     # gRPC fraud decision service, tests and generated bindings
 ├── devenv.nix             # Local development environment
 ├── devenv.yaml            # Devenv inputs
 └── devenv.lock            # Locked environment dependencies

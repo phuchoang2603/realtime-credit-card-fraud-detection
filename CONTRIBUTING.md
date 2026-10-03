@@ -25,16 +25,16 @@ On NixOS use the shell-provided Ruff; CI uses `uv run --locked ruff`. The Python
 
 ## Contracts and generated code
 
-`contracts/fraud/v1/fraud.proto` owns the internal fraud API. The devenv task `codegen:proto` regenerates `src/edge/gen/` and `src/fraud-service/fraud/` on shell entry when contracts or generation dependencies change; run it explicitly with `devenv tasks run codegen:proto`. Commit generated sources together with contract edits and never hand-edit them; there is no CI drift gate because each service builds from its checked-in bindings.
+`contracts/payments/v1/` defines checkout snapshots and lifecycle events, `contracts/fraud/v2/` defines the internal decision RPC, and `contracts/labels/v1/` defines delayed labels. The devenv task `codegen:proto` regenerates the Python bindings under `src/fraud-service/gen/` on shell entry when contracts or generation dependencies change; run it explicitly with `devenv tasks run codegen:proto`. The generated modules retain their `fraud.v2`, `payments.v1` and `labels.v1` import paths; `gen/` must be on `PYTHONPATH` (set by devenv, pytest and the container). Keep generated sources with contract edits and never hand-edit them; Go bindings are added when a Go service consumes the contracts.
 
 ## Running the services
 
 ```bash
-(cd src/fraud-service && uv run --locked python -m app)   # gRPC 8000, metrics 8010
+(cd src/fraud-service && PYTHONPATH=gen uv run --locked python -m app)   # gRPC 8000, metrics 8010
 go run ./src/edge/cmd/edge                               # HTTP 8080
 ```
 
-The edge calls `dns:///localhost:8000` by default. `POST /predict` accepts protobuf JSON field names (`tx_amount` or `txAmount`); `GET /health` and `GET /ready` report liveness and readiness. Environment variables and their defaults are listed in the [deployment guide](docs/deployment/gitops.md#runtime-configuration).
+The fraud service exposes internal `fraud.v2.FraudService/Decide` on port 8000 and gRPC health services `liveness` and `readiness`. The edge currently provides only `GET /health` and `GET /ready`; checkout routes arrive with the minimum gateway. Environment variables and their defaults are listed in the [deployment guide](docs/deployment/gitops.md#runtime-configuration).
 
 ## Dependencies
 
