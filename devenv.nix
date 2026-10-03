@@ -56,8 +56,6 @@
           --python_out=src/fraud-service --pyi_out=src/fraud-service \
           --plugin=protoc-gen-grpc_python=${pkgs.grpc}/bin/grpc_python_plugin \
           --grpc_python_out=src/fraud-service \
-          --go_out=src/edge/gen --go_opt=paths=source_relative \
-          --go-grpc_out=src/edge/gen --go-grpc_opt=paths=source_relative \
           "$proto"
       done < <(find contracts -type f -name '*.proto' -print0)
     '';
@@ -83,15 +81,14 @@
       ruff-format = {
         enable = true;
         excludes = [
-          "src/**/fraud/v1/**"
+          "src/**/fraud/v2/**"
+          "src/**/payments/v1/**"
+          "src/**/labels/v1/**"
         ];
       };
       gofumpt = {
         enable = true;
         extra = true;
-        excludes = [
-          "src/**/gen/fraud/v1/**"
-        ];
       };
     };
   };

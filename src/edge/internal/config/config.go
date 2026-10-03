@@ -14,10 +14,8 @@ const (
 )
 
 type Config struct {
-	FraudTarget       string
-	PredictionTimeout time.Duration
-	Address           string
-	ShutdownTimeout   time.Duration
+	Address         string
+	ShutdownTimeout time.Duration
 }
 
 func FromEnv() (Config, error) {
@@ -25,17 +23,7 @@ func FromEnv() (Config, error) {
 }
 
 func FromLookup(lookup func(string) string) (Config, error) {
-	cfg := Config{Address: defaultAddress, ShutdownTimeout: defaultShutdownTimeout, FraudTarget: "dns:///localhost:8000", PredictionTimeout: 3 * time.Second}
-	if value := lookup("FRAUD_GRPC_TARGET"); value != "" {
-		cfg.FraudTarget = value
-	}
-	if value := lookup("PREDICTION_TIMEOUT"); value != "" {
-		timeout, err := time.ParseDuration(value)
-		if err != nil {
-			return Config{}, fmt.Errorf("parse PREDICTION_TIMEOUT: %w", err)
-		}
-		cfg.PredictionTimeout = timeout
-	}
+	cfg := Config{Address: defaultAddress, ShutdownTimeout: defaultShutdownTimeout}
 	if value := lookup("EDGE_HTTP_ADDR"); value != "" {
 		cfg.Address = value
 	}
@@ -63,12 +51,6 @@ func (c Config) Validate() error {
 	portNumber, err := strconv.Atoi(port)
 	if err != nil || portNumber < 0 || portNumber > 65535 {
 		return fmt.Errorf("EDGE_HTTP_ADDR port must be between 0 and 65535")
-	}
-	if c.FraudTarget == "" {
-		return fmt.Errorf("FRAUD_GRPC_TARGET must not be empty")
-	}
-	if c.PredictionTimeout <= 0 {
-		return fmt.Errorf("PREDICTION_TIMEOUT must be positive")
 	}
 	if c.ShutdownTimeout <= 0 {
 		return fmt.Errorf("shutdown timeout must be greater than zero")

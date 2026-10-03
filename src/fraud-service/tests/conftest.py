@@ -1,29 +1,48 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
+
+from fraud.v2 import fraud_pb2
+from payments.v1 import types_pb2
+
+
+def timestamp(value: datetime) -> Timestamp:
+    result = Timestamp()
+    result.FromDatetime(value)
+    return result
 
 
 @pytest.fixture
-def sample_legitimate_payload():
-    """A pytest fixture to provide sample legitimate transaction data."""
-    return {
-        "TRANSACTION_ID": 1,
-        "TX_DATETIME": "2025-06-12T10:00:00Z",
-        "CUSTOMER_ID": 1001,
-        "TERMINAL_ID": 2001,
-        "TX_TIME_SECONDS": 1749615600,
-        "TX_TIME_DAYS": 20250,
-        "TX_AMOUNT": 75.50,
-        "TX_DURING_WEEKEND": 0,
-        "TX_DURING_NIGHT": 0,
-        "CUSTOMER_ID_NB_TX_1DAY_WINDOW": 2.0,
-        "CUSTOMER_ID_AVG_AMOUNT_1DAY_WINDOW": 75.50,
-        "CUSTOMER_ID_NB_TX_7DAY_WINDOW": 10.0,
-        "CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW": 80.0,
-        "CUSTOMER_ID_NB_TX_30DAY_WINDOW": 30.0,
-        "CUSTOMER_ID_AVG_AMOUNT_30DAY_WINDOW": 85.0,
-        "TERMINAL_ID_NB_TX_1DAY_WINDOW": 50.0,
-        "TERMINAL_ID_RISK_1DAY_WINDOW": 0.1,
-        "TERMINAL_ID_NB_TX_7DAY_WINDOW": 350.0,
-        "TERMINAL_ID_RISK_7DAY_WINDOW": 0.15,
-        "TERMINAL_ID_NB_TX_30DAY_WINDOW": 1500.0,
-        "TERMINAL_ID_RISK_30DAY_WINDOW": 0.12,
-    }
+def valid_request():
+    attempted_at = datetime(2026, 9, 1, tzinfo=UTC)
+    return fraud_pb2.DecideRequest(
+        integration_id="synthetic-v1",
+        payment_id="payment-1",
+        attempt_id="attempt-1",
+        merchant=types_pb2.MerchantRef(merchant_id="merchant-1", external_seller_id="seller-1"),
+        customer=types_pb2.CustomerRef(customer_id="customer-1", external_buyer_id="buyer-1"),
+        snapshot=types_pb2.CheckoutSnapshot(
+            external_order_id="order-1",
+            total=types_pb2.Money(minor_units=15_000, currency="USD"),
+            items=[
+                types_pb2.LineItem(
+                    product_id="product-1",
+                    category="electronics",
+                    condition="used",
+                    quantity=1,
+                    unit_price=types_pb2.Money(minor_units=15_000, currency="USD"),
+                )
+            ],
+            merchant_category="electronics",
+            merchant_account_created_at=timestamp(attempted_at - timedelta(days=30)),
+            customer_account_created_at=timestamp(attempted_at - timedelta(days=30)),
+            shipping=types_pb2.ShippingLocation(
+                country="US", region="NY", postal_code="10001", address_fingerprint="address-hash"
+            ),
+        ),
+        signals=types_pb2.AttemptSignals(
+            attempted_at=timestamp(attempted_at),
+            payment_method=types_pb2.PaymentMethod(type="card", fingerprint="method-hash"),
+        ),
+    )

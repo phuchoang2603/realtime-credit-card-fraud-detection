@@ -8,7 +8,7 @@ RUN uv sync --locked --no-dev
 
 COPY app ./app
 COPY fraud ./fraud
-COPY models ./models
+COPY payments ./payments
 
 EXPOSE 8000 8010
 

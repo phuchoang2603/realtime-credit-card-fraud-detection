@@ -1,26 +1,22 @@
 [project]
 name = "realtime-credit-card-fraud-detection"
 version = "2.0.0"
-description = "Independently deployable fraud prediction API"
+description = "Independently deployable fraud decision service"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "grpcio>=1.84,<2",
     "grpcio-health-checking>=1.84,<2",
-    "numpy>=2.3.3,<3",
     "opentelemetry-api>=1.38,<2",
     "opentelemetry-exporter-otlp>=1.38,<2",
     "opentelemetry-sdk>=1.38,<2",
-    "pandas>=2.3.3,<3",
     "prometheus-client>=0.23,<1",
     "pydantic>=2.12,<3",
     "protobuf>=7.36.1,<8",
-    "scikit-learn>=1.8,<2",
     "structlog>=25.4,<26",
 ]
 
 [dependency-groups]
 dev = [
-    "hypothesis>=6,<7",
     "pytest>=9,<10",
     "ruff>=0.14,<1",
 ]
@@ -28,7 +24,6 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-markers = ["property: generated tests using the deployed model artifact"]
 
 [tool.ruff]
 line-length = 119

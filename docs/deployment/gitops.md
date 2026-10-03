@@ -25,15 +25,11 @@ Both services validate configuration at startup and exit non-zero with a sanitiz
 | ------- | ---------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------- |
 | fraud   | `GRPC_PORT`                        | `8000`                                                   | Internal gRPC listener                                           |
 | fraud   | `METRICS_PORT` / `METRICS_ENABLED` | `8010` / `true`                                          | Prometheus listener                                              |
-| fraud   | `MODEL_PATH`                       | bundled `models/model.pkl`                               | Model artifact; a missing model fails readiness, not liveness    |
-| fraud   | `INFERENCE_WORKERS`                | `4`                                                      | Bounded native inference capacity                                |
-| fraud   | `GRACEFUL_SHUTDOWN_TIMEOUT`        | `30`                                                     | RPC drain seconds; a watchdog forces exit 5 s later              |
+| fraud   | `GRACEFUL_SHUTDOWN_TIMEOUT`        | `30`                                                     | RPC drain seconds; shutdown watchdog bounds process exit              |
 | fraud   | `TRACING_ENABLED`                  | `false`                                                  | Opt-in instance-owned OpenTelemetry provider                     |
 | fraud   | `OTEL_SERVICE_NAME`                | `fraud-service`                                          | Identity for logs, metrics and traces                            |
 | fraud   | `OTEL_EXPORTER_OTLP_ENDPOINT`      | unset                                                    | Required only when tracing is enabled; explicit OTLP/gRPC target |
 | edge    | `EDGE_HTTP_ADDR`                   | `:8080`                                                  | Public HTTP listener                                             |
-| edge    | `FRAUD_GRPC_TARGET`                | `dns:///localhost:8000`                                  | Fraud service target; use the cluster Service DNS name           |
-| edge    | `PREDICTION_TIMEOUT`               | `3s`                                                     | Per-request RPC deadline; also inherits client cancellation      |
 | edge    | `EDGE_SHUTDOWN_TIMEOUT`            | `10s`                                                    | HTTP drain budget                                                |
 
 The chart sets `terminationGracePeriodSeconds: 40` to cover the 30 s drain, bounded telemetry cleanup and the forced-exit margin.

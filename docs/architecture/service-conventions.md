@@ -6,16 +6,19 @@ Each service is an independently buildable and deployable unit that owns its run
 
 ```text
 contracts/
-  fraud/v1/                      # versioned protobuf contracts
+  payments/v1/                   # payment types and lifecycle events
+  fraud/v2/                      # internal decision RPC
+  labels/v1/                     # delayed fraud labels
 src/
   edge/                          # Go module; cmd/edge is the composition root
     cmd/edge/main.go
-    gen/fraud/v1/                # generated client bindings, committed
     internal/config/             # validated environment configuration
-    internal/server/             # HTTP adapters and gRPC client translation
+    internal/server/             # health endpoints and correlation middleware
   fraud-service/                 # Python package; app.main:FraudServer is the composition root
     app/                         # composition, application service, rules, schema, runtime
-    fraud/v1/                    # generated server bindings, committed
+    fraud/v2/                    # generated decision bindings
+    payments/v1/                 # generated shared payment types
+    labels/v1/                   # generated label types
     tests/
 shared/                          # only technical helpers or wire contracts (none yet)
 ```

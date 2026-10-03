@@ -6,14 +6,13 @@ from threading import Timer
 
 from app.config import Settings, settings_from_env
 from app.main import FraudServer
-from app.model import load_model
 from app.utils.logging_config import get_logger, setup_logging
 
 log = get_logger(__name__)
 
 
-async def serve(settings: Settings, model_loader=load_model) -> None:
-    server = FraudServer(settings, model_loader=model_loader)
+async def serve(settings: Settings) -> None:
+    server = FraudServer(settings)
     stopping = asyncio.Event()
     watchdog = None
 
@@ -21,8 +20,6 @@ async def serve(settings: Settings, model_loader=load_model) -> None:
         nonlocal watchdog
         if stopping.is_set():
             return
-        # Python cannot interrupt a running native model call. Bound process exit
-        # after RPC drain and telemetry cleanup even if an executor thread hangs.
         watchdog = Timer(settings.graceful_shutdown_timeout + 5, lambda: os._exit(0))
         watchdog.daemon = True
         watchdog.start()
@@ -38,8 +35,8 @@ async def serve(settings: Settings, model_loader=load_model) -> None:
     finally:
         await server.stop()
         log.info("gRPC server stopped")
-        # Leave the daemon watchdog armed until interpreter exit: the executor's
-        # exit hook otherwise waits forever on a stuck native model thread.
+        if watchdog:
+            watchdog.cancel()
 
 
 def main() -> None:

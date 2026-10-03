@@ -8,9 +8,7 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
-env:
-  - name: MODEL_PATH
-    value: /app/models/model.pkl
+env: []
 
 telemetry:
   serviceName: fraud-service

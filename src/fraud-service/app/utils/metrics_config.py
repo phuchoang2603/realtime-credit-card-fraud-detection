@@ -9,12 +9,9 @@ from prometheus_client import CollectorRegistry, Counter, Histogram, start_wsgi_
 
 @dataclass(slots=True)
 class Metrics:
-    """Owns application metrics and the optional Prometheus listener."""
-
     registry: CollectorRegistry
-    predictions: Any
+    decisions: Any
     latency: Any
-    scores: Any
     server: Any = None
     thread: Thread | None = None
 
@@ -23,21 +20,18 @@ class Metrics:
         registry = CollectorRegistry(auto_describe=True)
         return cls(
             registry=registry,
-            predictions=Counter(
-                "predictions_total", "Total number of predictions made.", ["is_fraud"], registry=registry
+            decisions=Counter(
+                "fraud_decisions_total", "Decisions by outcome and reason.", ["outcome", "reason"], registry=registry
             ),
-            latency=Histogram(
-                "prediction_latency_seconds", "Latency of prediction endpoint in seconds.", registry=registry
-            ),
-            scores=Histogram("fraud_prediction_score", "Distribution of fraud prediction scores.", registry=registry),
+            latency=Histogram("fraud_decision_latency_seconds", "Decision evaluation latency.", registry=registry),
         )
 
     def start(self, port: int, address: str = "0.0.0.0") -> None:
         self.server, self.thread = start_wsgi_server(port=port, addr=address, registry=self.registry)
 
-    def record_prediction(self, is_fraud: bool, probability: float) -> None:
-        self.predictions.labels(is_fraud=str(is_fraud)).inc()
-        self.scores.observe(probability)
+    def record_decision(self, outcome: str, reasons: tuple[str, ...]) -> None:
+        for reason in reasons or ("NONE",):
+            self.decisions.labels(outcome=outcome, reason=reason).inc()
 
     def observe_latency(self, seconds: float) -> None:
         self.latency.observe(seconds)
@@ -53,8 +47,8 @@ class Metrics:
 
 
 class NoopMetrics:
-    def record_prediction(self, is_fraud: bool, probability: float) -> None:
-        del is_fraud, probability
+    def record_decision(self, outcome: str, reasons: tuple[str, ...]) -> None:
+        del outcome, reasons
 
     def observe_latency(self, seconds: float) -> None:
         del seconds

@@ -1,75 +1,37 @@
+from datetime import timedelta
+
 import pytest
 
-from app.errors import AnomalousAmountError, BlockedCustomerError, CompromisedTerminalError
-from app.schema import TransactionFeatures
-from app.utils.pre_prediction_checks import check_customer, check_transaction
-
-
-def transaction(payload):
-    return TransactionFeatures.model_validate(payload)
+from app.application import FraudApplication
+from app.schema import DecisionInput
 
 
 @pytest.mark.parametrize(
-    ("amount", "raises"),
-    [(100.0, False), (100.01, True)],
-    ids=["at-high-value-boundary", "above-high-value-boundary"],
+    ("amount", "age_days", "matched"),
+    [(20_000, 1, False), (20_001, 1, True), (20_001, 7, False)],
 )
-def test_high_value_boundary(sample_legitimate_payload, amount, raises):
-    payload = sample_legitimate_payload | {"TX_AMOUNT": amount, "CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW": 10.0}
-
-    def call():
-        check_transaction(transaction(payload))
-
-    if raises:
-        with pytest.raises(AnomalousAmountError):
-            call()
-    else:
-        call()
+def test_geo_mismatch_boundaries(valid_request, amount, age_days, matched):
+    valid_request.snapshot.total.minor_units = amount
+    valid_request.snapshot.items[0].unit_price.minor_units = amount
+    valid_request.snapshot.customer_account_created_at.FromDatetime(
+        valid_request.signals.attempted_at.ToDatetime() - timedelta(days=age_days)
+    )
+    valid_request.signals.ip_country = "CA"
+    result = FraudApplication().decide(DecisionInput.from_proto(valid_request))
+    assert ("NEW_ACCOUNT_GEO_MISMATCH" in result.reason_codes) is matched
 
 
-@pytest.mark.parametrize(
-    ("average", "raises"),
-    [(30.0, False), (29.99, True), (0.0, False)],
-    ids=["at-five-times-boundary", "above-five-times-boundary", "zero-average-partition"],
-)
-def test_anomaly_ratio_boundary(sample_legitimate_payload, average, raises):
-    payload = sample_legitimate_payload | {"TX_AMOUNT": 150.0, "CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW": average}
-
-    def call():
-        check_transaction(transaction(payload))
-
-    if raises:
-        with pytest.raises(AnomalousAmountError):
-            call()
-    else:
-        call()
+def test_unknown_ip_country_does_not_match_geo_rule(valid_request):
+    valid_request.snapshot.customer_account_created_at.CopyFrom(valid_request.signals.attempted_at)
+    result = FraudApplication().decide(DecisionInput.from_proto(valid_request))
+    assert result.outcome == "APPROVE"
 
 
-@pytest.mark.parametrize(
-    ("customer_id", "expected_error"),
-    [(1001, False), (323, True)],
-    ids=["allowed-customer", "blocked-customer"],
-)
-def test_customer_partition(customer_id, expected_error):
-    def call():
-        check_customer(customer_id)
-
-    if expected_error:
-        with pytest.raises(BlockedCustomerError):
-            call()
-    else:
-        call()
-
-
-@pytest.mark.parametrize("terminal_id", [2001, 4692], ids=["allowed-terminal", "compromised-terminal"])
-def test_terminal_partition(sample_legitimate_payload, terminal_id):
-    payload = sample_legitimate_payload | {"TERMINAL_ID": terminal_id}
-
-    def call():
-        check_transaction(transaction(payload))
-
-    if terminal_id == 4692:
-        with pytest.raises(CompromisedTerminalError):
-            call()
-    else:
-        call()
+def test_all_matching_reasons_and_no_model_fields(valid_request):
+    valid_request.snapshot.total.minor_units = 200_001
+    valid_request.snapshot.items[0].unit_price.minor_units = 200_001
+    valid_request.snapshot.customer_account_created_at.CopyFrom(valid_request.signals.attempted_at)
+    valid_request.signals.ip_country = "CA"
+    result = FraudApplication().decide(DecisionInput.from_proto(valid_request))
+    assert result.reason_codes == ("HIGH_AMOUNT", "NEW_ACCOUNT_GEO_MISMATCH")
+    assert result.policy_version == "rules-v1"

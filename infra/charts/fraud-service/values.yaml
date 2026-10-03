@@ -5,9 +5,7 @@ image:
   pullPolicy: Always
 service:
   type: ClusterIP
-env:
-  - name: MODEL_PATH
-    value: /app/models/model.pkl
+env: []
 resources:
   requests:
     cpu: 100m

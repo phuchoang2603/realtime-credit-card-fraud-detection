@@ -1,90 +1,65 @@
 from __future__ import annotations
 
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from contextvars import copy_context
-from datetime import UTC
+import time
+from datetime import UTC, datetime
 
 import grpc
+from google.protobuf.timestamp_pb2 import Timestamp
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 from pydantic import ValidationError
 
 from app.application import FraudApplication
 from app.config import Settings, settings_from_env
-from app.errors import FraudRuleError, ModelPredictionError, ModelUnavailableError
-from app.model import load_model
-from app.rpc import RequestContextInterceptor, request_id
+from app.rpc import RequestContextInterceptor
 from app.runtime import ApplicationState
-from app.schema import TransactionFeatures
-from app.utils.logging_config import get_logger
-from fraud.v1 import fraud_pb2, fraud_pb2_grpc
+from app.schema import DecisionInput
+from fraud.v2 import fraud_pb2, fraud_pb2_grpc
 
-log = get_logger(__name__)
-SERVICE = "fraud.v1.FraudService"
+SERVICE = "fraud.v2.FraudService"
 
 
 class FraudService(fraud_pb2_grpc.FraudServiceServicer):
-    def __init__(self, state, executor):
+    def __init__(self, state: ApplicationState):
         self.state = state
-        self.executor = executor
-        self.capacity = asyncio.Semaphore(state.settings.inference_workers)
+        self.application = FraudApplication()
 
-    async def Predict(self, request, context):
+    async def Decide(self, request, context):
         if not self.state.ready:
-            await context.abort(grpc.StatusCode.UNAVAILABLE, "Model not available")
+            await context.abort(grpc.StatusCode.UNAVAILABLE, "Decision service unavailable")
         try:
-            # Scalar presence is required even when zero is a valid feature value.
-            values = {field.name.upper(): value for field, value in request.ListFields()}
-            if request.HasField("tx_datetime"):
-                values["TX_DATETIME"] = request.tx_datetime.ToDatetime(tzinfo=UTC)
-            transaction = TransactionFeatures.model_validate(values)
+            decision_input = DecisionInput.from_proto(request)
         except ValidationError, ValueError, OverflowError:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Invalid or missing transaction features")
-        application = FraudApplication(self.state.model, self.state.metrics, log)
-        try:
-            await self.capacity.acquire()
-            try:
-                work = asyncio.get_running_loop().run_in_executor(
-                    self.executor, copy_context().run, application.predict, transaction, request_id.get()
-                )
-            except BaseException:
-                self.capacity.release()
-                raise
-
-            def finished(future):
-                self.capacity.release()
-                # Retrieve failures even when the original RPC was canceled.
-                if not future.cancelled():
-                    future.exception()
-
-            work.add_done_callback(finished)
-            # Cancellation stops the RPC, not native inference. Keep its slot
-            # occupied until the actual worker completes; never queue unbounded work.
-            result = await asyncio.shield(work)
-        except FraudRuleError as exc:
-            await context.abort(grpc.StatusCode.PERMISSION_DENIED, str(exc))
-        except ModelUnavailableError:
-            await context.abort(grpc.StatusCode.UNAVAILABLE, "Model not available")
-        except ModelPredictionError:
-            await context.abort(grpc.StatusCode.INTERNAL, "Prediction failed")
-        return fraud_pb2.PredictResponse(is_fraud=result.is_fraud, fraud_probability=result.fraud_probability)
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Invalid or missing decision input")
+        started = time.perf_counter()
+        result = self.application.decide(decision_input)
+        self.state.metrics.observe_latency(time.perf_counter() - started)
+        self.state.metrics.record_decision(result.outcome, result.reason_codes)
+        evaluated_at = Timestamp()
+        evaluated_at.FromDatetime(datetime.now(UTC))
+        return fraud_pb2.DecideResponse(
+            outcome=(
+                fraud_pb2.DECISION_OUTCOME_DECLINE
+                if result.outcome == "DECLINE"
+                else fraud_pb2.DECISION_OUTCOME_APPROVE
+            ),
+            reason_codes=result.reason_codes,
+            evaluated_at=evaluated_at,
+            policy_version=result.policy_version,
+        )
 
 
 class FraudServer:
-    """Own the model, workers, telemetry and gRPC listener as one lifecycle."""
-
-    def __init__(self, settings: Settings | None = None, model_loader=load_model, tracing=None):
+    def __init__(self, settings: Settings | None = None, tracing=None):
         self.settings = settings or settings_from_env()
         self.settings.validate()
-        self.state = ApplicationState(self.settings, model_loader, tracing)
-        self.executor = ThreadPoolExecutor(max_workers=self.settings.inference_workers, thread_name_prefix="inference")
+        self.state = ApplicationState(self.settings, tracing)
         self.health = health.aio.HealthServicer()
         self.server = grpc.aio.server(
             interceptors=[RequestContextInterceptor(self.state)],
             maximum_concurrent_rpcs=64,
             options=[("grpc.max_receive_message_length", 64 * 1024)],
         )
-        fraud_pb2_grpc.add_FraudServiceServicer_to_server(FraudService(self.state, self.executor), self.server)
+        fraud_pb2_grpc.add_FraudServiceServicer_to_server(FraudService(self.state), self.server)
         health_pb2_grpc.add_HealthServicer_to_server(self.health, self.server)
 
     async def start(self, address: str | None = None) -> int:
@@ -92,13 +67,8 @@ class FraudServer:
             self.state.start()
             port = self.server.add_insecure_port(address or f"[::]:{self.settings.grpc_port}")
             await self.health.set("liveness", health_pb2.HealthCheckResponse.SERVING)
-            status = (
-                health_pb2.HealthCheckResponse.SERVING
-                if self.state.ready
-                else health_pb2.HealthCheckResponse.NOT_SERVING
-            )
             for name in ("readiness", SERVICE, ""):
-                await self.health.set(name, status)
+                await self.health.set(name, health_pb2.HealthCheckResponse.SERVING)
             await self.server.start()
             return port
         except BaseException:
@@ -109,5 +79,4 @@ class FraudServer:
         self.state.shutting_down = True
         await self.health.enter_graceful_shutdown()
         await self.server.stop(self.settings.graceful_shutdown_timeout if grace is None else grace)
-        self.executor.shutdown(wait=False, cancel_futures=True)
         self.state.stop()

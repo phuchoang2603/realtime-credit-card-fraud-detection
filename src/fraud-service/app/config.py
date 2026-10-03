@@ -3,16 +3,11 @@ from __future__ import annotations
 import math
 import os
 from dataclasses import dataclass
-from pathlib import Path
-
-DEFAULT_MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "model.pkl"
 
 
 @dataclass(frozen=True, slots=True)
 class Settings:
     grpc_port: int = 8000
-    inference_workers: int = 4
-    model_path: Path = DEFAULT_MODEL_PATH
     metrics_enabled: bool = True
     metrics_port: int = 8010
     graceful_shutdown_timeout: float = 30.0
@@ -23,10 +18,6 @@ class Settings:
     def validate(self) -> None:
         if not 1 <= self.grpc_port <= 65535:
             raise ValueError("GRPC_PORT must be between 1 and 65535")
-        if self.inference_workers < 1:
-            raise ValueError("INFERENCE_WORKERS must be positive")
-        if not str(self.model_path).strip():
-            raise ValueError("MODEL_PATH must not be empty")
         if not 1 <= self.metrics_port <= 65535:
             raise ValueError("METRICS_PORT must be between 1 and 65535")
         if not math.isfinite(self.graceful_shutdown_timeout) or self.graceful_shutdown_timeout < 1:
@@ -40,8 +31,6 @@ class Settings:
 def settings_from_env() -> Settings:
     settings = Settings(
         grpc_port=_env_int("GRPC_PORT", 8000),
-        inference_workers=_env_int("INFERENCE_WORKERS", 4),
-        model_path=Path(os.environ.get("MODEL_PATH") or DEFAULT_MODEL_PATH),
         metrics_enabled=_env_bool("METRICS_ENABLED", True),
         metrics_port=_env_int("METRICS_PORT", 8010),
         graceful_shutdown_timeout=_env_float("GRACEFUL_SHUTDOWN_TIMEOUT", 30.0),

@@ -1,0 +1,28 @@
+syntax = "proto3";
+package fraud.v2;
+import "google/protobuf/timestamp.proto";
+import "payments/v1/types.proto";
+service FraudService { rpc Decide(DecideRequest) returns (DecideResponse); }
+message DecideRequest {
+  string integration_id = 1;
+  string payment_id = 2;
+  string attempt_id = 3;
+  payments.v1.MerchantRef merchant = 4;
+  payments.v1.CustomerRef customer = 5;
+  payments.v1.CheckoutSnapshot snapshot = 6;
+  payments.v1.AttemptSignals signals = 7;
+}
+enum DecisionOutcome {
+  DECISION_OUTCOME_UNSPECIFIED = 0;
+  DECISION_OUTCOME_APPROVE = 1;
+  DECISION_OUTCOME_DECLINE = 2;
+}
+message DecideResponse {
+  DecisionOutcome outcome = 1;
+  repeated string reason_codes = 2;
+  google.protobuf.Timestamp evaluated_at = 3;
+  string policy_version = 4;
+  optional string model_version = 5;
+  optional string feature_set_version = 6;
+  optional double risk_score = 7;
+}

@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from fraud.v1 import fraud_pb2 as fraud_dot_v1_dot_fraud__pb2
+from fraud.v2 import fraud_pb2 as fraud_dot_v2_dot_fraud__pb2
 
 
 class FraudServiceStub:
@@ -14,17 +14,17 @@ class FraudServiceStub:
         Args:
             channel: A grpc.Channel.
         """
-        self.Predict = channel.unary_unary(
-                '/fraud.v1.FraudService/Predict',
-                request_serializer=fraud_dot_v1_dot_fraud__pb2.PredictRequest.SerializeToString,
-                response_deserializer=fraud_dot_v1_dot_fraud__pb2.PredictResponse.FromString,
+        self.Decide = channel.unary_unary(
+                '/fraud.v2.FraudService/Decide',
+                request_serializer=fraud_dot_v2_dot_fraud__pb2.DecideRequest.SerializeToString,
+                response_deserializer=fraud_dot_v2_dot_fraud__pb2.DecideResponse.FromString,
                 _registered_method=True)
 
 
 class FraudServiceServicer:
     """Missing associated documentation comment in .proto file."""
 
-    def Predict(self, request, context):
+    def Decide(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -33,16 +33,16 @@ class FraudServiceServicer:
 
 def add_FraudServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Predict': grpc.unary_unary_rpc_method_handler(
-                    servicer.Predict,
-                    request_deserializer=fraud_dot_v1_dot_fraud__pb2.PredictRequest.FromString,
-                    response_serializer=fraud_dot_v1_dot_fraud__pb2.PredictResponse.SerializeToString,
+            'Decide': grpc.unary_unary_rpc_method_handler(
+                    servicer.Decide,
+                    request_deserializer=fraud_dot_v2_dot_fraud__pb2.DecideRequest.FromString,
+                    response_serializer=fraud_dot_v2_dot_fraud__pb2.DecideResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'fraud.v1.FraudService', rpc_method_handlers)
+            'fraud.v2.FraudService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('fraud.v1.FraudService', rpc_method_handlers)
+    server.add_registered_method_handlers('fraud.v2.FraudService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -50,7 +50,7 @@ class FraudService:
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def Predict(request,
+    def Decide(request,
             target,
             options=(),
             channel_credentials=None,
@@ -63,9 +63,9 @@ class FraudService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/fraud.v1.FraudService/Predict',
-            fraud_dot_v1_dot_fraud__pb2.PredictRequest.SerializeToString,
-            fraud_dot_v1_dot_fraud__pb2.PredictResponse.FromString,
+            '/fraud.v2.FraudService/Decide',
+            fraud_dot_v2_dot_fraud__pb2.DecideRequest.SerializeToString,
+            fraud_dot_v2_dot_fraud__pb2.DecideResponse.FromString,
             options,
             channel_credentials,
             insecure,

@@ -1,0 +1,18 @@
+syntax = "proto3";
+package labels.v1;
+import "google/protobuf/timestamp.proto";
+enum LabelSource {
+  LABEL_SOURCE_UNSPECIFIED = 0;
+  LABEL_SOURCE_CHARGEBACK = 1;
+  LABEL_SOURCE_SIMULATION_TRUTH = 2;
+}
+message FraudLabel {
+  string integration_id = 1;
+  string payment_id = 2;
+  string attempt_id = 3;
+  bool is_fraud = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+  google.protobuf.Timestamp label_available_at = 6;
+  LabelSource source = 7;
+  optional string scenario = 8;
+}

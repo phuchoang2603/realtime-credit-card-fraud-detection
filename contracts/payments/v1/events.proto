@@ -1,0 +1,68 @@
+syntax = "proto3";
+package payments.v1;
+import "google/protobuf/timestamp.proto";
+import "payments/v1/types.proto";
+
+// Versions start at 1 and increase by one per payment. event_id deduplicates
+// deliveries. PaymentCreated starts a history; success or expiry ends it.
+message PaymentEvent {
+  string event_id = 1;
+  string payment_id = 2;
+  uint64 aggregate_version = 3;
+  string integration_id = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+  google.protobuf.Timestamp recorded_at = 6;
+  uint32 schema_version = 7;
+  string correlation_id = 8;
+  string causation_id = 9;
+  oneof payload {
+    PaymentCreated payment_created = 10;
+    AttemptStarted attempt_started = 11;
+    RiskDecisionRecorded risk_decision_recorded = 12;
+    ProcessorOperationRequested processor_operation_requested = 13;
+    ProcessorOutcomeUnknown processor_outcome_unknown = 14;
+    AttemptDeclined attempt_declined = 15;
+    PaymentSucceeded payment_succeeded = 16;
+    PaymentExpired payment_expired = 17;
+  }
+}
+message PaymentCreated {
+  MerchantRef merchant = 1;
+  CustomerRef customer = 2;
+  CheckoutSnapshot snapshot = 3;
+}
+// Only while OPEN with no active attempt; another attempt follows a decline.
+message AttemptStarted { string attempt_id = 1; AttemptSignals signals = 2; }
+enum RiskOutcome {
+  RISK_OUTCOME_UNSPECIFIED = 0;
+  RISK_OUTCOME_APPROVE = 1;
+  RISK_OUTCOME_DECLINE = 2;
+}
+message RiskAssessment {
+  RiskOutcome outcome = 1;
+  repeated string reason_codes = 2;
+  string policy_version = 3;
+  optional string model_version = 4;
+  optional string feature_set_version = 5;
+  optional double risk_score = 6;
+}
+// Risk decline -> AttemptDeclined(RISK); approval -> processor request ->
+// success, AttemptDeclined(PROCESSOR), or unknown outcome.
+message RiskDecisionRecorded { string attempt_id = 1; RiskAssessment assessment = 2; }
+message ProcessorOperationRequested { string attempt_id = 1; string operation_key = 2; }
+// Unknown resolves only to success or PROCESSOR decline; no expiry or retry.
+message ProcessorOutcomeUnknown { string attempt_id = 1; }
+enum DeclineSource {
+  DECLINE_SOURCE_UNSPECIFIED = 0;
+  DECLINE_SOURCE_RISK = 1;
+  DECLINE_SOURCE_PROCESSOR = 2;
+}
+message AttemptDeclined {
+  string attempt_id = 1;
+  DeclineSource source = 2;
+  string reason = 3;
+}
+// Combined authorization and capture (sale).
+message PaymentSucceeded { string attempt_id = 1; string processor_reference = 2; }
+// Not legal while a processor outcome remains unresolved.
+message PaymentExpired {}
