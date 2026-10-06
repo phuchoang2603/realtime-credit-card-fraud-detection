@@ -85,6 +85,7 @@ simulated-data-transformed
 .DS_Store
 Thumbs.db
 /.agents/skills
+/docs/coursework/
 
 # Local development shell state
 .devenv/
