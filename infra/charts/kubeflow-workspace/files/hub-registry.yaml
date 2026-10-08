@@ -329,6 +329,7 @@ spec:
     metadata:
       labels:
         app: model-registry-ui
+        sidecar.istio.io/inject: "false"
     spec:
       containers:
       - args:
