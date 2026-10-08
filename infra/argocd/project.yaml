@@ -8,11 +8,7 @@ spec:
   sourceRepos:
     - https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git
   destinations:
-    - namespace: argo-cd
-      server: https://kubernetes.default.svc
-    - name: dev
-      namespace: "*"
-    - name: prod
+    - server: https://kubernetes.default.svc
       namespace: "*"
   clusterResourceWhitelist:
     - group: "*"

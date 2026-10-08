@@ -18,6 +18,9 @@ spec:
           targetRevision: *revision
         namePrefix: payment-gateway-dev
         destinationName: dev
+        applications:
+          fraud-service:
+            enabled: false
   destination:
     server: https://kubernetes.default.svc
     namespace: argo-cd

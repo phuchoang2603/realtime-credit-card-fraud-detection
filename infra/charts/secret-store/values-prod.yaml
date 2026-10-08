@@ -1,0 +1,9 @@
+secretStore:
+  enabled: true
+  name: fraud-doppler
+  namespace: fraud-ml-prod
+  project: realtime-credit-card-fraud-detection
+  config: prd
+  tokenSecret:
+    name: fraud-doppler-token
+    key: dopplerToken

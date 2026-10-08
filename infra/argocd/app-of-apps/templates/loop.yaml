@@ -14,7 +14,11 @@ metadata:
 spec:
   project: realtime-credit-card-fraud-detection
   destination:
+    {{- if $.Values.destinationServer }}
+    server: {{ $.Values.destinationServer | quote }}
+    {{- else }}
     name: {{ $.Values.destinationName | quote }}
+    {{- end }}
     namespace: {{ $appConfig.destinationNamespace | quote }}
   sources:
     # Main source for the Helm Chart
@@ -39,6 +43,10 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    {{- with $appConfig.syncRetry }}
+    retry:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true

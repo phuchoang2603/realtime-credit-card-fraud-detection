@@ -1,0 +1,5 @@
+apiVersion: v2
+name: secret-store
+description: Namespace-scoped Doppler SecretStore
+type: application
+version: 0.1.0

@@ -17,11 +17,34 @@ spec:
         global:
           targetRevision: *revision
         namePrefix: payment-gateway-prod
-        destinationName: prod
+        destinationServer: https://kubernetes.default.svc
         applications:
           fraud-service:
+            enabled: false
             valuesFile:
               - infra/charts/fraud-service/values-prod.yaml
+          secret-store:
+            enabled: true
+            destinationNamespace: argo-cd
+            path: infra/charts/secret-store
+            valuesFile:
+              - infra/charts/secret-store/values-prod.yaml
+            syncRetry:
+              limit: -1
+              backoff:
+                duration: 5s
+                factor: 2
+                maxDuration: 3m
+          kubeflow-workspace:
+            enabled: true
+            destinationNamespace: argo-cd
+            path: infra/charts/kubeflow-workspace
+            syncRetry:
+              limit: -1
+              backoff:
+                duration: 5s
+                factor: 2
+                maxDuration: 3m
   destination:
     server: https://kubernetes.default.svc
     namespace: argo-cd
