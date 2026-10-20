@@ -96,6 +96,25 @@ Output SHALL be written under `historical/<dataset_version>/` as Parquet dataset
 - **WHEN** generation stops before the manifest is written
 - **THEN** the dataset version is incomplete, and consumers identify it by the missing manifest
 
+### Requirement: Compacted and sorted Parquet layout
+
+The generator SHALL consolidate staged files within each date and physical schema, preserving all rows including intentional duplicates. It SHALL sort events by occurrence time with deterministic identity tie-breakers and labels by availability time with deterministic identity and source tie-breakers. Sorting SHALL use a configurable memory budget and temporary disk rather than collecting whole partitions in Python memory. Final files SHALL use Zstandard level 3, dictionary encoding with writer fallback, row-group statistics and accurate sorting metadata. Configuration SHALL set row-group rows independently from an approximate compressed file-size target; rotation SHALL occur at row-group boundaries. The manifest SHALL record Arrow schema versions and physical storage metrics.
+
+#### Scenario: Consolidate duplicate exports
+
+- **WHEN** a partition contains original events and sampled duplicate exports
+- **THEN** its final sorted files retain exactly the same event rows and duplicate content, with no file dedicated only to the duplicate export
+
+#### Scenario: Independent row groups and files
+
+- **WHEN** a partition exceeds the configured row-group size and file-size target
+- **THEN** its rows span bounded row groups and files rotate after a row group reaches the file target, with no mixing across dates or physical schemas
+
+#### Scenario: Projected and filtered read
+
+- **WHEN** a compatible reader projects columns and filters a sorted partition
+- **THEN** its results equal applying the same projection and filter to a full scan, and timestamp statistics permit nonmatching row groups to be skipped
+
 ### Requirement: Cluster-run historical evidence
 
 Historical dataset acceptance SHALL include a bounded execution of the same versioned CLI as a prod Argo Workflow in a data namespace separate from the Kubeflow Profile, using a pinned image and the shared RustFS source identity. Source sanity SHALL be executed in a prod Kubeflow Notebook using that same identity. Its credentials SHALL reside in Doppler `prd`. Local CLI output SHALL remain supported, but no locally executed notebook SHALL be required as acceptance evidence. A live simulator SHALL continue to read the manifest through the shared source identity, without a prod-cluster API dependency.

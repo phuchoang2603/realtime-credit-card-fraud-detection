@@ -59,9 +59,17 @@ s3://synthetic-source/historical/<dataset_version>/
 - **Skew:** Zipf exponents for merchant popularity and category mix.
 - **High cardinality:** configured distinct counts for fingerprints. Fraud scenarios add many one-off fingerprints.
 - **Schema evolution:** config declares `schema_evolution.cutover_date` and field paths (default `attempt_started.signals.user_agent_family`). Each event's timestamp determines its schema version and partition, including retries that cross the cutover. Partitions before the cutover lack the declared column and use envelope `schema_version` 1; later partitions use version 2.
-- **Duplicates:** a seeded sample of events is written again in later part files with an identical `event_id` and content, simulating export retries. Sampling permits repeated copies so rates above 50% remain supported; the rate is duplicate rows divided by all exported event rows. The histories themselves stay valid.
+- **Duplicates:** a seeded sample of events is exported again with an identical `event_id` and content, simulating export retries. Sampling permits repeated copies so rates above 50% remain supported; the rate is duplicate rows divided by all exported event rows. Final compaction preserves these copies. The histories themselves stay valid.
 
 The manifest records configured and observed values for each, which is the numeric side of the evidence.
+
+### Sorted and compacted Parquet
+
+Generation flushes at most 4,096 pending records to temporary Parquet files. After duplicate sampling, DuckDB sorts one date partition at a time with a configurable 128 MiB engine memory budget and disk spill. It streams Arrow batches into final Parquet files; the generator does not collect a whole partition in memory. The engine budget is not a cap on process RSS: Arrow batches, profiles, statistics and sort buffers also consume memory.
+
+Events are sorted by `occurred_at`, `payment_id`, `aggregate_version`, and `event_id`; labels by `label_available_at`, `payment_id`, `attempt_id`, and `source`. Each date retains its physical schema, including the cutover. Row-group statistics and truthful sorting metadata support downstream pruning; readers still choose columns and apply filters.
+
+The `storage` configuration independently controls `row_group_rows` (default 65,536), `target_file_size_mb` (default 128 MiB), and `sort_memory_limit_mb` (default 128 MiB). Files rotate after a completed row group reaches the compressed-byte target, so the target is approximate and a file can exceed it by one group plus its footer. Small partitions remain small rather than being padded or combined across dates. Final output uses Zstandard level 3, dictionary encoding with writer fallback, and statistics. The manifest records the codec, sorting columns, file and row-group counts, and stored bytes. Temporary disk holds staging, sorted output and spill files; completed input partitions are removed after successful compaction.
 
 ### Continuity with live simulation
 
@@ -87,7 +95,7 @@ Do not add a Terraform root for a single externally hosted bucket. In `talos-pro
 
 ### Libraries
 
-numpy `Generator` (PCG64) with streams derived per stage and per day from the seed; pyarrow for Parquet and S3; pydantic for config; PyYAML for the config file. The notebook dependency group adds DuckDB (fast `approx_count_distinct` on Parquet), matplotlib, scikit-learn and Jupyter. Polars was considered, but pyarrow plus DuckDB covers writing and analysis without a third dataframe library.
+numpy `Generator` (PCG64) with streams derived per stage and per day from the seed; pyarrow for schemas, Parquet and S3; DuckDB for bounded external sorting; pydantic for config; PyYAML for the config file. The notebook dependency group adds matplotlib, scikit-learn and Jupyter, and reuses DuckDB for analysis. Polars was considered, but pyarrow plus DuckDB covers writing and analysis without a third dataframe library.
 
 ### Sanity notebook
 

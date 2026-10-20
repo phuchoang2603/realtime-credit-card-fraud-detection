@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
+import duckdb
 import pyarrow.fs as fs
 
 from simulator.config import load_config
@@ -43,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
         output = args.output or config.output
         filesystem, root = destination(output)
         manifest = generate(config, output, filesystem, root)
-    except (ValueError, FileExistsError, OSError) as error:
+    except (ValueError, FileExistsError, OSError, duckdb.Error) as error:
         parser.exit(2, f"historical generation failed: {error}\n")
     print(json.dumps({"dataset_version": manifest["dataset_version"], "config_sha256": manifest["config_sha256"]}))
     return 0

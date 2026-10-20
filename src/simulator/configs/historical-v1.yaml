@@ -43,4 +43,8 @@ data_problems:
 label_delays:
   min_days: 7
   max_days: 21
+storage:
+  row_group_rows: 65536
+  target_file_size_mb: 128
+  sort_memory_limit_mb: 128
 output: s3://synthetic-source

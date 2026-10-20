@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Deterministic historical payment data generator"
 requires-python = ">=3.14,<3.15"
 dependencies = [
+    "duckdb>=1.4,<2",
     "numpy>=2.3,<3",
     "pyarrow>=23,<25",
     "pydantic>=2.12,<3",
@@ -13,7 +14,6 @@ dependencies = [
 [dependency-groups]
 dev = ["ruff>=0.14,<1"]
 notebook = [
-    "duckdb>=1.4,<2",
     "matplotlib>=3.10,<4",
     "scikit-learn>=1.8,<2",
     "jupyter>=1.1,<2",

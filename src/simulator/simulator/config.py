@@ -89,6 +89,12 @@ class LabelDelays(StrictModel):
         return self
 
 
+class StorageLayout(StrictModel):
+    row_group_rows: int = Field(default=65536, gt=0, le=64 * 1024 * 1024)
+    target_file_size_mb: int = Field(default=128, gt=0)
+    sort_memory_limit_mb: int = Field(default=128, ge=32)
+
+
 class HistoricalConfig(StrictModel):
     dataset_version: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
     seed: int = Field(ge=0)
@@ -102,6 +108,7 @@ class HistoricalConfig(StrictModel):
     scenarios: Scenarios
     data_problems: DataProblems
     label_delays: LabelDelays
+    storage: StorageLayout = Field(default_factory=StorageLayout)
     output: str = Field(min_length=1)
 
     @model_validator(mode="after")
