@@ -8,31 +8,14 @@ from tempfile import TemporaryDirectory
 import pyarrow as pa
 import pyarrow.fs as fs
 import pyarrow.parquet as pq
-from google.protobuf.message import Message
 
-from labels.v1.labels_pb2 import FraudLabel
-from payments.v1.events_pb2 import PaymentEvent
-from simulator.arrow import arrow_schema, message_row
+from simulator.arrow import LABEL_SCHEMA, Record, event_schema
 from simulator.config import HistoricalConfig
 from simulator.generation import build_history
 from simulator.profiles import build_profiles, schedule_for_day, stage_rng
 from simulator.statistics import DatasetStatistics
 
 BATCH_SIZE = 4096
-
-
-def _event_schemas() -> dict[int, pa.Schema]:
-    schema = arrow_schema(PaymentEvent.DESCRIPTOR)
-    attempt_field = schema.field("attempt_started")
-    signals_field = attempt_field.type.field("signals")
-    signals = pa.struct([field for field in signals_field.type if field.name != "user_agent_family"])
-    attempt = pa.struct(
-        [field.with_type(signals) if field.name == "signals" else field for field in attempt_field.type]
-    )
-    old_schema = pa.schema(
-        [field.with_type(attempt) if field.name == "attempt_started" else field for field in schema]
-    )
-    return {1: old_schema, 2: schema}
 
 
 class _PartitionWriter:
@@ -45,8 +28,8 @@ class _PartitionWriter:
         self.pending: dict[tuple[str, int], list[dict]] = defaultdict(list)
         self.pending_count = 0
 
-    def append(self, message: Message, day: str, version: int = 1) -> None:
-        self.pending[day, version].append(message_row(message))
+    def append(self, record: Record, day: str, version: int = 1) -> None:
+        self.pending[day, version].append(record)
         self.pending_count += 1
         if self.pending_count >= BATCH_SIZE:
             self.flush()
@@ -120,7 +103,7 @@ def _manifest(
         "configuration": configuration,
         "config_sha256": sha256(canonical_config.encode()).hexdigest(),
         "generator_revision": _generator_revision(),
-        "contract_versions": {"payments": "payments.v1", "labels": "labels.v1"},
+        "schema_versions": {"payment_events": [1, 2], "fraud_labels": [1]},
         "profile_sha256": profile_digest,
         "synthetic_key_version": config.synthetic_key_version,
         "history_end": stats.history_end.isoformat() if stats.history_end is not None else None,
@@ -145,10 +128,10 @@ def generate(config: HistoricalConfig, output: str, filesystem: fs.FileSystem, r
     stats = DatasetStatistics()
     with TemporaryDirectory(prefix="historical-") as temporary:
         staging = Path(temporary)
-        events = _PartitionWriter(staging / "payment_events", "occurred_date", _event_schemas())
-        labels = _PartitionWriter(
-            staging / "fraud_labels", "label_available_date", {1: arrow_schema(FraudLabel.DESCRIPTOR)}
+        events = _PartitionWriter(
+            staging / "payment_events", "occurred_date", {version: event_schema(version) for version in (1, 2)}
         )
+        labels = _PartitionWriter(staging / "fraud_labels", "label_available_date", {1: LABEL_SCHEMA})
         for offset in range(config.duration_days):
             day = config.start_date + timedelta(days=offset)
             random = stage_rng(config.seed, 4, offset)
@@ -156,9 +139,9 @@ def generate(config: HistoricalConfig, output: str, filesystem: fs.FileSystem, r
                 history = build_history(config, profiles, purchase, day, ordinal, random)
                 stats.observe(history)
                 for event in history.events:
-                    events.append(event, event.occurred_at.ToDatetime().date().isoformat(), event.schema_version)
+                    events.append(event, event["occurred_at"].date().isoformat(), event["schema_version"])
                 for label in history.labels:
-                    labels.append(label, label.label_available_at.ToDatetime().date().isoformat())
+                    labels.append(label, label["label_available_at"].date().isoformat())
         events.flush()
         labels.flush()
         duplicates = _write_duplicates(events, config.data_problems.duplicate_rate, config.seed)

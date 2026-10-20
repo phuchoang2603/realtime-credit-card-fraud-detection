@@ -8,7 +8,6 @@ dependencies = [
     "pyarrow>=23,<25",
     "pydantic>=2.12,<3",
     "pyyaml>=6,<7",
-    "protobuf>=7.36.1,<8",
 ]
 
 [dependency-groups]
@@ -24,9 +23,8 @@ notebook = [
 package = false
 
 [tool.ruff]
-extend-exclude = ["gen"]
 line-length = 119
-src = [".", "gen"]
+src = ["."]
 target-version = "py314"
 
 [tool.ruff.lint]

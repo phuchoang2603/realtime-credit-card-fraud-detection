@@ -4,7 +4,7 @@ DP1–DP3, the analytical schemas and the offline rubric rows (#43) need reprodu
 
 ## What Changes
 
-- Add a Python `src/simulator` project with a seeded `historical` command. It builds customer, merchant, device and payment-method profiles, generates legitimate purchases and eight fraud scenarios, and emits contract-valid `payments.v1` lifecycle events and `labels.v1` labels.
+- Add a Python `src/simulator` project with a seeded `historical` command. It builds customer, merchant, device and payment-method profiles, generates legitimate purchases and eight fraud scenarios, and emits lifecycle-valid payment events and delayed labels using generator-owned Arrow schemas.
 - Simulate the offline data problems the rubric names, through configuration: merchant/category skew, high-cardinality identifiers, schema evolution (a field absent before a cutover date), and duplicate exports of the same event.
 - Validate every generated payment history against the lifecycle transitions before writing. Add shared golden valid/invalid histories under `contracts/payments/v1/testdata/` that Payments will reuse.
 - Make datasets continuable by the live simulator: profiles and daily scenario schedules can be rebuilt from the seed, IDs and fingerprints match the gateway through shared identity vectors, and the manifest records the history end and a profile digest.
@@ -27,7 +27,7 @@ DP1–DP3, the analytical schemas and the offline rubric rows (#43) need reprodu
 ## Impact
 
 - New `src/simulator/` (own `pyproject.toml`/`uv.lock`), `contracts/payments/v1/testdata/`, and `src/simulator/configs/historical-v1.yaml`.
-- `codegen:proto` also generates Python bindings into `src/simulator/`.
+- The simulator owns explicit Arrow schemas and has no protobuf or gRPC dependency; backend code generation remains separate.
 - CI Python job runs both Python projects; `.gitignore` drops the legacy `simulated-data-*` entries.
 - External prerequisite: the `synthetic-source` bucket and `historical/*`-scoped `synthetic-historical-writer` identity exist on RustFS. Its key pair is stored in Doppler `prd` for the generator, Notebook and downstream source consumers; local-output generation needs no key. The shared `secret-store` chart provides one ClusterSecretStore for both consumer namespaces. No credentials or RustFS administrator access belong in the repository.
 - Add an immutable simulator image, a data-namespace WorkflowTemplate and source ExternalSecrets for the generator and existing prod workspace chart. The platform must watch the data namespace and the consumer must own its GitOps namespace resources. Docs: new `docs/verification/historical-data.md` with workflow/notebook commands and captures, sidebar link, roadmap #43 row status, and data-and-ML flows storage wording.

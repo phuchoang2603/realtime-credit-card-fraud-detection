@@ -1,8 +1,7 @@
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 
-from labels.v1.labels_pb2 import LABEL_SOURCE_CHARGEBACK
 from simulator.generation import GeneratedHistory
 
 
@@ -23,29 +22,28 @@ class DatasetStatistics:
     )
 
     def observe(self, history: GeneratedHistory) -> None:
-        friendly_fraud = any(label.scenario == "friendly_fraud" for label in history.labels)
+        friendly_fraud = any(label.get("scenario") == "friendly_fraud" for label in history.labels)
         self.scenarios["friendly_fraud" if friendly_fraud else history.scenario or "legitimate"] += 1
-        self.chargebacks += sum(label.source == LABEL_SOURCE_CHARGEBACK for label in history.labels)
+        self.chargebacks += sum(label["source"] == "LABEL_SOURCE_CHARGEBACK" for label in history.labels)
         for event in history.events:
             self.unique_events += 1
-            timestamp = event.occurred_at.ToDatetime(tzinfo=timezone.utc)
+            timestamp = event["occurred_at"]
             self.history_end = max(self.history_end, timestamp) if self.history_end is not None else timestamp
-            payload = event.WhichOneof("payload")
-            if payload == "payment_created":
-                created = event.payment_created
-                self.merchants[created.merchant.merchant_id] += 1
-                self.categories[created.snapshot.merchant_category] += 1
-                self.identities["customer"].add(created.customer.customer_id)
-                self.identities["address"].add(created.snapshot.shipping.address_fingerprint)
-            elif payload == "attempt_started":
-                signals = event.attempt_started.signals
-                self.identities["device"].add(signals.device_fingerprint)
-                self.identities["ip_network"].add(signals.ip_network_fingerprint)
-                self.identities["payment_method"].add(signals.payment_method.fingerprint)
-                if event.schema_version == 1:
-                    self.schema_field_present_before += signals.HasField("user_agent_family")
+            if event.get("payment_created") is not None:
+                created = event["payment_created"]
+                self.merchants[created["merchant"]["merchant_id"]] += 1
+                self.categories[created["snapshot"]["merchant_category"]] += 1
+                self.identities["customer"].add(created["customer"]["customer_id"])
+                self.identities["address"].add(created["snapshot"]["shipping"]["address_fingerprint"])
+            elif event.get("attempt_started") is not None:
+                signals = event["attempt_started"]["signals"]
+                self.identities["device"].add(signals["device_fingerprint"])
+                self.identities["ip_network"].add(signals["ip_network_fingerprint"])
+                self.identities["payment_method"].add(signals["payment_method"]["fingerprint"])
+                if event["schema_version"] == 1:
+                    self.schema_field_present_before += signals.get("user_agent_family") is not None
                 else:
-                    self.schema_field_present_after += signals.HasField("user_agent_family")
+                    self.schema_field_present_after += signals.get("user_agent_family") is not None
 
     def observed(self, duplicate_events: int) -> dict:
         total = self.unique_events + duplicate_events

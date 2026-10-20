@@ -52,7 +52,7 @@ Legitimate customers SHALL purchase mostly from familiar merchants, categories, 
 
 ### Requirement: Contract-valid lifecycle histories
 
-Every generated payment SHALL be a complete `payments.v1` history that satisfies the lifecycle transitions, including risk declines, processor declines, unknown processor outcomes that later resolve, retries and expiries. Risk decisions SHALL be recorded with the generator-owned policy version `sim-rules-v1`. The generator SHALL refuse to write a dataset containing an invalid history. Historical generation SHALL NOT call gateway APIs or write to payment event storage.
+Every generated payment SHALL be a complete history using generator-owned Arrow schemas and satisfying the `payments.v1` lifecycle transitions, including risk declines, processor declines, unknown processor outcomes that later resolve, retries and expiries. Risk decisions SHALL be recorded with the generator-owned policy version `sim-rules-v1`. The generator SHALL refuse to write a dataset containing an invalid history. Historical generation SHALL NOT depend on protobuf or gRPC, call gateway APIs or write to payment event storage.
 
 #### Scenario: Invalid history produced
 
@@ -84,7 +84,7 @@ The generator SHALL emit chargeback labels for fraudulent attempts that succeede
 
 ### Requirement: Immutable versioned output
 
-Output SHALL be written under `historical/<dataset_version>/` as Parquet datasets for payment events and labels, partitioned by event date, with a manifest recording the configuration, its hash, the seed, generator revision, contract versions, row counts per partition and data-problem statistics. The manifest SHALL be written last. Generation SHALL refuse to write to a dataset version whose manifest already exists. The same command SHALL target S3-compatible object storage or a local directory.
+Output SHALL be written under `historical/<dataset_version>/` as Parquet datasets for payment events and labels, partitioned by event date, with a manifest recording the configuration, its hash, the seed, generator revision, Arrow schema versions, row counts per partition and data-problem statistics. The manifest SHALL be written last. Generation SHALL refuse to write to a dataset version whose manifest already exists. The same command SHALL target S3-compatible object storage or a local directory.
 
 #### Scenario: Existing dataset version
 

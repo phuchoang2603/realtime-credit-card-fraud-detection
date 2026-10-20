@@ -39,9 +39,9 @@ Detectable-by-history features the scenarios target (computed later by DP3/strea
 
 Histories need `RiskDecisionRecorded` events. The generator implements its own small policy, recorded as `sim-rules-v1`, rather than importing the fraud service (a cross-service import) or calling it (historical generation must not call live APIs). The version string makes clear that these decisions simulate past gateway behavior and are not produced by `rules-v1`. Processor outcomes are simulated in-process with configured issuer-decline, insufficient-funds and unknown-outcome rates. Unknown outcomes resolve within a configured delay.
 
-### Protobuf first, then Arrow
+### Explicit Arrow schemas
 
-Each record is built as a generated protobuf message, so the contract is enforced where records are created. Records are converted to Arrow through a descriptor-driven function: nested messages become structs, timestamps become `timestamp[us, UTC]`, enums become strings, and `int64` stays `int64` (protobuf JSON would stringify it). Alternative considered: protobuf JSON strings in a payload column. Rejected because Parquet-level nulls and nested columns are what the schema-evolution evidence has to show.
+The generator creates plain Python records and writes them through explicit, versioned Arrow schemas in `simulator/arrow.py`. Nested values are structs, timestamps are `timestamp[us, UTC]`, categorical values are strings, and integer amounts remain `int64`. The lifecycle validator enforces the payment transitions independently of transport. Protobuf and gRPC remain backend contracts; historical generation needs neither generated bindings nor descriptor conversion.
 
 ### One wide events dataset plus labels
 
@@ -52,13 +52,13 @@ s3://synthetic-source/historical/<dataset_version>/
   manifest.json
 ```
 
-`payment_events` has typed envelope columns plus one struct column per payload type, exactly one of which is non-null per row. This mirrors the single `PaymentEvent` topic that strict streaming will publish later, so DP1 has one shape for batch and live input. Labels are partitioned by availability date so point-in-time reads can prune them. A separate `synthetic-source` bucket keeps source data outside bronze. The generator, Notebook and downstream source consumers share one identity with bucket listing and object read/write access under `historical/*`.
+`payment_events` has typed envelope columns plus one struct column per payload type, exactly one of which is non-null per row. The fields follow the payment lifecycle semantics; a future live ingestion adapter maps backend events into the analytical schema. Labels are partitioned by availability date so point-in-time reads can prune them. A separate `synthetic-source` bucket keeps source data outside bronze. The generator, Notebook and downstream source consumers share one identity with bucket listing and object read/write access under `historical/*`.
 
 ### Data problems as explicit write-time transforms
 
 - **Skew:** Zipf exponents for merchant popularity and category mix.
 - **High cardinality:** configured distinct counts for fingerprints. Fraud scenarios add many one-off fingerprints.
-- **Schema evolution:** config declares `schema_evolution.cutover_date` and field paths (default `AttemptSignals.user_agent_family`). Each event's timestamp determines its schema version and partition, including retries that cross the cutover. Partitions before the cutover lack the declared column and use envelope `schema_version` 1; later partitions use version 2.
+- **Schema evolution:** config declares `schema_evolution.cutover_date` and field paths (default `attempt_started.signals.user_agent_family`). Each event's timestamp determines its schema version and partition, including retries that cross the cutover. Partitions before the cutover lack the declared column and use envelope `schema_version` 1; later partitions use version 2.
 - **Duplicates:** a seeded sample of events is written again in later part files with an identical `event_id` and content, simulating export retries. Sampling permits repeated copies so rates above 50% remain supported; the rate is duplicate rows divided by all exported event rows. The histories themselves stay valid.
 
 The manifest records configured and observed values for each, which is the numeric side of the evidence.

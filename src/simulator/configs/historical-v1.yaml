@@ -39,7 +39,7 @@ data_problems:
   duplicate_rate: 0.02
   schema_evolution:
     cutover_date: 2026-10-05
-    field_path: AttemptSignals.user_agent_family
+    field_path: attempt_started.signals.user_agent_family
 label_delays:
   min_days: 7
   max_days: 21

@@ -4,14 +4,7 @@ from uuid import uuid5
 
 import numpy as np
 
-from labels.v1.labels_pb2 import LABEL_SOURCE_CHARGEBACK, LABEL_SOURCE_SIMULATION_TRUTH, FraudLabel
-from payments.v1.events_pb2 import (
-    DECLINE_SOURCE_PROCESSOR,
-    DECLINE_SOURCE_RISK,
-    RISK_OUTCOME_APPROVE,
-    RISK_OUTCOME_DECLINE,
-    PaymentEvent,
-)
+from simulator.arrow import Record
 from simulator.config import HistoricalConfig
 from simulator.history import validate_history
 from simulator.identity import IDENTITY_NAMESPACE, fingerprint
@@ -20,13 +13,9 @@ from simulator.profiles import Customer, Profiles, ScheduledPurchase
 
 @dataclass(frozen=True)
 class GeneratedHistory:
-    events: tuple[PaymentEvent, ...]
-    labels: tuple[FraudLabel, ...]
+    events: tuple[Record, ...]
+    labels: tuple[Record, ...]
     scenario: str | None
-
-
-def _stamp(message, timestamp: datetime) -> None:
-    message.FromDatetime(timestamp)
 
 
 def _scenario_values(
@@ -95,86 +84,102 @@ def build_history(
     )
     scenario = purchase.scenario
     fraud = scenario is not None
-    events: list[PaymentEvent] = []
-    labels: list[FraudLabel] = []
+    events: list[Record] = []
+    labels: list[Record] = []
     clock = started_at
 
-    def append(payload: str, at: datetime) -> PaymentEvent:
-        event = PaymentEvent(
-            event_id=str(uuid5(IDENTITY_NAMESPACE, f"{payment_id}:{len(events) + 1}")),
-            payment_id=payment_id,
-            aggregate_version=len(events) + 1,
-            integration_id=str(config.integration_id),
-            schema_version=config.data_problems.schema_evolution.version_on(at.date()),
-            correlation_id=payment_id,
-            causation_id=events[-1].event_id if events else payment_id,
+    def append(payload: str, at: datetime, **fields) -> None:
+        events.append(
+            {
+                "event_id": str(uuid5(IDENTITY_NAMESPACE, f"{payment_id}:{len(events) + 1}")),
+                "payment_id": payment_id,
+                "aggregate_version": len(events) + 1,
+                "integration_id": str(config.integration_id),
+                "schema_version": config.data_problems.schema_evolution.version_on(at.date()),
+                "correlation_id": payment_id,
+                "causation_id": events[-1]["event_id"] if events else payment_id,
+                "occurred_at": at,
+                "recorded_at": at,
+                payload: fields,
+            }
         )
-        _stamp(event.occurred_at, at)
-        _stamp(event.recorded_at, at)
-        getattr(event, payload).SetInParent()
-        events.append(event)
-        return event
 
-    created = append("payment_created", clock).payment_created
-    created.merchant.merchant_id = merchant.merchant_id
-    created.merchant.external_seller_id = merchant.external_id
-    created.customer.customer_id = customer.customer_id
-    created.customer.external_buyer_id = customer.external_id
-    snapshot = created.snapshot
-    snapshot.external_order_id = f"order-{day.isoformat()}-{ordinal:06d}"
-    snapshot.total.minor_units = amount
-    snapshot.total.currency = "USD"
-    snapshot.merchant_category = merchant.category
-    snapshot.shipping.country = "US"
     forwarder = random.random() < 0.1 or scenario == "reshipping_mule"
-    snapshot.shipping.region = "FL" if forwarder else "NY"
-    snapshot.shipping.postal_code = "33166" if forwarder else "10001"
-    snapshot.shipping.address_fingerprint = address
-    item = snapshot.items.add()
-    item.product_id = f"sku-{merchant.category}-1"
-    item.category = merchant.category
-    item.condition = "new"
-    item.quantity = 1
-    item.unit_price.minor_units = amount
-    item.unit_price.currency = "USD"
-    _stamp(snapshot.customer_account_created_at, started_at - timedelta(days=customer.account_age_days))
-    _stamp(snapshot.merchant_account_created_at, started_at - timedelta(days=merchant.account_age_days))
+    append(
+        "payment_created",
+        clock,
+        merchant={"merchant_id": merchant.merchant_id, "external_seller_id": merchant.external_id},
+        customer={"customer_id": customer.customer_id, "external_buyer_id": customer.external_id},
+        snapshot={
+            "external_order_id": f"order-{day.isoformat()}-{ordinal:06d}",
+            "total": {"minor_units": amount, "currency": "USD"},
+            "merchant_category": merchant.category,
+            "shipping": {
+                "country": "US",
+                "region": "FL" if forwarder else "NY",
+                "postal_code": "33166" if forwarder else "10001",
+                "address_fingerprint": address,
+            },
+            "items": [
+                {
+                    "product_id": f"sku-{merchant.category}-1",
+                    "category": merchant.category,
+                    "condition": "new",
+                    "quantity": 1,
+                    "unit_price": {"minor_units": amount, "currency": "USD"},
+                }
+            ],
+            "customer_account_created_at": started_at - timedelta(days=customer.account_age_days),
+            "merchant_account_created_at": started_at - timedelta(days=merchant.account_age_days),
+        },
+    )
 
     for attempt_index in range(1, 3):
         clock += timedelta(seconds=1)
         attempt_id = str(uuid5(IDENTITY_NAMESPACE, f"{payment_id}:attempt:{attempt_index}"))
-        started = append("attempt_started", clock).attempt_started
-        started.attempt_id = attempt_id
-        _stamp(started.signals.attempted_at, clock)
-        started.signals.payment_method.type = "card"
-        started.signals.payment_method.fingerprint = method
-        started.signals.device_fingerprint = device
         foreign_probability = config.behavior.foreign_ip_probability
         if scenario in ("stolen_card_new_device", "account_takeover"):
             foreign_probability = max(foreign_probability, 0.5)
-        started.signals.ip_country = "CA" if random.random() < foreign_probability else "US"
-        started.signals.ip_network_fingerprint = network
+        signals = {
+            "attempted_at": clock,
+            "payment_method": {"type": "card", "fingerprint": method},
+            "device_fingerprint": device,
+            "ip_country": "CA" if random.random() < foreign_probability else "US",
+            "ip_network_fingerprint": network,
+        }
         if config.data_problems.schema_evolution.version_on(clock.date()) == 2:
-            started.signals.user_agent_family = "Chromium"
+            signals["user_agent_family"] = "Chromium"
+        append("attempt_started", clock, attempt_id=attempt_id, signals=signals)
 
         risk_decline = amount >= 500000 and random.random() < 0.5
         clock += timedelta(seconds=1)
-        decision = append("risk_decision_recorded", clock).risk_decision_recorded
-        decision.attempt_id = attempt_id
-        decision.assessment.outcome = RISK_OUTCOME_DECLINE if risk_decline else RISK_OUTCOME_APPROVE
-        decision.assessment.reason_codes.append("HIGH_VALUE" if risk_decline else "ALLOW")
-        decision.assessment.policy_version = "sim-rules-v1"
+        append(
+            "risk_decision_recorded",
+            clock,
+            attempt_id=attempt_id,
+            assessment={
+                "outcome": "RISK_OUTCOME_DECLINE" if risk_decline else "RISK_OUTCOME_APPROVE",
+                "reason_codes": ["HIGH_VALUE" if risk_decline else "ALLOW"],
+                "policy_version": "sim-rules-v1",
+            },
+        )
         clock += timedelta(seconds=1)
         if risk_decline:
-            decline = append("attempt_declined", clock).attempt_declined
-            decline.attempt_id = attempt_id
-            decline.source = DECLINE_SOURCE_RISK
-            decline.reason = "high_value"
+            append(
+                "attempt_declined",
+                clock,
+                attempt_id=attempt_id,
+                source="DECLINE_SOURCE_RISK",
+                reason="high_value",
+            )
             succeeded = False
         else:
-            request = append("processor_operation_requested", clock).processor_operation_requested
-            request.attempt_id = attempt_id
-            request.operation_key = f"{payment_id}:{attempt_index}"
+            append(
+                "processor_operation_requested",
+                clock,
+                attempt_id=attempt_id,
+                operation_key=f"{payment_id}:{attempt_index}",
+            )
             outcome = random.random()
             unknown = outcome < config.behavior.unknown_outcome_rate
             processor_decline = (
@@ -192,51 +197,59 @@ def build_history(
             )
             if unknown:
                 clock += timedelta(seconds=1)
-                append("processor_outcome_unknown", clock).processor_outcome_unknown.attempt_id = attempt_id
+                append("processor_outcome_unknown", clock, attempt_id=attempt_id)
                 clock += timedelta(minutes=config.behavior.unknown_resolution_minutes)
             else:
                 clock += timedelta(seconds=1)
             if declined:
-                decline = append("attempt_declined", clock).attempt_declined
-                decline.attempt_id = attempt_id
-                decline.source = DECLINE_SOURCE_PROCESSOR
-                decline.reason = "issuer_declined"
+                append(
+                    "attempt_declined",
+                    clock,
+                    attempt_id=attempt_id,
+                    source="DECLINE_SOURCE_PROCESSOR",
+                    reason="issuer_declined",
+                )
                 succeeded = False
             else:
-                success = append("payment_succeeded", clock).payment_succeeded
-                success.attempt_id = attempt_id
-                success.processor_reference = f"sim-{payment_id}-{attempt_index}"
+                append(
+                    "payment_succeeded",
+                    clock,
+                    attempt_id=attempt_id,
+                    processor_reference=f"sim-{payment_id}-{attempt_index}",
+                )
                 succeeded = True
 
         friendly_fraud = not fraud and succeeded and random.random() < config.scenarios.friendly_fraud.rate
-        truth = FraudLabel(
-            integration_id=str(config.integration_id),
-            payment_id=payment_id,
-            attempt_id=attempt_id,
-            is_fraud=fraud,
-            source=LABEL_SOURCE_SIMULATION_TRUTH,
-            scenario="friendly_fraud" if friendly_fraud else scenario or "legitimate",
+        labels.append(
+            {
+                "integration_id": str(config.integration_id),
+                "payment_id": payment_id,
+                "attempt_id": attempt_id,
+                "is_fraud": fraud,
+                "source": "LABEL_SOURCE_SIMULATION_TRUTH",
+                "scenario": "friendly_fraud" if friendly_fraud else scenario or "legitimate",
+                "occurred_at": started_at,
+                "label_available_at": clock,
+            }
         )
-        _stamp(truth.occurred_at, started_at)
-        _stamp(truth.label_available_at, clock)
-        labels.append(truth)
         if succeeded and (fraud or friendly_fraud):
             delay = int(random.integers(config.label_delays.min_days, config.label_delays.max_days + 1))
-            chargeback = FraudLabel(
-                integration_id=str(config.integration_id),
-                payment_id=payment_id,
-                attempt_id=attempt_id,
-                is_fraud=True,
-                source=LABEL_SOURCE_CHARGEBACK,
+            labels.append(
+                {
+                    "integration_id": str(config.integration_id),
+                    "payment_id": payment_id,
+                    "attempt_id": attempt_id,
+                    "is_fraud": True,
+                    "source": "LABEL_SOURCE_CHARGEBACK",
+                    "occurred_at": clock,
+                    "label_available_at": clock + timedelta(days=delay),
+                }
             )
-            _stamp(chargeback.occurred_at, clock)
-            _stamp(chargeback.label_available_at, clock + timedelta(days=delay))
-            labels.append(chargeback)
         if succeeded:
             break
         if attempt_index == 2 or (scenario != "retry_attack" and random.random() >= config.behavior.retry_rate):
             clock = max(clock + timedelta(seconds=1), started_at + timedelta(minutes=config.behavior.expiry_minutes))
-            append("payment_expired", clock)
+            append("payment_expired", clock, _present=True)
             break
         method = fingerprint(config.synthetic_key, "payment_method", f"tok_card-retry-{day_offset}-{ordinal}_ok")
 

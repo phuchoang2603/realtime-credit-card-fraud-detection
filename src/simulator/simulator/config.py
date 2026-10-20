@@ -61,15 +61,15 @@ class Scenarios(StrictModel):
 
 class SchemaEvolution(StrictModel):
     cutover_date: date
-    field_path: str = "AttemptSignals.user_agent_family"
+    field_path: str = "attempt_started.signals.user_agent_family"
 
     def version_on(self, day: date) -> int:
         return 1 if day < self.cutover_date else 2
 
     @model_validator(mode="after")
     def validate_field(self) -> Self:
-        if self.field_path != "AttemptSignals.user_agent_family":
-            raise ValueError("only AttemptSignals.user_agent_family is supported for schema evolution")
+        if self.field_path != "attempt_started.signals.user_agent_family":
+            raise ValueError("only attempt_started.signals.user_agent_family is supported for schema evolution")
         return self
 
 

@@ -1,12 +1,6 @@
 from collections.abc import Sequence
 
-from payments.v1.events_pb2 import (
-    DECLINE_SOURCE_PROCESSOR,
-    DECLINE_SOURCE_RISK,
-    RISK_OUTCOME_APPROVE,
-    RISK_OUTCOME_DECLINE,
-    PaymentEvent,
-)
+from simulator.arrow import EVENT_PAYLOADS, Record
 
 
 class HistoryValidationError(ValueError):
@@ -15,11 +9,11 @@ class HistoryValidationError(ValueError):
         self.rule = rule
 
 
-def validate_history(events: Sequence[PaymentEvent]) -> None:
+def validate_history(events: Sequence[Record]) -> None:
     if not events:
         raise HistoryValidationError("<empty>", "missing_created")
 
-    payment_id = events[0].payment_id
+    payment_id = events[0]["payment_id"]
     state = "initial"
     attempt_id: str | None = None
     seen_attempt_ids: set[str] = set()
@@ -27,13 +21,16 @@ def validate_history(events: Sequence[PaymentEvent]) -> None:
     last_decline_source = None
 
     for version, event in enumerate(events, start=1):
-        payload = event.WhichOneof("payload")
-        if event.payment_id != payment_id:
+        payloads = [name for name in EVENT_PAYLOADS if event.get(name) is not None]
+        if len(payloads) != 1:
+            raise HistoryValidationError(payment_id, "invalid_payload")
+        payload = payloads[0]
+        if event.get("payment_id") != payment_id:
             raise HistoryValidationError(payment_id, "mixed_payment_ids")
-        if event.event_id in seen_event_ids:
+        if event.get("event_id") in seen_event_ids:
             raise HistoryValidationError(payment_id, "duplicate_event_id")
-        seen_event_ids.add(event.event_id)
-        if event.aggregate_version != version:
+        seen_event_ids.add(event.get("event_id"))
+        if event.get("aggregate_version") != version:
             raise HistoryValidationError(payment_id, "version_gap")
         if state == "initial":
             if payload != "payment_created":
@@ -54,9 +51,12 @@ def validate_history(events: Sequence[PaymentEvent]) -> None:
             if state != "open":
                 rule = "retry_while_unknown" if state == "unknown" else "concurrent_attempt"
                 raise HistoryValidationError(payment_id, rule)
-            if not event.attempt_started.attempt_id or event.attempt_started.attempt_id in seen_attempt_ids:
+            if (
+                not event["attempt_started"].get("attempt_id")
+                or event["attempt_started"].get("attempt_id") in seen_attempt_ids
+            ):
                 raise HistoryValidationError(payment_id, "reused_attempt_id")
-            attempt_id = event.attempt_started.attempt_id
+            attempt_id = event["attempt_started"].get("attempt_id")
             seen_attempt_ids.add(attempt_id)
             state = "risk_pending"
             continue
@@ -64,14 +64,14 @@ def validate_history(events: Sequence[PaymentEvent]) -> None:
         if payload == "risk_decision_recorded":
             if state != "risk_pending":
                 raise HistoryValidationError(payment_id, "decision_without_attempt")
-            assessment = event.risk_decision_recorded.assessment
-            if event.risk_decision_recorded.attempt_id != attempt_id:
+            assessment = event["risk_decision_recorded"].get("assessment", {})
+            if event["risk_decision_recorded"].get("attempt_id") != attempt_id:
                 raise HistoryValidationError(payment_id, "wrong_attempt")
-            if not assessment.policy_version or not assessment.reason_codes:
+            if not assessment.get("policy_version") or not assessment.get("reason_codes"):
                 raise HistoryValidationError(payment_id, "incomplete_risk_assessment")
-            if assessment.outcome == RISK_OUTCOME_APPROVE:
+            if assessment.get("outcome") == "RISK_OUTCOME_APPROVE":
                 state = "approved"
-            elif assessment.outcome == RISK_OUTCOME_DECLINE:
+            elif assessment.get("outcome") == "RISK_OUTCOME_DECLINE":
                 state = "risk_declined"
             else:
                 raise HistoryValidationError(payment_id, "unspecified_risk_outcome")
@@ -81,11 +81,11 @@ def validate_history(events: Sequence[PaymentEvent]) -> None:
             if state != "approved":
                 rule = (
                     "processor_after_risk_decline"
-                    if last_decline_source == DECLINE_SOURCE_RISK
+                    if last_decline_source == "DECLINE_SOURCE_RISK"
                     else "processor_without_approval"
                 )
                 raise HistoryValidationError(payment_id, rule)
-            if event.processor_operation_requested.attempt_id != attempt_id:
+            if event["processor_operation_requested"].get("attempt_id") != attempt_id:
                 raise HistoryValidationError(payment_id, "wrong_attempt")
             state = "processor_pending"
             continue
@@ -93,26 +93,29 @@ def validate_history(events: Sequence[PaymentEvent]) -> None:
         if payload == "processor_outcome_unknown":
             if state != "processor_pending":
                 raise HistoryValidationError(payment_id, "unknown_without_request")
-            if event.processor_outcome_unknown.attempt_id != attempt_id:
+            if event["processor_outcome_unknown"].get("attempt_id") != attempt_id:
                 raise HistoryValidationError(payment_id, "wrong_attempt")
             state = "unknown"
             continue
 
         if payload == "attempt_declined":
-            decline = event.attempt_declined
-            if decline.attempt_id != attempt_id:
+            decline = event["attempt_declined"]
+            if decline.get("attempt_id") != attempt_id:
                 raise HistoryValidationError(payment_id, "wrong_attempt")
-            expected_source = DECLINE_SOURCE_RISK if state == "risk_declined" else DECLINE_SOURCE_PROCESSOR
-            if state not in ("risk_declined", "processor_pending", "unknown") or decline.source != expected_source:
+            expected_source = "DECLINE_SOURCE_RISK" if state == "risk_declined" else "DECLINE_SOURCE_PROCESSOR"
+            if (
+                state not in ("risk_declined", "processor_pending", "unknown")
+                or decline.get("source") != expected_source
+            ):
                 raise HistoryValidationError(payment_id, "wrong_decline_source")
-            last_decline_source = decline.source
+            last_decline_source = decline.get("source")
             state = "open"
             continue
 
         if payload == "payment_succeeded":
             if state not in ("processor_pending", "unknown"):
                 raise HistoryValidationError(payment_id, "success_without_processor_request")
-            if event.payment_succeeded.attempt_id != attempt_id:
+            if event["payment_succeeded"].get("attempt_id") != attempt_id:
                 raise HistoryValidationError(payment_id, "wrong_attempt")
             state = "terminal"
             continue

@@ -1,82 +1,113 @@
-from datetime import timezone
+from typing import Any
 
 import pyarrow as pa
-from google.protobuf.descriptor import Descriptor, FieldDescriptor
-from google.protobuf.message import Message
+
+Record = dict[str, Any]
+TIMESTAMP = pa.timestamp("us", tz="UTC")
+MONEY = pa.struct([("minor_units", pa.int64()), ("currency", pa.string())])
+MERCHANT = pa.struct([("merchant_id", pa.string()), ("external_seller_id", pa.string())])
+CUSTOMER = pa.struct([("customer_id", pa.string()), ("external_buyer_id", pa.string())])
+SHIPPING = pa.struct(
+    [
+        ("country", pa.string()),
+        ("region", pa.string()),
+        ("postal_code", pa.string()),
+        ("address_fingerprint", pa.string()),
+    ]
+)
+LINE_ITEM = pa.struct(
+    [
+        ("product_id", pa.string()),
+        ("category", pa.string()),
+        ("condition", pa.string()),
+        ("quantity", pa.int32()),
+        ("unit_price", MONEY),
+    ]
+)
+CHECKOUT = pa.struct(
+    [
+        ("external_order_id", pa.string()),
+        ("total", MONEY),
+        ("items", pa.list_(LINE_ITEM)),
+        ("merchant_category", pa.string()),
+        ("merchant_account_created_at", TIMESTAMP),
+        ("customer_account_created_at", TIMESTAMP),
+        ("shipping", SHIPPING),
+    ]
+)
+PAYMENT_METHOD = pa.struct([("type", pa.string()), ("fingerprint", pa.string())])
+ASSESSMENT = pa.struct(
+    [
+        ("outcome", pa.string()),
+        ("reason_codes", pa.list_(pa.string())),
+        ("policy_version", pa.string()),
+        ("model_version", pa.string()),
+        ("feature_set_version", pa.string()),
+        ("risk_score", pa.float64()),
+    ]
+)
+EVENT_PAYLOADS = (
+    "payment_created",
+    "attempt_started",
+    "risk_decision_recorded",
+    "processor_operation_requested",
+    "processor_outcome_unknown",
+    "attempt_declined",
+    "payment_succeeded",
+    "payment_expired",
+)
 
 
-def arrow_type(field: FieldDescriptor) -> pa.DataType:
-    if field.type == FieldDescriptor.TYPE_MESSAGE:
-        if field.message_type.full_name == "google.protobuf.Timestamp":
-            result = pa.timestamp("us", tz="UTC")
-        elif not field.message_type.fields:
-            result = pa.struct([pa.field("_present", pa.bool_())])
-        else:
-            result = pa.struct([pa.field(child.name, arrow_type(child)) for child in field.message_type.fields])
-    elif field.type == FieldDescriptor.TYPE_ENUM:
-        result = pa.string()
-    elif field.type in (FieldDescriptor.TYPE_INT32, FieldDescriptor.TYPE_SINT32, FieldDescriptor.TYPE_SFIXED32):
-        result = pa.int32()
-    elif field.type in (FieldDescriptor.TYPE_UINT32, FieldDescriptor.TYPE_FIXED32):
-        result = pa.uint32()
-    elif field.type in (
-        FieldDescriptor.TYPE_INT64,
-        FieldDescriptor.TYPE_UINT64,
-        FieldDescriptor.TYPE_SINT64,
-        FieldDescriptor.TYPE_FIXED64,
-        FieldDescriptor.TYPE_SFIXED64,
-    ):
-        result = pa.int64()
-    elif field.type == FieldDescriptor.TYPE_BOOL:
-        result = pa.bool_()
-    elif field.type == FieldDescriptor.TYPE_FLOAT:
-        result = pa.float32()
-    elif field.type == FieldDescriptor.TYPE_DOUBLE:
-        result = pa.float64()
-    elif field.type == FieldDescriptor.TYPE_STRING:
-        result = pa.string()
-    elif field.type == FieldDescriptor.TYPE_BYTES:
-        result = pa.binary()
-    else:
-        raise TypeError(f"unsupported protobuf field type: {field.full_name}")
-    if field.is_repeated:
-        return pa.list_(result)
-    return result
-
-
-def arrow_schema(descriptor: Descriptor) -> pa.Schema:
-    return pa.schema([pa.field(field.name, arrow_type(field)) for field in descriptor.fields])
-
-
-def message_row(message: Message) -> dict:
-    if not message.DESCRIPTOR.fields:
-        return {"_present": True}
-    row = {}
-    for field in message.DESCRIPTOR.fields:
-        if field.has_presence and not message.HasField(field.name):
-            row[field.name] = None
-            continue
-        value = getattr(message, field.name)
-        if field.is_repeated:
-            row[field.name] = [_field_value(field, item) for item in value]
-        else:
-            row[field.name] = _field_value(field, value)
-    return row
-
-
-def _field_value(field: FieldDescriptor, value):
-    if field.type == FieldDescriptor.TYPE_MESSAGE:
-        if field.message_type.full_name == "google.protobuf.Timestamp":
-            return value.ToDatetime(tzinfo=timezone.utc)
-        return message_row(value)
-    if field.type == FieldDescriptor.TYPE_ENUM:
-        return field.enum_type.values_by_number[value].name
-    return value
-
-
-def table_from_messages(messages: list[Message]) -> pa.Table:
-    if not messages:
-        raise ValueError("at least one message is required to build an Arrow table")
-    return pa.Table.from_pylist(
-        [message_row(message) for message in messages], schema=arrow_schema(messages[0].DESCRIPTOR)
+def event_schema(version: int) -> pa.Schema:
+    if version not in (1, 2):
+        raise ValueError(f"unsupported payment event schema version: {version}")
+    signals = [
+        ("attempted_at", TIMESTAMP),
+        ("payment_method", PAYMENT_METHOD),
+        ("device_fingerprint", pa.string()),
+        ("ip_country", pa.string()),
+        ("ip_network_fingerprint", pa.string()),
+    ]
+    if version == 2:
+        signals.append(("user_agent_family", pa.string()))
+    return pa.schema(
+        [
+            ("event_id", pa.string()),
+            ("payment_id", pa.string()),
+            ("aggregate_version", pa.int64()),
+            ("integration_id", pa.string()),
+            ("occurred_at", TIMESTAMP),
+            ("recorded_at", TIMESTAMP),
+            ("schema_version", pa.uint32()),
+            ("correlation_id", pa.string()),
+            ("causation_id", pa.string()),
+            ("payment_created", pa.struct([("merchant", MERCHANT), ("customer", CUSTOMER), ("snapshot", CHECKOUT)])),
+            ("attempt_started", pa.struct([("attempt_id", pa.string()), ("signals", pa.struct(signals))])),
+            ("risk_decision_recorded", pa.struct([("attempt_id", pa.string()), ("assessment", ASSESSMENT)])),
+            (
+                "processor_operation_requested",
+                pa.struct([("attempt_id", pa.string()), ("operation_key", pa.string())]),
+            ),
+            ("processor_outcome_unknown", pa.struct([("attempt_id", pa.string())])),
+            (
+                "attempt_declined",
+                pa.struct([("attempt_id", pa.string()), ("source", pa.string()), ("reason", pa.string())]),
+            ),
+            ("payment_succeeded", pa.struct([("attempt_id", pa.string()), ("processor_reference", pa.string())])),
+            ("payment_expired", pa.struct([("_present", pa.bool_())])),
+        ]
     )
+
+
+LABEL_SCHEMA = pa.schema(
+    [
+        ("integration_id", pa.string()),
+        ("payment_id", pa.string()),
+        ("attempt_id", pa.string()),
+        ("is_fraud", pa.bool_()),
+        ("occurred_at", TIMESTAMP),
+        ("label_available_at", TIMESTAMP),
+        ("source", pa.string()),
+        ("scenario", pa.string()),
+    ]
+)
