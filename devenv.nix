@@ -54,14 +54,16 @@
     exec = ''
       set -euo pipefail
       cd "${config.git.root}"
-      mkdir -p src/fraud-service/gen
+      mkdir -p src/fraud-service/gen src/simulator/gen
       while IFS= read -r -d $'\0' proto; do
-        protoc \
-          -I contracts \
-          --python_out=src/fraud-service/gen --pyi_out=src/fraud-service/gen \
-          --plugin=protoc-gen-grpc_python=${pkgs.grpc}/bin/grpc_python_plugin \
-          --grpc_python_out=src/fraud-service/gen \
-          "$proto"
+        for output in src/fraud-service/gen src/simulator/gen; do
+          protoc \
+            -I contracts \
+            --python_out="$output" --pyi_out="$output" \
+            --plugin=protoc-gen-grpc_python=${pkgs.grpc}/bin/grpc_python_plugin \
+            --grpc_python_out="$output" \
+            "$proto"
+        done
       done < <(find contracts -type f -name '*.proto' -print0)
     '';
     before = [ "devenv:enterShell" ];
@@ -87,6 +89,7 @@
         enable = true;
         excludes = [
           "src/fraud-service/gen/**"
+          "src/simulator/gen/**"
         ];
       };
       gofumpt = {

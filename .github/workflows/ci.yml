@@ -42,13 +42,20 @@ jobs:
       - uses: astral-sh/setup-uv@v10.1.0
         with:
           enable-cache: true
-          cache-dependency-glob: src/fraud-service/uv.lock
+          cache-dependency-glob: |
+            src/fraud-service/uv.lock
+            src/simulator/uv.lock
       - name: Python lint, format and behavior tests
         working-directory: src/fraud-service
         run: |
           uv run --locked ruff check app tests
           uv run --locked ruff format --check app tests
           uv run --locked pytest -q
+      - name: Simulator lint and format
+        working-directory: src/simulator
+        run: |
+          uv run --locked ruff check simulator
+          uv run --locked ruff format --check simulator
 
   go:
     runs-on: ubuntu-latest
