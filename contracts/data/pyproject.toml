@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "payment-data-contracts"
+version = "0.1.0"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+  "open-data-contract-standard==3.2.0",
+  "pyarrow>=23,<25",
+  "pyyaml>=6,<7",
+]
+
+[project.optional-dependencies]
+validation = ["datacontract-cli[duckdb]==1.2.7"]
+
+[project.scripts]
+payment-data-contracts = "payment_data_contracts.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=9,<10",
+  "ruff==0.16.8",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["payment_data_contracts"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
