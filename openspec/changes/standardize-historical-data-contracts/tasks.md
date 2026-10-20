@@ -12,4 +12,4 @@
 
 - [x] 3.1 Generate the contract reference from ODCS, add minimal contributor commands and verify documentation drift is rejected.
 - [x] 3.2 Wire locked contract checks into CI, verify focused tests, lint, packaging and OpenSpec validation, and remove unused draft implementations or compatibility paths.
-- [ ] 3.3 Commit the foundation sequentially and open an independent PR against main, recording the generator rewrite and future DataHub integration as follow-up scope.
+- [x] 3.3 Commit the foundation sequentially and open an independent PR against main, recording the generator rewrite and future DataHub integration as follow-up scope.

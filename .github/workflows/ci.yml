@@ -13,6 +13,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: contracts/data/uv.lock
+      - name: Contract lint, format, behavior and generated documentation
+        working-directory: contracts/data
+        run: |
+          uv run --locked --extra validation ruff check payment_data_contracts tests
+          uv run --locked --extra validation ruff format --check payment_data_contracts tests
+          uv run --locked --extra validation payment-data-contracts lint
+          uv run --locked --extra validation pytest -q
+          uv run --locked --extra validation payment-data-contracts docs ../../docs/architecture/historical-data-contract.md --check
+
   python:
     runs-on: ubuntu-latest
     timeout-minutes: 15

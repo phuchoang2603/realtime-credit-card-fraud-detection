@@ -23,7 +23,15 @@ Run only the checks relevant to your edit; CI owns the full set and the image bu
 
 On NixOS use the shell-provided Ruff; CI uses `uv run --locked ruff`. The Python suite is intentionally small; see the [verification evidence](docs/verification/evidence.md) for its scope.
 
+For dataset contracts, run `cd contracts/data && UV_PROJECT_ENVIRONMENT=.venv uv run --locked --extra validation pytest -q`. This uses an isolated project environment inside devenv.
+
 ## Contracts and generated code
+
+The historical dataset agreement is [ODCS](contracts/data/payment_data_contracts/historical-payments.odcs.yaml). Its [generated reference](docs/architecture/historical-data-contract.md) describes source events, labels and executable quality rules. From `contracts/data/`, use `UV_PROJECT_ENVIRONMENT=.venv uv run --locked --extra validation payment-data-contracts lint`; regenerate the reference with `payment-data-contracts docs ../../docs/architecture/historical-data-contract.md` through the same uv command. CI checks the reference for drift.
+
+Python consumers install `payment-data-contracts` from `contracts/data/` and derive physical schemas with `load_contract().arrow_schema("payment_events", version)` or `arrow_schema("fraud_labels")`. Install the `validation` extra to use `validate_dataset(Path(...))` or `payment-data-contracts validate DATASET --report validation.json`. The local staged dataset must contain `payment_events/` and `fraud_labels/`, including empty directories for empty outputs. Validation inspects physical Parquet schemas, then runs the declared SQL rules over complete histories across partitions; warnings or unexecuted rules fail validation. Reports include per-rule evidence and the contract ID, version and SHA-256. Validate staging before publication and attach that provenance to the eventual manifest.
+
+The `schemaVersions` custom property lists supported physical layouts; `sinceSchemaVersion` omits a field from earlier Arrow layouts. Version-one events physically omit the user-agent field. Identical event deliveries are allowed; curated uniqueness rules belong in later dataset contracts. Backend Protobuf owns wire messages. Future DataHub ingestion consumes this ODCS document and receives executed rule results; DataHub is not required to run these checks.
 
 `contracts/payments/v1/` defines checkout snapshots and lifecycle events, `contracts/fraud/v2/` defines the internal decision RPC, and `contracts/labels/v1/` defines delayed labels. The devenv task `codegen:proto` regenerates the Python bindings under `src/fraud-service/gen/` on shell entry when contracts or generation dependencies change; run it explicitly with `devenv tasks run codegen:proto`. The generated modules retain their `fraud.v2`, `payments.v1` and `labels.v1` import paths; `gen/` must be on `PYTHONPATH` (set by devenv, pytest and the container). Keep generated sources with contract edits and never hand-edit them; Go bindings are added when a Go service consumes the contracts.
 
@@ -40,9 +48,11 @@ The fraud service exposes internal `fraud.v2.FraudService/Decide` on port 8000 a
 
 Edit `src/fraud-service/pyproject.toml`, run `uv lock --project src/fraud-service`, and commit the manifest and lock together; installs use `--locked` and reject drift. Go dependencies follow the usual `go get` / `go mod tidy` flow inside `src/edge` with `GOWORK=off`.
 
+Dataset contract dependencies live in `contracts/data/pyproject.toml`; update its lock with `uv lock --project contracts/data`. Schema-only consumers use Arrow, YAML and the pinned ODCS model. Native SQL execution and documentation generation use the pinned Data Contract CLI from the `validation` extra.
+
 ## CI and images
 
-Every pull request and push to `main` runs three independent jobs in [`ci.yml`](.github/workflows/ci.yml): Python lint, format check and behavior tests; golangci-lint on the Go edge (type-check, default analyzers, gofumpt); and lint/render of every tracked Helm chart with each of its `values-*.yaml` overrides. There is no change detection, matrix or numerical coverage gate. A newer commit cancels stale runs.
+Every pull request and push to `main` runs four independent jobs in [`ci.yml`](.github/workflows/ci.yml): dataset contract lint, behavior checks and documentation drift; Python lint, format check and behavior tests; golangci-lint on the Go edge (type-check, default analyzers, gofumpt); and lint/render of every tracked Helm chart with each of its `values-*.yaml` overrides. There is no change detection, matrix or numerical coverage gate. A newer commit cancels stale runs.
 
 [`release.yml`](.github/workflows/release.yml) runs two explicit jobs, `fraud` and `edge`, through [`build-image.yml`](.github/workflows/build-image.yml). Pull requests build both images without publishing; pushes to `main` publish to GHCR with `latest` and short commit-SHA tags. Local Docker builds are unnecessary. GitOps rollout is separate from publication; see the [deployment guide](docs/deployment/gitops.md).
 
