@@ -1,0 +1,75 @@
+{
+  "format": "payments.v1.PaymentEvent protobuf JSON",
+  "cases": [
+    {
+      "name": "expires_without_attempt",
+      "valid": true,
+      "events": [
+        {"eventId": "a1", "paymentId": "p1", "aggregateVersion": "1", "integrationId": "synthetic", "occurredAt": "2026-10-08T00:00:00Z", "recordedAt": "2026-10-08T00:00:00Z", "schemaVersion": 1, "correlationId": "c1", "causationId": "a1", "paymentCreated": {}},
+        {"eventId": "a2", "paymentId": "p1", "aggregateVersion": "2", "integrationId": "synthetic", "occurredAt": "2026-10-08T00:01:00Z", "recordedAt": "2026-10-08T00:01:00Z", "schemaVersion": 1, "correlationId": "c1", "causationId": "a1", "paymentExpired": {}}
+      ]
+    },
+    {
+      "name": "approved_success",
+      "valid": true,
+      "events": [
+        {"eventId": "b1", "paymentId": "p2", "aggregateVersion": "1", "integrationId": "synthetic", "occurredAt": "2026-10-08T00:00:00Z", "recordedAt": "2026-10-08T00:00:00Z", "schemaVersion": 1, "correlationId": "c2", "causationId": "b1", "paymentCreated": {}},
+        {"eventId": "b2", "paymentId": "p2", "aggregateVersion": "2", "integrationId": "synthetic", "occurredAt": "2026-10-08T00:01:00Z", "recordedAt": "2026-10-08T00:01:00Z", "schemaVersion": 1, "correlationId": "c2", "causationId": "b1", "attemptStarted": {"attemptId": "t1"}},
+        {"eventId": "b3", "paymentId": "p2", "aggregateVersion": "3", "integrationId": "synthetic", "occurredAt": "2026-10-08T00:02:00Z", "recordedAt": "2026-10-08T00:02:00Z", "schemaVersion": 1, "correlationId": "c2", "causationId": "b2", "riskDecisionRecorded": {"attemptId": "t1", "assessment": {"outcome": "RISK_OUTCOME_APPROVE", "policyVersion": "sim-rules-v1", "reasonCodes": ["ALLOW"]}}},
+        {"eventId": "b4", "paymentId": "p2", "aggregateVersion": "4", "integrationId": "synthetic", "occurredAt": "2026-10-08T00:03:00Z", "recordedAt": "2026-10-08T00:03:00Z", "schemaVersion": 1, "correlationId": "c2", "causationId": "b3", "processorOperationRequested": {"attemptId": "t1", "operationKey": "op1"}},
+        {"eventId": "b5", "paymentId": "p2", "aggregateVersion": "5", "integrationId": "synthetic", "occurredAt": "2026-10-08T00:04:00Z", "recordedAt": "2026-10-08T00:04:00Z", "schemaVersion": 1, "correlationId": "c2", "causationId": "b4", "paymentSucceeded": {"attemptId": "t1"}}
+      ]
+    },
+    {
+      "name": "risk_decline_retry_processor_decline_expiry",
+      "valid": true,
+      "events": [
+        {"eventId": "c1", "paymentId": "p3", "aggregateVersion": "1", "paymentCreated": {}},
+        {"eventId": "c2", "paymentId": "p3", "aggregateVersion": "2", "attemptStarted": {"attemptId": "t1"}},
+        {"eventId": "c3", "paymentId": "p3", "aggregateVersion": "3", "riskDecisionRecorded": {"attemptId": "t1", "assessment": {"outcome": "RISK_OUTCOME_DECLINE", "policyVersion": "sim-rules-v1", "reasonCodes": ["DECLINE"]}}},
+        {"eventId": "c4", "paymentId": "p3", "aggregateVersion": "4", "attemptDeclined": {"attemptId": "t1", "source": "DECLINE_SOURCE_RISK"}},
+        {"eventId": "c5", "paymentId": "p3", "aggregateVersion": "5", "attemptStarted": {"attemptId": "t2"}},
+        {"eventId": "c6", "paymentId": "p3", "aggregateVersion": "6", "riskDecisionRecorded": {"attemptId": "t2", "assessment": {"outcome": "RISK_OUTCOME_APPROVE", "policyVersion": "sim-rules-v1", "reasonCodes": ["ALLOW"]}}},
+        {"eventId": "c7", "paymentId": "p3", "aggregateVersion": "7", "processorOperationRequested": {"attemptId": "t2", "operationKey": "op2"}},
+        {"eventId": "c8", "paymentId": "p3", "aggregateVersion": "8", "attemptDeclined": {"attemptId": "t2", "source": "DECLINE_SOURCE_PROCESSOR"}},
+        {"eventId": "c9", "paymentId": "p3", "aggregateVersion": "9", "paymentExpired": {}}
+      ]
+    },
+    {
+      "name": "unknown_success",
+      "valid": true,
+      "events": [
+        {"eventId": "d1", "paymentId": "p4", "aggregateVersion": "1", "paymentCreated": {}},
+        {"eventId": "d2", "paymentId": "p4", "aggregateVersion": "2", "attemptStarted": {"attemptId": "t1"}},
+        {"eventId": "d3", "paymentId": "p4", "aggregateVersion": "3", "riskDecisionRecorded": {"attemptId": "t1", "assessment": {"outcome": "RISK_OUTCOME_APPROVE", "policyVersion": "sim-rules-v1", "reasonCodes": ["ALLOW"]}}},
+        {"eventId": "d4", "paymentId": "p4", "aggregateVersion": "4", "processorOperationRequested": {"attemptId": "t1"}},
+        {"eventId": "d5", "paymentId": "p4", "aggregateVersion": "5", "processorOutcomeUnknown": {"attemptId": "t1"}},
+        {"eventId": "d6", "paymentId": "p4", "aggregateVersion": "6", "paymentSucceeded": {"attemptId": "t1"}}
+      ]
+    },
+    {
+      "name": "unknown_processor_decline",
+      "valid": true,
+      "events": [
+        {"eventId": "e1", "paymentId": "p5", "aggregateVersion": "1", "paymentCreated": {}},
+        {"eventId": "e2", "paymentId": "p5", "aggregateVersion": "2", "attemptStarted": {"attemptId": "t1"}},
+        {"eventId": "e3", "paymentId": "p5", "aggregateVersion": "3", "riskDecisionRecorded": {"attemptId": "t1", "assessment": {"outcome": "RISK_OUTCOME_APPROVE", "policyVersion": "sim-rules-v1", "reasonCodes": ["ALLOW"]}}},
+        {"eventId": "e4", "paymentId": "p5", "aggregateVersion": "4", "processorOperationRequested": {"attemptId": "t1"}},
+        {"eventId": "e5", "paymentId": "p5", "aggregateVersion": "5", "processorOutcomeUnknown": {"attemptId": "t1"}},
+        {"eventId": "e6", "paymentId": "p5", "aggregateVersion": "6", "attemptDeclined": {"attemptId": "t1", "source": "DECLINE_SOURCE_PROCESSOR"}},
+        {"eventId": "e7", "paymentId": "p5", "aggregateVersion": "7", "paymentExpired": {}}
+      ]
+    },
+    {"name": "missing_created", "invalid": "missing_created", "events": [{"eventId": "f1", "paymentId": "p6", "aggregateVersion": "1", "attemptStarted": {"attemptId": "t1"}}]},
+    {"name": "second_created", "invalid": "second_created", "events": [{"eventId": "g1", "paymentId": "p7", "aggregateVersion": "1", "paymentCreated": {}}, {"eventId": "g2", "paymentId": "p7", "aggregateVersion": "2", "paymentCreated": {}}]},
+    {"name": "version_gap", "invalid": "version_gap", "events": [{"eventId": "h1", "paymentId": "p8", "aggregateVersion": "1", "paymentCreated": {}}, {"eventId": "h2", "paymentId": "p8", "aggregateVersion": "3", "paymentExpired": {}}]},
+    {"name": "concurrent_attempt", "invalid": "concurrent_attempt", "events": [{"eventId": "i1", "paymentId": "p9", "aggregateVersion": "1", "paymentCreated": {}}, {"eventId": "i2", "paymentId": "p9", "aggregateVersion": "2", "attemptStarted": {"attemptId": "t1"}}, {"eventId": "i3", "paymentId": "p9", "aggregateVersion": "3", "attemptStarted": {"attemptId": "t2"}}]},
+    {"name": "decision_without_attempt", "invalid": "decision_without_attempt", "events": [{"eventId": "j1", "paymentId": "p10", "aggregateVersion": "1", "paymentCreated": {}}, {"eventId": "j2", "paymentId": "p10", "aggregateVersion": "2", "riskDecisionRecorded": {"attemptId": "t1", "assessment": {"outcome": "RISK_OUTCOME_APPROVE", "policyVersion": "sim-rules-v1", "reasonCodes": ["ALLOW"]}}}]},
+    {"name": "processor_after_risk_decline", "invalid": "processor_after_risk_decline", "events": [{"eventId": "k1", "paymentId": "p11", "aggregateVersion": "1", "paymentCreated": {}}, {"eventId": "k2", "paymentId": "p11", "aggregateVersion": "2", "attemptStarted": {"attemptId": "t1"}}, {"eventId": "k3", "paymentId": "p11", "aggregateVersion": "3", "riskDecisionRecorded": {"attemptId": "t1", "assessment": {"outcome": "RISK_OUTCOME_DECLINE", "policyVersion": "sim-rules-v1", "reasonCodes": ["DECLINE"]}}}, {"eventId": "k4", "paymentId": "p11", "aggregateVersion": "4", "attemptDeclined": {"attemptId": "t1", "source": "DECLINE_SOURCE_RISK"}}, {"eventId": "k5", "paymentId": "p11", "aggregateVersion": "5", "processorOperationRequested": {"attemptId": "t1"}}]},
+    {"name": "expiry_during_unknown", "invalid": "expiry_during_unknown", "events": [{"eventId": "l1", "paymentId": "p12", "aggregateVersion": "1", "paymentCreated": {}}, {"eventId": "l2", "paymentId": "p12", "aggregateVersion": "2", "attemptStarted": {"attemptId": "t1"}}, {"eventId": "l3", "paymentId": "p12", "aggregateVersion": "3", "riskDecisionRecorded": {"attemptId": "t1", "assessment": {"outcome": "RISK_OUTCOME_APPROVE", "policyVersion": "sim-rules-v1", "reasonCodes": ["ALLOW"]}}}, {"eventId": "l4", "paymentId": "p12", "aggregateVersion": "4", "processorOperationRequested": {"attemptId": "t1"}}, {"eventId": "l5", "paymentId": "p12", "aggregateVersion": "5", "processorOutcomeUnknown": {"attemptId": "t1"}}, {"eventId": "l6", "paymentId": "p12", "aggregateVersion": "6", "paymentExpired": {}}]},
+    {"name": "retry_while_unknown", "invalid": "retry_while_unknown", "events": [{"eventId": "m1", "paymentId": "p13", "aggregateVersion": "1", "paymentCreated": {}}, {"eventId": "m2", "paymentId": "p13", "aggregateVersion": "2", "attemptStarted": {"attemptId": "t1"}}, {"eventId": "m3", "paymentId": "p13", "aggregateVersion": "3", "riskDecisionRecorded": {"attemptId": "t1", "assessment": {"outcome": "RISK_OUTCOME_APPROVE", "policyVersion": "sim-rules-v1", "reasonCodes": ["ALLOW"]}}}, {"eventId": "m4", "paymentId": "p13", "aggregateVersion": "4", "processorOperationRequested": {"attemptId": "t1"}}, {"eventId": "m5", "paymentId": "p13", "aggregateVersion": "5", "processorOutcomeUnknown": {"attemptId": "t1"}}, {"eventId": "m6", "paymentId": "p13", "aggregateVersion": "6", "attemptStarted": {"attemptId": "t2"}}]},
+    {"name": "after_success", "invalid": "after_terminal", "events": [{"eventId": "n1", "paymentId": "p14", "aggregateVersion": "1", "paymentCreated": {}}, {"eventId": "n2", "paymentId": "p14", "aggregateVersion": "2", "attemptStarted": {"attemptId": "t1"}}, {"eventId": "n3", "paymentId": "p14", "aggregateVersion": "3", "riskDecisionRecorded": {"attemptId": "t1", "assessment": {"outcome": "RISK_OUTCOME_APPROVE", "policyVersion": "sim-rules-v1", "reasonCodes": ["ALLOW"]}}}, {"eventId": "n4", "paymentId": "p14", "aggregateVersion": "4", "processorOperationRequested": {"attemptId": "t1"}}, {"eventId": "n5", "paymentId": "p14", "aggregateVersion": "5", "paymentSucceeded": {"attemptId": "t1"}}, {"eventId": "n6", "paymentId": "p14", "aggregateVersion": "6", "paymentExpired": {}}]},
+    {"name": "wrong_attempt", "invalid": "wrong_attempt", "events": [{"eventId": "o1", "paymentId": "p15", "aggregateVersion": "1", "paymentCreated": {}}, {"eventId": "o2", "paymentId": "p15", "aggregateVersion": "2", "attemptStarted": {"attemptId": "t1"}}, {"eventId": "o3", "paymentId": "p15", "aggregateVersion": "3", "riskDecisionRecorded": {"attemptId": "t2", "assessment": {"outcome": "RISK_OUTCOME_APPROVE", "policyVersion": "sim-rules-v1", "reasonCodes": ["ALLOW"]}}}]},
+    {"name": "risk_source_after_approval", "invalid": "wrong_decline_source", "events": [{"eventId": "q1", "paymentId": "p16", "aggregateVersion": "1", "paymentCreated": {}}, {"eventId": "q2", "paymentId": "p16", "aggregateVersion": "2", "attemptStarted": {"attemptId": "t1"}}, {"eventId": "q3", "paymentId": "p16", "aggregateVersion": "3", "riskDecisionRecorded": {"attemptId": "t1", "assessment": {"outcome": "RISK_OUTCOME_APPROVE", "policyVersion": "sim-rules-v1", "reasonCodes": ["ALLOW"]}}}, {"eventId": "q4", "paymentId": "p16", "aggregateVersion": "4", "attemptDeclined": {"attemptId": "t1", "source": "DECLINE_SOURCE_RISK"}}]}
+  ]
+}
