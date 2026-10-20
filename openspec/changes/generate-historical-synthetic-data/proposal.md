@@ -8,9 +8,10 @@ DP1–DP3, the analytical schemas and the offline rubric rows (#43) need reprodu
 - Simulate the offline data problems the rubric names, through configuration: merchant/category skew, high-cardinality identifiers, schema evolution (a field absent before a cutover date), and duplicate exports of the same event.
 - Validate every generated payment history against the lifecycle transitions before writing. Add shared golden valid/invalid histories under `contracts/payments/v1/testdata/` that Payments will reuse.
 - Make datasets continuable by the live simulator: profiles and daily scenario schedules can be rebuilt from the seed, IDs and fingerprints match the gateway through shared identity vectors, and the manifest records the history end and a profile digest.
-- Write immutable, versioned Parquet datasets with a manifest to the `synthetic-source` bucket on the TrueNAS-hosted MinIO at `minio.home.phuchoang.sbs`, partitioned by event date. Local filesystem output is supported for tests.
-- Add a sanity notebook that reports distributions, approximate distinct counts, old-schema nulls, duplicate rates, fraud rate by scenario, and whether the scenarios are learnable but not trivial. Record its output as #43 evidence.
-- Run simulator lint and tests in the existing Python CI job.
+- Write immutable, versioned Parquet datasets with a manifest to the `synthetic-source` bucket on RustFS at `minio.home.phuchoang.sbs`, partitioned by event date. Local filesystem output is supported for tests.
+- Run the finite, containerized historical evidence job in a prod data namespace on the existing Argo Workflows controller; retain CLI/local-output support. Do not install a second controller or run the generator interactively in a notebook.
+- Execute the sanity notebook only in a persistent prod Kubeflow Notebook using the same source identity as the generator. Record distributions, schema cutover, duplicates, fraud rates and learnability as #43 evidence; #53 owns the later feature-based training notebook.
+- Run simulator lint and format checks in the existing Python CI job; the simulator has no automated test suite.
 
 ## Capabilities
 
@@ -21,13 +22,13 @@ DP1–DP3, the analytical schemas and the offline rubric rows (#43) need reprodu
 ### Modified Capabilities
 
 - `payment-contracts`: Adds shared golden lifecycle histories that every producer's validator must accept or reject.
-- `focused-verification`: Adds generator behavior tests (lifecycle conformance, determinism, data-problem rates) to the protected test scope.
+- `kubeflow-workspace`: Adds a source ExternalSecret to the Profile and a finite generator workflow in a separate prod data namespace, sharing one source identity and ClusterSecretStore.
 
 ## Impact
 
 - New `src/simulator/` (own `pyproject.toml`/`uv.lock`), `contracts/payments/v1/testdata/`, and `src/simulator/configs/historical-v1.yaml`.
 - `codegen:proto` also generates Python bindings into `src/simulator/`.
 - CI Python job runs both Python projects; `.gitignore` drops the legacy `simulated-data-*` entries.
-- External prerequisite: the operator creates the `synthetic-source` bucket and a scoped access key on the TrueNAS MinIO. Credentials come from environment or a gitignored `.env`, never from the repository.
-- Docs: new `docs/verification/historical-data.md` with commands and explained captures, sidebar link, roadmap #43 row status, and data-and-ML flows storage wording.
-- Depends on `define-payment-and-decision-contracts`. It does not depend on the gateway, Kafka or any orchestrator.
+- External prerequisite: the `synthetic-source` bucket and `historical/*`-scoped `synthetic-historical-writer` identity exist on RustFS. Its key pair is stored in Doppler `prd` for the generator, Notebook and downstream source consumers; local-output generation needs no key. The shared `secret-store` chart provides one ClusterSecretStore for both consumer namespaces. No credentials or RustFS administrator access belong in the repository.
+- Add an immutable simulator image, a data-namespace WorkflowTemplate and source ExternalSecrets for the generator and existing prod workspace chart. The platform must watch the data namespace and the consumer must own its GitOps namespace resources. Docs: new `docs/verification/historical-data.md` with workflow/notebook commands and captures, sidebar link, roadmap #43 row status, and data-and-ML flows storage wording.
+- Depends on `define-payment-and-decision-contracts` and prod Profile, Notebook and shared Argo readiness for evidence. This knowingly makes #43 notebook acceptance wait for the experimental prod Kubeflow rollout.

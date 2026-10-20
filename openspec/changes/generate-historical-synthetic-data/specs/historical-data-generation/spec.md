@@ -95,3 +95,12 @@ Output SHALL be written under `historical/<dataset_version>/` as Parquet dataset
 
 - **WHEN** generation stops before the manifest is written
 - **THEN** the dataset version is incomplete, and consumers identify it by the missing manifest
+
+### Requirement: Cluster-run historical evidence
+
+Historical dataset acceptance SHALL include a bounded execution of the same versioned CLI as a prod Argo Workflow in a data namespace separate from the Kubeflow Profile, using a pinned image and the shared RustFS source identity. Source sanity SHALL be executed in a prod Kubeflow Notebook using that same identity. Its credentials SHALL reside in Doppler `prd`. Local CLI output SHALL remain supported, but no locally executed notebook SHALL be required as acceptance evidence. A live simulator SHALL continue to read the manifest through the shared source identity, without a prod-cluster API dependency.
+
+#### Scenario: Reproduce the accepted source dataset
+
+- **WHEN** a completed workflow and Notebook run are submitted as evidence for a dataset version
+- **THEN** the workflow ID, image digest, manifest hash, seed and notebook output identify the same immutable dataset, and both workloads use the shared source credential

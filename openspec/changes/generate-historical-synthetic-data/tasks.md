@@ -1,29 +1,32 @@
 ## 1. Project and contracts
 
-- [ ] 1.1 Create `src/simulator` with `pyproject.toml` (numpy, pyarrow, pydantic, PyYAML, protobuf; dev: pytest, ruff; notebook group: duckdb, matplotlib, scikit-learn, jupyter) and `uv.lock`; verify `uv sync --locked` succeeds
-- [ ] 1.2 Extend `codegen:proto` to also generate Python bindings into `src/simulator/`, add treefmt exclusions, commit bindings; verify `python -c "import payments.v1.events_pb2"` works inside the project
-- [ ] 1.3 Add golden histories under `contracts/payments/v1/testdata/` covering every legal transition and each prohibited transition in the lifecycle requirement, and `contracts/synthetic/identity-vectors.json` with the UUIDv5 namespace, merchant and customer ID cases, and synthetic-key fingerprint cases (unless `build-minimum-payment-gateway` already added them); verify each file parses
-- [ ] 1.4 Remove legacy `simulated-data-*` entries from `.gitignore` and verify `git status` is clean afterward
+- [x] 1.1 Create `src/simulator` with `pyproject.toml` (numpy, pyarrow, pydantic, PyYAML, protobuf; dev: ruff; notebook group: duckdb, matplotlib, scikit-learn, jupyter) and `uv.lock`; verify `uv sync --locked` succeeds
+- [x] 1.2 Extend `codegen:proto` to also generate Python bindings into `src/simulator/`, add treefmt exclusions, commit bindings; verify `python -c "import payments.v1.events_pb2"` works inside the project
+- [x] 1.3 Add golden histories under `contracts/payments/v1/testdata/` covering every legal transition and each prohibited transition in the lifecycle requirement, and `contracts/synthetic/identity-vectors.json` with the UUIDv5 namespace, merchant and customer ID cases, and synthetic-key fingerprint cases (unless `build-minimum-payment-gateway` already added them); verify each file parses
+- [x] 1.4 Remove legacy `simulated-data-*` entries from `.gitignore` and verify `git status` is clean afterward
 
 ## 2. Core generation
 
-- [ ] 2.1 Implement the pydantic configuration model and `configs/historical-v1.yaml`, rejecting unknown scenarios, inconsistent dates and credential fields; verify with a config-rejection test
-- [ ] 2.2 Implement the lifecycle history validator; verify it accepts all valid and rejects all invalid golden histories
-- [ ] 2.3 Implement seeded profile and familiarity generation (customers, merchants with Zipf popularity, devices, IP networks, addresses, payment methods) on per-stage and per-day random streams, with IDs and fingerprints derived as in the identity vectors; verify two runs with one seed produce identical profiles, a single day's schedule matches the full run, and the identity vector cases pass
-- [ ] 2.4 Implement legitimate purchase generation with the `sim-rules-v1` decision policy and simulated processor outcomes, including declines, unknown outcomes that resolve, retries and expiries; verify generated histories pass the validator
-- [ ] 2.5 Implement the eight fraud scenarios with per-scenario parameters and time-bounded compromise windows; verify the card-testing and scenario-disabled behaviors with small-config tests
-- [ ] 2.6 Implement chargeback and simulation-truth labels with configured delays and friendly-fraud noise; verify that declined fraud has truth but no chargeback and that events contain no scenario names
+- [x] 2.1 Implement the pydantic configuration model and `configs/historical-v1.yaml`, rejecting unknown scenarios, inconsistent dates and credential fields before any output is written
+- [x] 2.2 Implement the lifecycle history validator; verify it accepts all valid and rejects all invalid golden histories
+- [x] 2.3 Implement seeded profile and familiarity generation (customers, merchants with Zipf popularity, devices, IP networks, addresses, payment methods) on per-stage and per-day random streams, with IDs and fingerprints derived as in the identity vectors; verify two runs with one seed produce identical profiles, a single day's schedule matches the full run, and the identity vector cases pass
+- [x] 2.4 Implement legitimate purchase generation with the `sim-rules-v1` decision policy and simulated processor outcomes, including declines, unknown outcomes that resolve, retries and expiries; verify generated histories pass the validator
+- [x] 2.5 Implement the eight fraud scenarios with per-scenario parameters and time-bounded compromise windows, including card-testing bursts and scenario-disabled behavior
+- [x] 2.6 Implement chargeback and simulation-truth labels with configured delays and friendly-fraud noise; verify that declined fraud has truth but no chargeback and that events contain no scenario names
 
 ## 3. Output
 
-- [ ] 3.1 Implement descriptor-driven protobuf-to-Arrow conversion (structs, UTC timestamps, enum names, int64); verify a round trip on each payload type
-- [ ] 3.2 Implement partitioned Parquet writing, schema-evolution cutover, duplicate export and last-written manifest with configured and observed statistics, history end, profile digest and synthetic key version; verify cutover columns, duplicate rate, manifest counts and that rebuilt profiles match the digest on a small dataset
-- [ ] 3.3 Implement the `historical` CLI with local and `s3://` output via `S3FileSystem` against `minio.home.phuchoang.sbs`, refusing existing manifests; verify local reruns are identical and a second run to the same version fails
-- [ ] 3.4 Add simulator lint, format and tests to the CI Python job; verify CI passes without credentials
+- [x] 3.1 Implement descriptor-driven protobuf-to-Arrow conversion (structs, UTC timestamps, enum names, int64); verify a round trip on each payload type
+- [x] 3.2 Implement partitioned Parquet writing, schema-evolution cutover, duplicate export and last-written manifest with configured and observed statistics, history end, profile digest and synthetic key version; verify cutover columns, duplicate rate, manifest counts and that rebuilt profiles match the digest on a small dataset
+- [x] 3.3 Implement the `historical` CLI with local and `s3://` output via `S3FileSystem` against `minio.home.phuchoang.sbs`, using process-environment S3 credentials and refusing existing manifests; verify local reruns are identical and a second run to the same version fails
+- [ ] 3.4 Add simulator lint and format checks to the CI Python job without a simulator test suite or pytest dependency; verify CI passes without credentials
+- [ ] 3.5 Publish a digest-pinned simulator image and add a prod-only `infra/charts/historical-generator` child with its own namespace, source ExternalSecret referencing the shared ClusterSecretStore, and WorkflowTemplate that runs one bounded `historical` CLI job with a manifest guard and restricted service account; render the chart and prod root, and prove it reuses the source identity and creates no second Argo controller
 
 ## 4. Evidence
 
-- [ ] 4.1 Create the `synthetic-source` bucket and scoped key on TrueNAS MinIO, generate `historical/v1`, and verify `manifest.json` exists with expected partition counts
-- [ ] 4.2 Build and execute `notebooks/historical-sanity.ipynb` against `historical/v1` (distributions, skew, approximate distinct counts, cutover nulls, duplicate rate, fraud rate by scenario, learnability check); tune and bump the dataset version if the check fails; commit executed output
-- [ ] 4.3 Add `docs/verification/historical-data.md` with config, commands, dataset version, manifest statistics and explained captures; link it from the sidebar and the roadmap #43 row; update storage wording in data-and-ML flows; verify links resolve
-- [ ] 4.4 Run `openspec validate generate-historical-synthetic-data --strict` and verify it passes
+- [x] 4.1 Create the RustFS `synthetic-source` bucket and a dedicated `historical/*` source user, track its policy in `infra/policies/synthetic-historical-writer.json`, store its keys in Doppler project `realtime-credit-card-fraud-detection` config `prd`, and verify scoped read/write, denied out-of-prefix writes and denied deletes; keep administrator credentials out of the repo
+- [x] 4.2 Consolidate the existing source identity into Doppler `prd`, verify the migrated keys and existing production secrets, confirm the existing ESO token and RustFS access work, and remove the extra data config and read-only policy. Render one shared ClusterSecretStore and both source ExternalSecrets using the same keys
+- [ ] 4.3 Add the prod data namespace to the shared Argo controller watch list in talos-proxmox and run the digest-pinned historical WorkflowTemplate once there; verify S3 reachability, workflow run ID, a last-written `historical/v1/manifest.json` and expected partitions. Keep local CLI output available but do not use it as the evidence run
+- [ ] 4.4 Build and execute `notebooks/historical-sanity.ipynb` only in a persistent, authenticated prod Kubeflow Notebook with a pinned image and the shared source Secret (distributions, skew, approximate distinct counts, cutover nulls, duplicate rate, fraud rate by scenario, learnability check); tune and bump the dataset version if the check fails; commit executed output, image digest and dataset/manifest hash. #53 owns the later feature-based training notebook
+- [ ] 4.5 Add `docs/verification/historical-data.md` with configuration, Workflow/Notebook commands, Secret rotation and incomplete-run handling, dataset version, manifest statistics and explained captures; link it from the sidebar and the roadmap #43 row; update storage wording in data-and-ML flows; verify links resolve
+- [x] 4.6 Run `openspec validate generate-historical-synthetic-data --strict` and verify it passes
