@@ -45,6 +45,10 @@ spec:
                 duration: 5s
                 factor: 2
                 maxDuration: 3m
+          historical-generator:
+            enabled: false
+            destinationNamespace: argo-cd
+            path: infra/charts/historical-generator
   destination:
     server: https://kubernetes.default.svc
     namespace: argo-cd

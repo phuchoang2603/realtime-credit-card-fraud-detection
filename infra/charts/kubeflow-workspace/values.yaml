@@ -1,1 +1,3 @@
 secretStoreName: fraud-doppler
+historicalSource:
+  enabled: false

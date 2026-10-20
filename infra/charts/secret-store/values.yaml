@@ -1,9 +1,10 @@
 secretStore:
   enabled: false
   name: ""
-  namespace: ""
   project: ""
   config: ""
+  namespaces: []
   tokenSecret:
+    namespace: ""
     name: ""
     key: dopplerToken

@@ -17,6 +17,13 @@ jobs:
       context: src/fraud-service
       dockerfile: infra/docker/fraud-service.Dockerfile
       publish: ${{ github.event_name == 'push' }}
+  simulator:
+    uses: ./.github/workflows/build-image.yml
+    with:
+      image: ${{ github.repository }}/simulator
+      context: src/simulator
+      dockerfile: infra/docker/simulator.Dockerfile
+      publish: ${{ github.event_name == 'push' }}
   edge:
     uses: ./.github/workflows/build-image.yml
     with:
