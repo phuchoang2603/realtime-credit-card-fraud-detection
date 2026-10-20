@@ -1,0 +1,244 @@
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta, timezone
+from uuid import uuid5
+
+import numpy as np
+
+from labels.v1.labels_pb2 import LABEL_SOURCE_CHARGEBACK, LABEL_SOURCE_SIMULATION_TRUTH, FraudLabel
+from payments.v1.events_pb2 import (
+    DECLINE_SOURCE_PROCESSOR,
+    DECLINE_SOURCE_RISK,
+    RISK_OUTCOME_APPROVE,
+    RISK_OUTCOME_DECLINE,
+    PaymentEvent,
+)
+from simulator.config import HistoricalConfig
+from simulator.history import validate_history
+from simulator.identity import IDENTITY_NAMESPACE, fingerprint
+from simulator.profiles import Customer, Profiles, ScheduledPurchase
+
+
+@dataclass(frozen=True)
+class GeneratedHistory:
+    events: tuple[PaymentEvent, ...]
+    labels: tuple[FraudLabel, ...]
+    scenario: str | None
+
+
+def _stamp(message, timestamp: datetime) -> None:
+    message.FromDatetime(timestamp)
+
+
+def _scenario_values(
+    config: HistoricalConfig,
+    purchase: ScheduledPurchase,
+    day_offset: int,
+    ordinal: int,
+    customer: Customer,
+    base_amount: int,
+    random: np.random.Generator,
+) -> tuple[int, str, str, str, str]:
+    scenario = purchase.scenario
+    amount = base_amount
+    device = customer.familiar_devices[0]
+    network = customer.home_network
+    address = customer.shipping_address
+    method = customer.payment_method
+    if random.random() >= config.behavior.familiar_context_probability:
+        device = fingerprint(config.synthetic_key, "device", f"new-{customer.external_id}-{day_offset}-{ordinal}")
+        network = fingerprint(config.synthetic_key, "ip_network", f"10.249.{int(random.integers(0, 256))}.1")
+        address = fingerprint(config.synthetic_key, "address", f"new-{customer.external_id}-{day_offset}-{ordinal}")
+    if not scenario:
+        return amount, device, network, address, method
+    settings = getattr(config.scenarios, scenario)
+    amount = round(amount * settings.amount_multiplier)
+    window = day_offset // settings.window_days
+    if scenario == "obvious_high_value":
+        amount = max(amount, 750000)
+    elif scenario == "stolen_card_new_device":
+        device = fingerprint(config.synthetic_key, "device", f"stolen-{customer.external_id}-{window}")
+        network = fingerprint(config.synthetic_key, "ip_network", f"10.250.{window % 255}.1")
+    elif scenario in ("compromised_device_farm", "card_testing"):
+        device = fingerprint(config.synthetic_key, "device", f"shared-farm-{scenario}-{window}")
+        network = fingerprint(config.synthetic_key, "ip_network", f"10.251.{window % 255}.1")
+        method = fingerprint(config.synthetic_key, "payment_method", f"tok_card-farm-{day_offset}-{ordinal}_ok")
+        if scenario == "card_testing":
+            amount = int(random.integers(50, 501))
+    elif scenario == "account_takeover":
+        device = fingerprint(config.synthetic_key, "device", f"takeover-{customer.external_id}-{window}")
+        network = fingerprint(config.synthetic_key, "ip_network", f"10.252.{window % 255}.1")
+        address = fingerprint(config.synthetic_key, "address", f"takeover-{customer.external_id}-{window}")
+    elif scenario == "reshipping_mule":
+        address = fingerprint(config.synthetic_key, "address", f"forwarder-{window}")
+    return amount, device, network, address, method
+
+
+def build_history(
+    config: HistoricalConfig,
+    profiles: Profiles,
+    purchase: ScheduledPurchase,
+    day: date,
+    ordinal: int,
+    random: np.random.Generator,
+) -> GeneratedHistory:
+    customer = profiles.customers[purchase.customer_index]
+    merchant = profiles.merchants[purchase.merchant_index]
+    payment_id = str(uuid5(IDENTITY_NAMESPACE, f"{config.dataset_version}:{day}:{ordinal}:payment"))
+    started_at = datetime.combine(day, time.min, tzinfo=timezone.utc) + timedelta(minutes=purchase.minute)
+    day_offset = (day - config.start_date).days
+    category_prices = {"electronics": 13000, "home": 7000, "fashion": 4500, "grocery": 2200, "travel": 25000}
+    base_amount = max(50, round(float(random.lognormal(np.log(category_prices[merchant.category]), 0.35))))
+    if random.random() < config.behavior.small_purchase_probability:
+        base_amount = int(random.integers(50, 501))
+    amount, device, network, address, method = _scenario_values(
+        config, purchase, day_offset, ordinal, customer, base_amount, random
+    )
+    scenario = purchase.scenario
+    fraud = scenario is not None
+    events: list[PaymentEvent] = []
+    labels: list[FraudLabel] = []
+    clock = started_at
+
+    def append(payload: str, at: datetime) -> PaymentEvent:
+        event = PaymentEvent(
+            event_id=str(uuid5(IDENTITY_NAMESPACE, f"{payment_id}:{len(events) + 1}")),
+            payment_id=payment_id,
+            aggregate_version=len(events) + 1,
+            integration_id=str(config.integration_id),
+            schema_version=config.data_problems.schema_evolution.version_on(at.date()),
+            correlation_id=payment_id,
+            causation_id=events[-1].event_id if events else payment_id,
+        )
+        _stamp(event.occurred_at, at)
+        _stamp(event.recorded_at, at)
+        getattr(event, payload).SetInParent()
+        events.append(event)
+        return event
+
+    created = append("payment_created", clock).payment_created
+    created.merchant.merchant_id = merchant.merchant_id
+    created.merchant.external_seller_id = merchant.external_id
+    created.customer.customer_id = customer.customer_id
+    created.customer.external_buyer_id = customer.external_id
+    snapshot = created.snapshot
+    snapshot.external_order_id = f"order-{day.isoformat()}-{ordinal:06d}"
+    snapshot.total.minor_units = amount
+    snapshot.total.currency = "USD"
+    snapshot.merchant_category = merchant.category
+    snapshot.shipping.country = "US"
+    forwarder = random.random() < 0.1 or scenario == "reshipping_mule"
+    snapshot.shipping.region = "FL" if forwarder else "NY"
+    snapshot.shipping.postal_code = "33166" if forwarder else "10001"
+    snapshot.shipping.address_fingerprint = address
+    item = snapshot.items.add()
+    item.product_id = f"sku-{merchant.category}-1"
+    item.category = merchant.category
+    item.condition = "new"
+    item.quantity = 1
+    item.unit_price.minor_units = amount
+    item.unit_price.currency = "USD"
+    _stamp(snapshot.customer_account_created_at, started_at - timedelta(days=customer.account_age_days))
+    _stamp(snapshot.merchant_account_created_at, started_at - timedelta(days=merchant.account_age_days))
+
+    for attempt_index in range(1, 3):
+        clock += timedelta(seconds=1)
+        attempt_id = str(uuid5(IDENTITY_NAMESPACE, f"{payment_id}:attempt:{attempt_index}"))
+        started = append("attempt_started", clock).attempt_started
+        started.attempt_id = attempt_id
+        _stamp(started.signals.attempted_at, clock)
+        started.signals.payment_method.type = "card"
+        started.signals.payment_method.fingerprint = method
+        started.signals.device_fingerprint = device
+        foreign_probability = config.behavior.foreign_ip_probability
+        if scenario in ("stolen_card_new_device", "account_takeover"):
+            foreign_probability = max(foreign_probability, 0.5)
+        started.signals.ip_country = "CA" if random.random() < foreign_probability else "US"
+        started.signals.ip_network_fingerprint = network
+        if config.data_problems.schema_evolution.version_on(clock.date()) == 2:
+            started.signals.user_agent_family = "Chromium"
+
+        risk_decline = amount >= 500000 and random.random() < 0.5
+        clock += timedelta(seconds=1)
+        decision = append("risk_decision_recorded", clock).risk_decision_recorded
+        decision.attempt_id = attempt_id
+        decision.assessment.outcome = RISK_OUTCOME_DECLINE if risk_decline else RISK_OUTCOME_APPROVE
+        decision.assessment.reason_codes.append("HIGH_VALUE" if risk_decline else "ALLOW")
+        decision.assessment.policy_version = "sim-rules-v1"
+        clock += timedelta(seconds=1)
+        if risk_decline:
+            decline = append("attempt_declined", clock).attempt_declined
+            decline.attempt_id = attempt_id
+            decline.source = DECLINE_SOURCE_RISK
+            decline.reason = "high_value"
+            succeeded = False
+        else:
+            request = append("processor_operation_requested", clock).processor_operation_requested
+            request.attempt_id = attempt_id
+            request.operation_key = f"{payment_id}:{attempt_index}"
+            outcome = random.random()
+            unknown = outcome < config.behavior.unknown_outcome_rate
+            processor_decline = (
+                random.random() < config.behavior.issuer_decline_rate + config.behavior.insufficient_funds_rate
+                if unknown
+                else outcome
+                < config.behavior.unknown_outcome_rate
+                + config.behavior.issuer_decline_rate
+                + config.behavior.insufficient_funds_rate
+            )
+            declined = (
+                (scenario == "retry_attack" and attempt_index == 1)
+                or (scenario == "card_testing" and random.random() < 0.8)
+                or processor_decline
+            )
+            if unknown:
+                clock += timedelta(seconds=1)
+                append("processor_outcome_unknown", clock).processor_outcome_unknown.attempt_id = attempt_id
+                clock += timedelta(minutes=config.behavior.unknown_resolution_minutes)
+            else:
+                clock += timedelta(seconds=1)
+            if declined:
+                decline = append("attempt_declined", clock).attempt_declined
+                decline.attempt_id = attempt_id
+                decline.source = DECLINE_SOURCE_PROCESSOR
+                decline.reason = "issuer_declined"
+                succeeded = False
+            else:
+                success = append("payment_succeeded", clock).payment_succeeded
+                success.attempt_id = attempt_id
+                success.processor_reference = f"sim-{payment_id}-{attempt_index}"
+                succeeded = True
+
+        friendly_fraud = not fraud and succeeded and random.random() < config.scenarios.friendly_fraud.rate
+        truth = FraudLabel(
+            integration_id=str(config.integration_id),
+            payment_id=payment_id,
+            attempt_id=attempt_id,
+            is_fraud=fraud,
+            source=LABEL_SOURCE_SIMULATION_TRUTH,
+            scenario="friendly_fraud" if friendly_fraud else scenario or "legitimate",
+        )
+        _stamp(truth.occurred_at, started_at)
+        _stamp(truth.label_available_at, clock)
+        labels.append(truth)
+        if succeeded and (fraud or friendly_fraud):
+            delay = int(random.integers(config.label_delays.min_days, config.label_delays.max_days + 1))
+            chargeback = FraudLabel(
+                integration_id=str(config.integration_id),
+                payment_id=payment_id,
+                attempt_id=attempt_id,
+                is_fraud=True,
+                source=LABEL_SOURCE_CHARGEBACK,
+            )
+            _stamp(chargeback.occurred_at, clock)
+            _stamp(chargeback.label_available_at, clock + timedelta(days=delay))
+            labels.append(chargeback)
+        if succeeded:
+            break
+        if attempt_index == 2 or (scenario != "retry_attack" and random.random() >= config.behavior.retry_rate):
+            clock = max(clock + timedelta(seconds=1), started_at + timedelta(minutes=config.behavior.expiry_minutes))
+            append("payment_expired", clock)
+            break
+        method = fingerprint(config.synthetic_key, "payment_method", f"tok_card-retry-{day_offset}-{ordinal}_ok")
+
+    validate_history(events)
+    return GeneratedHistory(tuple(events), tuple(labels), scenario)
