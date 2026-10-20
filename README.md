@@ -9,7 +9,7 @@ The current repository contains a health-only Go HTTP edge and a Python gRPC fra
 ```text
 .
 ├── .github/workflows/      # Independent check jobs, image build workflow, wiki publication
-├── CONTRIBUTING.md         # Environment, local checks, code generation, CI and images
+├── CONTRIBUTING.md         # Initial setup and wiki link
 ├── contracts/              # Versioned protobuf service contracts
 ├── docs/
 │   ├── architecture/      # Gateway overview, payment and data/ML flows, conventions, roadmap
@@ -17,9 +17,10 @@ The current repository contains a health-only Go HTTP edge and a Python gRPC fra
 │   ├── verification/      # Evidence, model provenance and superseded gates
 │   └── research/          # Background, experiments and images
 ├── infra/
-│   ├── argocd/            # Application catalog and dev/prod roots
-│   ├── charts/            # Fraud-service Helm chart
-│   └── docker/            # Service Dockerfiles and reusable Go template
+│   ├── argocd/            # Application catalog and prod root
+│   ├── charts/            # Application Helm charts
+│   ├── docker/            # Service Dockerfiles and reusable Go template
+│   └── policies/          # RustFS synthetic-source IAM policy
 ├── openspec/              # Capability specifications and change plans
 ├── src/edge/              # Public HTTP edge and generated gRPC client
 ├── src/fraud-service/     # gRPC fraud decision service, tests and generated bindings

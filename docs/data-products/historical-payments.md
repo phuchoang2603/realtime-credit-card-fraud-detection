@@ -32,3 +32,9 @@ DATACONTRACT_DUCKDB_DATABASE=/path/to/staging.duckdb \
   contracts/data/historical-payments.odcs.yaml --server validation \
   --output validation.json --output-format json
 ```
+
+## Deployment and evidence
+
+Historical evidence runs are finite jobs on the shared prod Argo Workflows controller in a separate data namespace; source sanity is inspected in a prod Kubeflow Notebook using the shared RustFS source identity stored in Doppler `prd`. See the [historical chart configuration](../../infra/charts/historical-generator/values.yaml) and [GitOps guide](../deployment/gitops.md).
+
+Production workflow execution and authenticated notebook evidence remain pending in the [implementation roadmap](../architecture/roadmap.md).
