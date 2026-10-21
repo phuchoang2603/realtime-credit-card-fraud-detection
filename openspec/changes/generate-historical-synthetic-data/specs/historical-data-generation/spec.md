@@ -38,7 +38,7 @@ Profiles, and any single day's scenario schedule, SHALL be reproducible from the
 
 ### Requirement: Ecommerce behavior and fraud scenarios
 
-Legitimate customers SHALL purchase mostly from familiar merchants, categories, devices, IP countries and shipping addresses, with amounts drawn per category. The generator SHALL support these fraud scenarios, each individually enabled and parameterized: `obvious_high_value`, `stolen_card_new_device`, `compromised_device_farm`, `account_takeover`, `reshipping_mule`, `card_testing`, `retry_attack`, and `friendly_fraud` label noise. Except for `obvious_high_value`, a scenario SHALL NOT be identifiable from a single attempt's fields alone; detecting it SHALL require history over customers, devices, addresses, payment methods or merchants.
+Legitimate customers SHALL purchase mostly from familiar merchants, devices, IP countries and shipping addresses, with amounts drawn per merchant category. Category skew SHALL be controlled at the merchant level; customer category preferences are outside this change. The generator SHALL support these fraud scenarios, each individually enabled and parameterized: `obvious_high_value`, `stolen_card_new_device`, `compromised_device_farm`, `account_takeover`, `reshipping_mule`, `card_testing`, `retry_attack`, and `friendly_fraud` label noise. Compromised customers SHALL remain active within seeded per-scenario windows that can be reconstructed for any day without replaying earlier purchases. Except for `obvious_high_value`, a scenario SHALL NOT be identifiable from a single attempt's fields alone; detecting it SHALL require history over customers, devices, addresses, payment methods or merchants.
 
 #### Scenario: Card testing burst
 
@@ -49,6 +49,11 @@ Legitimate customers SHALL purchase mostly from familiar merchants, categories, 
 
 - **WHEN** a scenario rate is zero
 - **THEN** no attempt carries that scenario in simulation truth
+
+#### Scenario: Rebuild an active compromise window
+
+- **WHEN** a customer is activated for a scenario on an earlier day within its configured window
+- **THEN** rebuilding the current day's schedule retains that compromise and its activation identity without generating earlier purchases
 
 ### Requirement: Contract-valid lifecycle histories
 

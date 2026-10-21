@@ -1,19 +1,19 @@
-dataset_version: v1
+dataset_version: v2
 seed: 2603
 integration_id: 01234567-89ab-4cde-8fab-0123456789ab
 synthetic_key: synthetic-fingerprint-v1
 synthetic_key_version: v1
-start_date: 2026-10-01
+start_date: 2026-10-12
 duration_days: 9
 counts:
-  customers: 300
+  customers: 3000
   merchants: 40
-  devices: 350
-  ip_networks: 140
-  addresses: 320
-  payment_methods: 360
+  devices: 3500
+  ip_networks: 1400
+  addresses: 3200
+  payment_methods: 3600
 behavior:
-  purchases_per_customer_day: 0.15
+  purchases_per_customer_day: 0.5
   merchant_zipf_exponent: 1.15
   category_zipf_exponent: 1.2
   familiar_merchant_probability: 0.8
@@ -38,7 +38,7 @@ scenarios:
 data_problems:
   duplicate_rate: 0.02
   schema_evolution:
-    cutover_date: 2026-10-05
+    cutover_date: 2026-10-16
     field_path: attempt_started.signals.user_agent_family
 label_delays:
   min_days: 7

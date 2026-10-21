@@ -28,7 +28,7 @@ def _scenario_values(
 ) -> tuple[int, str, str, str, str]:
     scenario = purchase.scenario
     amount = base_amount
-    device = customer.familiar_devices[0]
+    device = str(random.choice(customer.familiar_devices))
     network = customer.home_network
     address = customer.shipping_address
     method = customer.payment_method
@@ -40,7 +40,7 @@ def _scenario_values(
         return amount, device, network, address, method
     settings = getattr(config.scenarios, scenario)
     amount = round(amount * settings.amount_multiplier)
-    window = day_offset // settings.window_days
+    window = purchase.compromise_day if purchase.compromise_day is not None else day_offset
     if scenario == "obvious_high_value":
         amount = max(amount, 750000)
     elif scenario == "stolen_card_new_device":

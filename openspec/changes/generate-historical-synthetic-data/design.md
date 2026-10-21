@@ -23,7 +23,7 @@
 
 | Handbook | Generator |
 |---|---|
-| Customer location, amount mean/std, transactions per day | Customer home region, account age, purchase frequency, category preferences, per-category amount distribution |
+| Customer location, amount mean/std, transactions per day | Customer account age, purchase frequency, familiar merchants and per-merchant-category amount distribution |
 | Terminals within radius `r` | Familiarity sets: 1–3 devices, home IP country and networks, 1–2 shipping addresses, preferred merchants |
 | Terminal | Merchant (seller) with category and Zipf-distributed popularity |
 | Scenario 1: amount > 220 | `obvious_high_value`: attempts far above category price; kept as the single-attempt sanity scenario |
@@ -75,7 +75,7 @@ The `storage` configuration independently controls `row_group_rows` (default 65,
 
 The live simulator continues a dataset through the gateway, so three things must match across the handoff:
 
-- **Random streams:** derived as `SeedSequence(seed, stage)` for profiles and `SeedSequence(seed, stage, day)` for each day's scenario selection and purchases. Profiles and any day's schedule can then be rebuilt without replaying purchases. Scenario windows that started earlier are recovered by re-evaluating selection over the maximum window length before that day.
+- **Random streams:** derived as `SeedSequence(seed, stage)` for profiles and `SeedSequence(seed, stage, day)` for purchases and scenario activations. Each scenario reconstructs customer activations over its own lookback window, including warmup before the history start. An activation remains effective for `window_days`; its start day identifies reused fraud contexts. Activation probability is `1 - (1 - rate) ** (1 / window_days)`, so the marginal probability of an active customer matches the configured rate before overlapping scenarios are resolved in declared priority order. Friendly fraud remains per-success label noise. Profiles and any day's schedule can be rebuilt without replaying purchases. Category skew belongs to merchants; customer category preferences are not modeled.
 - **Identities:** merchant and customer IDs are UUIDv5 values of the configured synthetic `integration_id` and the external seller or buyer ID, matching Accounts. Fingerprints are HMAC-SHA256 values under the non-secret synthetic key, matching the edge for synthetic integrations. Both are checked against `contracts/synthetic/identity-vectors.json`.
 - **Time:** the manifest records the history end. The live simulator refuses a gap larger than its configured maximum, so evidence runs generate a continuation dataset ending on the run date.
 

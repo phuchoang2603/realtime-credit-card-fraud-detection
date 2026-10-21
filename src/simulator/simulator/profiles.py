@@ -42,7 +42,6 @@ class Customer:
     external_id: str
     customer_id: str
     account_age_days: int
-    preferred_category: str
     familiar_merchants: tuple[int, ...]
     familiar_devices: tuple[str, ...]
     home_network: str
@@ -66,6 +65,7 @@ class ScheduledPurchase:
     merchant_index: int
     minute: int
     scenario: str | None
+    compromise_day: int | None = None
 
 
 def build_profiles(config: HistoricalConfig) -> Profiles:
@@ -102,7 +102,6 @@ def build_profiles(config: HistoricalConfig) -> Profiles:
             external_id=f"buyer-{index + 1:06d}",
             customer_id=entity_id(config.integration_id, "customer", f"buyer-{index + 1:06d}"),
             account_age_days=int(customer_rng.integers(1, 2500)),
-            preferred_category=str(customer_rng.choice(CATEGORIES, p=category_weights)),
             familiar_merchants=tuple(
                 sorted(
                     int(value)
@@ -129,13 +128,29 @@ def build_profiles(config: HistoricalConfig) -> Profiles:
     return Profiles(merchants=merchants, customers=customers)
 
 
+def compromises_for_day(config: HistoricalConfig, offset: int) -> dict[int, tuple[str, int]]:
+    compromised = {}
+    for stage, name in enumerate(SCENARIO_NAMES, start=6):
+        settings = getattr(config.scenarios, name)
+        if not settings.rate:
+            continue
+        activation_rate = 1 - (1 - settings.rate) ** (1 / settings.window_days)
+        for start in range(offset - settings.window_days + 1, offset + 1):
+            random = stage_rng(config.seed, stage, start + settings.window_days)
+            for customer in np.flatnonzero(random.random(config.counts.customers) < activation_rate):
+                index = int(customer)
+                if index not in compromised or compromised[index][0] == name:
+                    compromised[index] = (name, start)
+    return compromised
+
+
 def schedule_for_day(config: HistoricalConfig, day: date, profiles: Profiles) -> tuple[ScheduledPurchase, ...]:
     offset = (day - config.start_date).days
     if not 0 <= offset < config.duration_days:
         raise ValueError("day is outside the configured dataset")
     random = stage_rng(config.seed, 3, offset)
     merchant_weights = zipf_weights(len(profiles.merchants), config.behavior.merchant_zipf_exponent)
-    scenario_rates = [(name, getattr(config.scenarios, name).rate) for name in SCENARIO_NAMES]
+    compromised = compromises_for_day(config, offset)
     scheduled = []
     for customer_index, customer in enumerate(profiles.customers):
         for _ in range(int(random.poisson(config.behavior.purchases_per_customer_day))):
@@ -143,15 +158,11 @@ def schedule_for_day(config: HistoricalConfig, day: date, profiles: Profiles) ->
                 merchant_index = int(random.choice(customer.familiar_merchants))
             else:
                 merchant_index = int(random.choice(len(profiles.merchants), p=merchant_weights))
-            sample = random.random()
-            scenario = None
-            for name, rate in scenario_rates:
-                if sample < rate:
-                    scenario = name
-                    break
-                sample -= rate
+            scenario, compromise_day = compromised.get(customer_index, (None, None))
             scheduled.append(
-                ScheduledPurchase(customer_index, merchant_index, int(random.integers(0, 1440)), scenario)
+                ScheduledPurchase(
+                    customer_index, merchant_index, int(random.integers(0, 1440)), scenario, compromise_day
+                )
             )
     if any(purchase.scenario == "card_testing" for purchase in scheduled):
         burst_minute = int(random.integers(0, 1430))
