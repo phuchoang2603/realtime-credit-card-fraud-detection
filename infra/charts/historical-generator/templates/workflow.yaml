@@ -39,6 +39,19 @@ spec:
   entrypoint: generate
   parallelism: 1
   activeDeadlineSeconds: 3600
+  podSpecPatch: |
+    initContainers:
+      - name: init
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+    containers:
+      - name: wait
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
   securityContext:
     runAsNonRoot: true
     runAsUser: 65532

@@ -4,6 +4,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: historical-sanity-workspace
   namespace: fraud-ml-prod
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
 spec:
   accessModes: [ReadWriteOnce]
   resources:
