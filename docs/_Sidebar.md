@@ -3,6 +3,8 @@
 **Architecture**
 
 - [Overview](architecture/payment-gateway.md)
+- [Functional requirements](architecture/payment-gateway.md#functional-requirements)
+- [Non-functional targets](architecture/payment-gateway.md#non-functional-requirements)
 - [Payment flows](architecture/payment-flows.md)
 - [Data and ML flows](architecture/data-ml-flows.md)
 - [Service conventions](architecture/service-conventions.md)
@@ -19,9 +21,10 @@
 
 **Verification**
 
-- [Evidence](verification/evidence.md)
+- [Acceptance criteria](verification/evidence.md)
 
 **Research**
 
 - [Background](research/ccfd-background.md)
 - [Experiments](research/ccfd-experiements-report.md)
+- [Vietnam payment policy research](research/vietnam-payment-policy.md)

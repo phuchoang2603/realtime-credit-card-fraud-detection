@@ -4,9 +4,18 @@ Stand in for an external card processor so Payments can exercise approvals, decl
 
 ## ADDED Requirements
 
+### Requirement: Synthetic provider boundary
+
+The simulator SHALL use `processor.v1` gRPC and synthetic payment-method tokens. Payments SHALL access it through a transport adapter outside its domain aggregate. The simulator SHALL NOT accept real card credentials. Its operation-key idempotency and status query SHALL be treated as simulator capabilities, not universal bank-protocol guarantees.
+
+#### Scenario: Raw card credentials
+
+- **WHEN** a sale supplies raw card credentials instead of a supported synthetic token
+- **THEN** the simulator rejects the request without recording a sale
+
 ### Requirement: Idempotent sale
 
-The simulator SHALL execute a sale for an operation key, synthetic payment-method token and amount. It SHALL durably record the outcome so that a repeated key with the same request returns the original outcome, and a repeated key with a different request is rejected. Recorded operations SHALL survive restarts.
+The simulator SHALL execute a sale for an operation key, integration identity, vault-issued synthetic payment-method token and amount. It SHALL durably record the outcome so that a repeated key with the same request returns the original outcome, and a repeated key with a different request is rejected. Recorded operations SHALL survive restarts. Returning a recorded outcome SHALL NOT require vault availability.
 
 #### Scenario: Retry after timeout
 
@@ -15,12 +24,17 @@ The simulator SHALL execute a sale for an operation key, synthetic payment-metho
 
 ### Requirement: Token behaviors
 
-Synthetic tokens SHALL encode a card identity and a behavior: approve, insufficient funds, issuer decline or invalid token. The same token SHALL always yield the same behavior.
+The processor SHALL resolve new operations' opaque tokens through the vault using its authenticated processor identity and the owning integration. The fictional fixture SHALL determine approve, insufficient funds, issuer decline or invalid-token behavior; the token value SHALL NOT encode that behavior. An unknown or inactive token SHALL be rejected without a sale. A vault outage SHALL return unavailable without a fabricated outcome or charge. Neither fixture contents nor token values SHALL be logged or placed in payment events.
 
 #### Scenario: Insufficient-funds card
 
 - **WHEN** a token with insufficient-funds behavior is charged
 - **THEN** the sale is declined with that reason every time
+
+#### Scenario: Vault outage during recovery
+
+- **WHEN** the vault is unavailable after the simulator recorded a sale and Payments queries its operation key
+- **THEN** the simulator returns the recorded outcome without resolving the token again
 
 ### Requirement: Fault injection
 

@@ -33,8 +33,8 @@ The edge SHALL keep shipping country, region and postal code, replace the recipi
 
 #### Scenario: Synthetic fingerprint vectors
 
-- **WHEN** the edge fingerprints each address, network and payment-method case in the shared identity vectors for a synthetic integration
-- **THEN** it produces exactly the fingerprints the vectors list
+- **WHEN** Edge fingerprints the address/network cases and obtains the vault's method fingerprints for the shared synthetic identity vectors
+- **THEN** they match exactly the fingerprints the vectors list
 
 #### Scenario: Same address under real and synthetic integrations
 
@@ -49,6 +49,34 @@ Attempt requests SHALL accept device fingerprint and user-agent family. For synt
 
 - **WHEN** a synthetic integration submits an attempt with a simulated IP country
 - **THEN** the recorded attempt signals carry that country
+
+### Requirement: Synthetic payment methods
+
+Attempt requests SHALL accept only opaque, integration-scoped tokens issued by the isolated vault simulator in this slice. After authorizing checkout access, Edge SHALL obtain method type and stable fingerprint from the vault metadata API without learning fictional card identity or processing behavior. Unknown, inactive or foreign tokens SHALL be rejected before starting an attempt. Edge SHALL reject raw card fields rather than passing them into Payments, Fraud or logs. Real card collection SHALL require a separate production boundary.
+
+#### Scenario: Raw card submission
+
+- **WHEN** an attempt includes a card-number or card-security-code field
+- **THEN** the edge rejects it without calling Payments or logging those values
+
+### Requirement: Isolated synthetic vault
+
+A separately deployed vault simulator SHALL own its database, migrations and credentials. Its authenticated tokenization CLI SHALL accept only allow-listed fictional card references and processing behaviors within the credential's integration scope, issue opaque random tokens and persist token digests with authenticated-encrypted fixture payloads using a vault-only key. It SHALL NOT accept real card fields or log token values. Its metadata API SHALL return only safe method type/fingerprint to the authenticated Edge identity, while only the authenticated processor identity SHALL resolve processing fixtures. Other services SHALL NOT access its tables. The vault SHALL derive fingerprints from card identity using the shared synthetic key and identity vectors, independently of token value and behavior.
+
+#### Scenario: Stable fingerprint after token rotation
+
+- **WHEN** two tokens represent the same fictional card with different synthetic behaviors
+- **THEN** both expose the same method fingerprint and neither exposes behavior to Edge or Fraud
+
+#### Scenario: Unauthorized resolution
+
+- **WHEN** Edge, Payments or an unauthenticated caller invokes processing-fixture resolution
+- **THEN** access is denied without exposing token mappings or fixture contents
+
+#### Scenario: Foreign integration token
+
+- **WHEN** checkout access for integration B is used with a token issued for integration A
+- **THEN** metadata lookup is rejected as an unknown resource and no attempt starts
 
 ### Requirement: Safe error mapping
 

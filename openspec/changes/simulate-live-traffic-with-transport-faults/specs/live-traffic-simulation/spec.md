@@ -20,12 +20,17 @@ The live simulator SHALL take a historical dataset version and rebuild that data
 
 ### Requirement: Clean gateway commands only
 
-The simulator SHALL create traffic only through the public checkout API of a synthetic integration: merchant provisioning, payment creation and attempt submission with simulated client context and synthetic tokens. Each attempt SHALL carry a unique `Idempotency-Key`. A request SHALL be retried only after a transport error or 503/504 response, and only with the same key. The simulator SHALL NOT write events, call internal services or inject delivery faults. Arrivals SHALL follow the configured rate, and purchase and scenario choices SHALL be seeded.
+The simulator SHALL create payment traffic only through the public checkout API of a synthetic integration: merchant provisioning, payment creation and attempt submission with simulated client context and vault-issued opaque tokens. During setup it MAY call only the vault's authenticated, integration-scoped tokenization API to obtain tokens for fictional fixtures; it SHALL NOT resolve processing fixtures or call Accounts, Payments, Fraud or processor internal APIs. Token values SHALL NOT be seeded, logged, published or placed in dataset manifests. Each attempt SHALL carry a unique `Idempotency-Key`; transport or 503/504 retries SHALL reuse the same key, token and request content. The simulator SHALL NOT write events or inject delivery faults. Arrivals SHALL follow the configured rate, and purchase and scenario choices SHALL be seeded.
 
 #### Scenario: Edge timeout
 
 - **WHEN** an attempt request times out
 - **THEN** the simulator retries it with the same `Idempotency-Key` and the gateway records at most one attempt
+
+#### Scenario: Opaque tokens preserve dataset continuation
+
+- **WHEN** the vault issues a new opaque token for a historical card fixture
+- **THEN** its live method fingerprint equals the historical fingerprint, without exposing token behavior to Fraud
 
 ### Requirement: Live labels
 
