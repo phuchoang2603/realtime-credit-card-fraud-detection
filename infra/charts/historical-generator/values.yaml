@@ -2,7 +2,7 @@ enabled: true
 namespace: fraud-data-prod
 image:
   repository: ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection/simulator
-  digest: sha256:e38d8ce5692a04de3011f672bedc52ab8bcad0fc9e4dab938f87a3ca788cecaf
+  digest: sha256:e65c52bf8fdb9154f918b1abc42ed0fcd1d77959f933b264b58e9108b3ad2447
   pullPolicy: IfNotPresent
 secretStoreName: fraud-doppler
 resources:

@@ -43,3 +43,6 @@ Production completion is verified against the combined #75/#76 stack and platfor
 - [x] 5.4 Execute local CLI verification of reproducible output, native ODCS validation, full 90-day history, observed drift, thirty-day lookbacks and delayed-label cutoffs; record scope and results without claiming a new production or #53 acceptance.
 - [x] 5.5 Update affected product/evidence guidance and reconcile #43, #53 and #67 with shared source credentials, runtime verification, accepted v2 evidence and the scoped extension.
 - [x] 5.6 Run simulator lint/format, native ODCS/ODPS lint, generated contract-reference comparison and strict OpenSpec validation.
+
+- [ ] 5.7 Execute the 90-day preset as a digest-pinned prod Workflow and verify its immutable output, ODCS/ODPS provenance, drift, thirty-day history, delayed-label cutoffs and source sanity in the persistent authenticated prod Notebook.
+- [ ] 5.8 Record the production extension evidence, verify the immutable-version guard and restore temporary Argo overrides while retaining immutable data and Notebook workspace.

@@ -37,6 +37,10 @@ metadata:
 spec:
   serviceAccountName: historical-generator
   entrypoint: generate
+  arguments:
+    parameters:
+      - name: config
+        value: /app/src/simulator/configs/historical-v1.yaml
   parallelism: 1
   activeDeadlineSeconds: 3600
   podSpecPatch: |
@@ -69,7 +73,7 @@ spec:
       container:
         image: {{ printf "%s@%s" .Values.image.repository (required "image.digest must be the published sha256 image digest" .Values.image.digest) | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        args: ["--config", "/app/src/simulator/configs/historical-v1.yaml", "--output", "s3://synthetic-source"]
+        args: ["--config", {{ `"{{workflow.parameters.config}}"` }}, "--output", "s3://synthetic-source"]
         envFrom:
           - secretRef:
               name: historical-source
