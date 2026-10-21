@@ -291,14 +291,19 @@ def generate(config: HistoricalConfig, output: str, filesystem: fs.FileSystem, r
             },
         )
         _require_empty(filesystem, prefix)
-        filesystem.create_dir(prefix, recursive=True)
-        fs.copy_files(
-            str(export),
-            prefix,
-            source_filesystem=fs.LocalFileSystem(),
-            destination_filesystem=filesystem,
-            use_threads=False,
-        )
+        for path in sorted(export.rglob("*")):
+            destination = f"{prefix}/{path.relative_to(export).as_posix()}"
+            if path.is_dir():
+                if isinstance(filesystem, fs.LocalFileSystem):
+                    filesystem.create_dir(destination, recursive=True)
+                continue
+            fs.copy_files(
+                str(path),
+                destination,
+                source_filesystem=fs.LocalFileSystem(),
+                destination_filesystem=filesystem,
+                use_threads=False,
+            )
         payload = json.dumps(manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
         with filesystem.open_output_stream(f"{prefix}/manifest.json") as output_stream:
             output_stream.write(payload)
