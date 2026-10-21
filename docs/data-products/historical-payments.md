@@ -8,8 +8,6 @@ The product delivers complete payment histories as `payment_events` and separate
 
 Ownership, agreement version, field meanings and quality rules live in the [ODCS agreement](../../contracts/data/historical-payments.odcs.yaml). Its [generated contract reference](historical-payments-contract.md) documents the declared schemas. Producer configuration and deployment details belong to their implementations; the agreement defines the interface consumers follow.
 
-Production workflow execution and authenticated Notebook results are recorded in [historical source verification](../verification/historical-data.md), with the implementation status in the [roadmap](../architecture/roadmap.md).
-
 ## Generation and publication
 
 The [generator configuration](../../src/simulator/configs/historical-v1.yaml) controls the seed, date range, profiles, purchase behavior, scenarios, schema cutover, duplicate rate and storage layout. The generator builds deterministic profiles and purchase histories, then writes explicit [Arrow schemas](../../src/simulator/simulator/arrow.py) for events and separate labels.
@@ -37,4 +35,4 @@ DATACONTRACT_DUCKDB_DATABASE=/path/to/staging.duckdb \
 
 Historical evidence runs are finite jobs on the shared prod Argo Workflows controller in a separate data namespace; source sanity is inspected in a prod Kubeflow Notebook using the shared RustFS source identity stored in Doppler `prd`. See the [historical chart configuration](../../infra/charts/historical-generator/values.yaml) and [GitOps guide](../deployment/gitops.md).
 
-Production workflow execution and authenticated notebook evidence remain pending in the [implementation roadmap](../architecture/roadmap.md).
+Production workflow execution and authenticated Notebook results are recorded in [historical source verification](../verification/historical-data.md), with the implementation status in the [roadmap](../architecture/roadmap.md).
