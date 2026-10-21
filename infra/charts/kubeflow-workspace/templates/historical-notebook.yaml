@@ -17,14 +17,13 @@ kind: Notebook
 metadata:
   name: historical-sanity
   namespace: fraud-ml-prod
+  labels:
+    sidecar.istio.io/inject: "true"
+    istio.io/dataplane-mode: none
   annotations:
     notebooks.kubeflow.org/server-type: jupyter
 spec:
   template:
-    metadata:
-      labels:
-        sidecar.istio.io/inject: "true"
-        istio.io/dataplane-mode: none
     spec:
       serviceAccountName: default-editor
       securityContext:
