@@ -21,7 +21,6 @@
 ### Modified Capabilities
 
 - `talos-gitops-deployment`: Adds the Kafka cluster, Connect and outbox connector, topics, simulator workloads, and the Connect and simulator images.
-- `focused-verification`: Adds fault-injection and dataset-continuation behavior tests.
 
 ## Impact
 

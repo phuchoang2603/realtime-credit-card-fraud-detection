@@ -12,18 +12,18 @@
 ## 3. Simulator configuration and fault injector
 
 - [ ] 3.1 Add httpx and confluent-kafka to `src/simulator`, the pydantic model for `configs/live-v1.yaml` (`dataset`, `traffic`, `faults`, `kafka`) and the `live`/`faults` CLI entry points; verify `uv sync --locked` and that an invalid delay range is rejected at startup
-- [ ] 3.2 Implement hash-based selection and delays for duplicate and late delivery, plus the wall-clock burst hold; verify a test that two runs over the same event IDs select the same events with the same delays
-- [ ] 3.3 Implement the consume, schedule and produce loop with unchanged key/value pass-through, per-partition commits trailing the oldest unpublished offset, the `max_pending` pause and the periodic JSON summary; verify the all-faults-disabled pass-through test and the restart-with-held-records test against a CI Kafka service container
+- [ ] 3.2 Implement hash-based selection and delays for duplicate and late delivery, plus the wall-clock burst hold; verify in run evidence that the same event IDs select the same events with the same delays
+- [ ] 3.3 Implement the consume, schedule and produce loop with unchanged key/value pass-through, per-partition commits trailing the oldest unpublished offset, the `max_pending` pause and the periodic JSON summary; verify pass-through with all faults disabled and restart behavior with held records in live Kafka evidence
 
 ## 4. Live simulator
 
-- [ ] 4.1 Implement dataset continuation: read the manifest, rebuild profiles and the scenario schedule with the generator's per-stage and per-day streams, and refuse on digest mismatch, start before history end or gap above `max_gap`; verify the digest-mismatch refusal test
+- [ ] 4.1 Implement dataset continuation: read the manifest, rebuild profiles and the scenario schedule with the generator's per-stage and per-day streams, and refuse on digest mismatch, start before history end or gap above `max_gap`; record digest-mismatch refusal in run evidence
 - [ ] 4.2 Implement merchant provisioning, the seeded Poisson arrival loop with bounded async concurrency, payment creation and attempts with seeded idempotency keys, simulated client context, synthetic tokens and retry with the same key only on transport errors or 503/504; verify against a local gateway that a forced edge timeout yields one recorded attempt
 - [ ] 4.3 Implement truth labels and compressed chargebacks that check payment status when due, published to `fraud.labels.v1`; verify against a local gateway that a pending attempt gets no chargeback and a succeeded fraudulent attempt does
 
 ## 5. Image and deployment
 
-- [ ] 5.1 Add `infra/docker/simulator.Dockerfile` and a `simulator` job in `release.yml` using `build-image.yml`, and add the Kafka service container to the CI Python job; verify the PR build does not publish and CI passes
+- [ ] 5.1 Add `infra/docker/simulator.Dockerfile` and a `simulator` job in `release.yml` using `build-image.yml`; keep simulator CI limited to lint and format checks, and verify the PR build does not publish and CI passes
 - [ ] 5.2 Add `infra/charts/simulator` with `live` and `faults` Deployments (one replica, `Recreate`, ExternalSecret for the integration key), enabled in dev values and disabled in prod values; register it in the app-of-apps roots; verify `helm lint`/`helm template` show the workloads only in dev
 
 ## 6. Evidence and documentation

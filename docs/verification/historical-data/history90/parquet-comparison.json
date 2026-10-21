@@ -1,0 +1,5 @@
+{
+  "parquet_files": 202,
+  "all_byte_identical_to_local_run": true,
+  "aggregate_sha256": "2566c619b5e195188d2a142292199b6e1df781b2d4403b7761204d98b3a0ba24"
+}

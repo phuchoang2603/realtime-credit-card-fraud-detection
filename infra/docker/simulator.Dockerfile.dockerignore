@@ -1,0 +1,17 @@
+**
+!src/
+!src/simulator/
+!src/simulator/.python-version
+!src/simulator/pyproject.toml
+!src/simulator/uv.lock
+!src/simulator/simulator/
+!src/simulator/simulator/**
+!src/simulator/configs/
+!src/simulator/configs/**
+!contracts/
+!contracts/data/
+!contracts/data/historical-payments.odcs.yaml
+!contracts/products/
+!contracts/products/historical-payments.odps.yaml
+**/__pycache__
+**/*.pyc

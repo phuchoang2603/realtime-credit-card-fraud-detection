@@ -1,0 +1,66 @@
+{{- if .Values.historicalSource.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: historical-sanity-workspace
+  namespace: fraud-ml-prod
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: kubeflow.org/v1
+kind: Notebook
+metadata:
+  name: historical-sanity
+  namespace: fraud-ml-prod
+  labels:
+    sidecar.istio.io/inject: "true"
+    istio.io/dataplane-mode: none
+  annotations:
+    notebooks.kubeflow.org/server-type: jupyter
+spec:
+  template:
+    spec:
+      serviceAccountName: default-editor
+      securityContext:
+        fsGroup: 100
+      containers:
+        - name: historical-sanity
+          image: {{ .Values.historicalSource.notebookImage | quote }}
+          workingDir: /home/jovyan
+          env:
+            - name: NB_PREFIX
+              value: /notebook/fraud-ml-prod/historical-sanity
+          envFrom:
+            - secretRef:
+                name: historical-source
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          volumeMounts:
+            - name: workspace
+              mountPath: /home/jovyan
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: historical-sanity-workspace
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: historical-sanity
+  namespace: fraud-ml-prod
+spec:
+  host: historical-sanity.fraud-ml-prod.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+{{- end }}

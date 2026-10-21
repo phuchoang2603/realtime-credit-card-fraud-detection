@@ -1,0 +1,300 @@
+{
+  "apiVersion": "argoproj.io/v1alpha1",
+  "kind": "Workflow",
+  "metadata": {
+    "annotations": {
+      "workflows.argoproj.io/pod-name-format": "v2"
+    },
+    "creationTimestamp": "2026-10-21T14:04:40Z",
+    "labels": {
+      "workflows.argoproj.io/completed": "true",
+      "workflows.argoproj.io/phase": "Succeeded"
+    },
+    "name": "historical-v3-history90-lzfzb",
+    "namespace": "fraud-data-prod",
+    "uid": "c75a8217-9ff7-46e3-807f-efa09c9ee5a0"
+  },
+  "spec": {
+    "arguments": {
+      "parameters": [
+        {
+          "name": "config",
+          "value": "/app/src/simulator/configs/historical-90d.yaml"
+        }
+      ]
+    },
+    "workflowTemplateRef": {
+      "name": "historical-generator"
+    }
+  },
+  "status": {
+    "artifactGCStatus": {
+      "notSpecified": true
+    },
+    "artifactRepositoryRef": {
+      "artifactRepository": {},
+      "default": true
+    },
+    "conditions": [
+      {
+        "status": "False",
+        "type": "PodRunning"
+      },
+      {
+        "status": "True",
+        "type": "Completed"
+      }
+    ],
+    "finishedAt": "2026-10-21T14:08:52Z",
+    "nodes": {
+      "historical-v3-history90-lzfzb": {
+        "children": [
+          "historical-v3-history90-lzfzb-809876969"
+        ],
+        "displayName": "historical-v3-history90-lzfzb",
+        "finishedAt": "2026-10-21T14:08:52Z",
+        "id": "historical-v3-history90-lzfzb",
+        "name": "historical-v3-history90-lzfzb",
+        "outputs": {
+          "exitCode": "0"
+        },
+        "phase": "Succeeded",
+        "progress": "1/1",
+        "resourcesDuration": {
+          "cpu": 73,
+          "ephemeral-storage": 20,
+          "memory": 1281
+        },
+        "startedAt": "2026-10-21T14:04:41Z",
+        "templateName": "generate",
+        "templateScope": "local/",
+        "type": "Retry"
+      },
+      "historical-v3-history90-lzfzb-809876969": {
+        "displayName": "historical-v3-history90-lzfzb(0)",
+        "finishedAt": "2026-10-21T14:08:42Z",
+        "hostNodeName": "prod-server1",
+        "id": "historical-v3-history90-lzfzb-809876969",
+        "name": "historical-v3-history90-lzfzb(0)",
+        "nodeFlag": {
+          "retried": true
+        },
+        "outputs": {
+          "exitCode": "0"
+        },
+        "phase": "Succeeded",
+        "progress": "1/1",
+        "resourcesDuration": {
+          "cpu": 73,
+          "ephemeral-storage": 20,
+          "memory": 1281
+        },
+        "startedAt": "2026-10-21T14:04:41Z",
+        "taskResultSynced": true,
+        "templateName": "generate",
+        "templateScope": "local/",
+        "type": "Pod"
+      }
+    },
+    "phase": "Succeeded",
+    "progress": "1/1",
+    "resourcesDuration": {
+      "cpu": 73,
+      "ephemeral-storage": 20,
+      "memory": 1281
+    },
+    "startedAt": "2026-10-21T14:04:41Z",
+    "storedTemplates": {
+      "namespaced/historical-generator/generate": {
+        "container": {
+          "args": [
+            "--config",
+            "{{workflow.parameters.config}}",
+            "--output",
+            "s3://synthetic-source"
+          ],
+          "env": [
+            {
+              "name": "AWS_DEFAULT_REGION",
+              "value": "us-east-1"
+            },
+            {
+              "name": "HOME",
+              "value": "/tmp"
+            }
+          ],
+          "envFrom": [
+            {
+              "secretRef": {
+                "name": "historical-source"
+              }
+            }
+          ],
+          "image": "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection/simulator@sha256:e65c52bf8fdb9154f918b1abc42ed0fcd1d77959f933b264b58e9108b3ad2447",
+          "imagePullPolicy": "IfNotPresent",
+          "name": "",
+          "resources": {
+            "limits": {
+              "cpu": "2",
+              "ephemeral-storage": "10Gi",
+              "memory": "2Gi"
+            },
+            "requests": {
+              "cpu": "250m",
+              "ephemeral-storage": "1Gi",
+              "memory": "512Mi"
+            }
+          },
+          "securityContext": {
+            "allowPrivilegeEscalation": false,
+            "capabilities": {
+              "drop": [
+                "ALL"
+              ]
+            },
+            "readOnlyRootFilesystem": true,
+            "runAsNonRoot": true,
+            "runAsUser": 65532,
+            "seccompProfile": {
+              "type": "RuntimeDefault"
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/tmp",
+              "name": "tmp"
+            }
+          ]
+        },
+        "inputs": {},
+        "metadata": {},
+        "name": "generate",
+        "outputs": {},
+        "retryStrategy": {
+          "limit": "0"
+        },
+        "volumes": [
+          {
+            "emptyDir": {
+              "sizeLimit": "8Gi"
+            },
+            "name": "tmp"
+          }
+        ]
+      }
+    },
+    "storedWorkflowTemplateSpec": {
+      "activeDeadlineSeconds": 3600,
+      "arguments": {
+        "parameters": [
+          {
+            "name": "config",
+            "value": "/app/src/simulator/configs/historical-90d.yaml"
+          }
+        ]
+      },
+      "entrypoint": "generate",
+      "parallelism": 1,
+      "podSpecPatch": "initContainers:\n  - name: init\n    securityContext:\n      allowPrivilegeEscalation: false\n      capabilities:\n        drop: [ALL]\ncontainers:\n  - name: wait\n    securityContext:\n      allowPrivilegeEscalation: false\n      capabilities:\n        drop: [ALL]\n",
+      "securityContext": {
+        "fsGroup": 65532,
+        "runAsGroup": 65532,
+        "runAsNonRoot": true,
+        "runAsUser": 65532,
+        "seccompProfile": {
+          "type": "RuntimeDefault"
+        }
+      },
+      "serviceAccountName": "historical-generator",
+      "synchronization": {
+        "mutexes": [
+          {
+            "name": "historical-source"
+          }
+        ]
+      },
+      "templates": [
+        {
+          "container": {
+            "args": [
+              "--config",
+              "{{workflow.parameters.config}}",
+              "--output",
+              "s3://synthetic-source"
+            ],
+            "env": [
+              {
+                "name": "AWS_DEFAULT_REGION",
+                "value": "us-east-1"
+              },
+              {
+                "name": "HOME",
+                "value": "/tmp"
+              }
+            ],
+            "envFrom": [
+              {
+                "secretRef": {
+                  "name": "historical-source"
+                }
+              }
+            ],
+            "image": "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection/simulator@sha256:e65c52bf8fdb9154f918b1abc42ed0fcd1d77959f933b264b58e9108b3ad2447",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "",
+            "resources": {
+              "limits": {
+                "cpu": "2",
+                "ephemeral-storage": "10Gi",
+                "memory": "2Gi"
+              },
+              "requests": {
+                "cpu": "250m",
+                "ephemeral-storage": "1Gi",
+                "memory": "512Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "readOnlyRootFilesystem": true,
+              "runAsNonRoot": true,
+              "runAsUser": 65532,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp",
+                "name": "tmp"
+              }
+            ]
+          },
+          "inputs": {},
+          "metadata": {},
+          "name": "generate",
+          "outputs": {},
+          "retryStrategy": {
+            "limit": "0"
+          },
+          "volumes": [
+            {
+              "emptyDir": {
+                "sizeLimit": "8Gi"
+              },
+              "name": "tmp"
+            }
+          ]
+        }
+      ],
+      "workflowTemplateRef": {
+        "name": "historical-generator"
+      }
+    }
+  }
+}

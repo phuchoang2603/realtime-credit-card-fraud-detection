@@ -12,7 +12,7 @@ flowchart TB
     L["Live command simulator"]
     G["Gateway workloads"]
     T[("Separate scenario truth and delayed labels")]
-    S[("TrueNAS MinIO: immutable synthetic source")]
+    S[("RustFS: immutable synthetic source")]
     Q[("Strimzi Kafka: committed events")]
     D1["DP1 Spark batch: ingest and validate"]
     B[("Governed S3 lake: bronze Iceberg tables")]
@@ -65,7 +65,7 @@ flowchart TB
 
 ## Generation
 
-Historical generation persists valid lifecycle histories outside bronze and outside production payment event storage. Live simulation calls gateway commands so Payments creates authoritative events. Both modes share versioned scenarios for customer, seller, device and synthetic method profiles: ordinary purchases, stolen-card/new-device behavior, unusual geography, reshipping, card testing and retry attacks. Burst, lateness and duplicate delivery are transport conditions; they never fabricate duplicate authoritative transitions.
+The [historical payments data product](../data-products/historical-payments.md) supplies valid lifecycle histories outside bronze and outside production payment event storage. The finite production source run and authenticated sanity Notebook are recorded in [historical source verification](../verification/historical-data.md). Live simulation calls gateway commands so Payments creates authoritative events. Both modes share versioned scenarios for customer, seller, device and synthetic method profiles: ordinary purchases, stolen-card/new-device behavior, unusual geography, reshipping, card testing and retry attacks. Burst, lateness and duplicate delivery are transport conditions; they never fabricate duplicate authoritative transitions. The dev live simulator and fault injector remain long-running Deployments using the shared source identity, not notebook sessions, KFP runs or indefinite workflows.
 
 ## Pipelines and schemas
 
@@ -73,7 +73,7 @@ The [historical payments data product](../data-products/historical-payments.md) 
 
 DP1 ingests and validates raw records; DP2 cleanses and curates them; DP3 computes historical features. Each has observable ingest/validate stages, reusable centrally managed connections/configuration, quarantine or failed-validation evidence, and source/table/job lineage. Bronze uses `raw_`, silver `stg_`, and gold `dim_`, `fact_`, `obt_`, `feat_` conventions. SCD2 dimensions carry `valid_from_ts`, `valid_to_ts`, `is_current`; feature tables carry `event_timestamp` and `created`.
 
-Argo Workflows coordinates finite on-prem Spark batch stages and their retries; a Spark-on-Kubernetes operator is a candidate only if it improves lifecycle management over native Spark jobs. The future Iceberg REST-compatible catalog controls multi-engine snapshots over separate governed MinIO lake buckets; the synthetic source bucket remains immutable input, not an Iceberg table. Compaction, snapshot expiration, orphan cleanup and retention are explicit maintenance work. A separately owned analytical ClickHouse deployment evaluates catalog-backed reads against ingesting selected data into local analytical tables; the existing ClickStack telemetry store is not reused as a warehouse. See [analytics foundation #71](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/71).
+Argo Workflows coordinates finite on-prem Spark batch stages and their retries; a Spark-on-Kubernetes operator is a candidate only if it improves lifecycle management over native Spark jobs. Evaluate RustFS's preview built-in S3 Tables/Iceberg REST catalog for multi-engine snapshots on a dedicated governed lake table bucket; retain a separate catalog as a fallback until the deployed RustFS version, Spark/Flink interoperability, commit safety, snapshot recovery and operator-run maintenance are proven. The `synthetic-source` bucket remains immutable Parquet input, not an Iceberg table: DP1 ingests it into separate Bronze tables, and DP2/DP3 publish curated snapshots. Compaction, snapshot expiration, orphan cleanup and retention are explicit maintenance work. A separately owned analytical ClickHouse deployment evaluates catalog-backed reads against ingesting selected data into local analytical tables; the existing ClickStack telemetry store is not reused as a warehouse. See [analytics foundation #71](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/71).
 
 Streaming windows specify event time, watermarks, allowed lateness, deduplication and restart semantics. Offline and online writers are independently observable. Incremental materialization has checkpoints, retries and version-aware idempotency; older late writes cannot replace newer online state. Per-feature TTL, stale/missing defaults and feature-version compatibility protect serving.
 

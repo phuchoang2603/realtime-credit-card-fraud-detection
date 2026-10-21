@@ -31,6 +31,7 @@ check_chart() {
 case "${1:-}" in
   python)
     check_python src/fraud-service app tests
+    check_python src/simulator simulator
     ;;
   helm)
     while IFS= read -r -d '' manifest; do

@@ -1,0 +1,4 @@
+time=2026-10-21T14:05:16.967Z level=INFO msg="waiting for signals" argo=true signalPath=/var/run/argo/ctr/main/signal
+{"dataset_version": "v3-history90", "config_sha256": "3b8e3485126f992d04773203f2c8a65341a1d18e2a44cc7d87c48dd8a1b208be"}
+time=2026-10-21T14:08:42.345Z level=INFO msg="sub-process exited" argo=true error=<nil>
+time=2026-10-21T14:08:42.345Z level=INFO msg="file signal handler exiting due to context cancellation" argo=true

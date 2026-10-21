@@ -1,0 +1,27 @@
+{
+  "verified_at": "2026-10-21T04:14:32.533108+00:00",
+  "roots": {
+    "payment-gateway-prod-root": {
+      "original_spec_restored": true,
+      "target": "main",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    "platform": {
+      "original_spec_restored": true,
+      "target": "main",
+      "sync": "Synced",
+      "health": "Healthy"
+    }
+  },
+  "remaining_applications_on_temporary_branches": [],
+  "historical_generator_application_removed": true,
+  "notebook_removed": true,
+  "retained_pvc": {
+    "name": "historical-sanity-workspace",
+    "uid": "b0a07681-ed4b-47dd-b9b3-9c385207fd4c",
+    "phase": "Bound",
+    "argocd_tracking_removed": true
+  },
+  "immutable_manifest_sha256_after_guard": "5b45cbbafcc06b8e1cea23ff968cde8a219f9baa534afbedf7c9a0cae2b8cd3d"
+}

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: historical-generator
+description: Isolated prod historical source generator workflow
+type: application
+version: 0.1.0

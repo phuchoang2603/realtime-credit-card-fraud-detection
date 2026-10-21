@@ -1,0 +1,74 @@
+{
+  "dataset_version": "v2",
+  "manifest_sha256": "5b45cbbafcc06b8e1cea23ff968cde8a219f9baa534afbedf7c9a0cae2b8cd3d",
+  "seed": 2603,
+  "generator_revision": "589671132dc5cbd8c4cb6ac502c1afdd0572b630362adfd895e859dc4f3aa896",
+  "contract": {
+    "id": "urn:datacontract:fraud:historical-payments",
+    "sha256": "02574f2536ba42a4524ec6b992ced6b78c9817e4efb860228b1da626c0f518e4",
+    "version": "1.0.0"
+  },
+  "history_end": "2026-10-21T00:38:00+00:00",
+  "native_checks": 233,
+  "versions": {
+    "duckdb": "1.5.6",
+    "pyarrow": "24.0.0",
+    "pandas": "3.0.6",
+    "scikit-learn": "1.8.0",
+    "matplotlib": "3.10.9"
+  },
+  "learnability": {
+    "average_precision_gain": 0.23786691617816091,
+    "single_attempt_not_near_perfect": true,
+    "history_improves": true
+  },
+  "metrics": [
+    {
+      "features": "single_attempt",
+      "average_precision": 0.4056237169099278,
+      "roc_auc": 0.7542618610856333
+    },
+    {
+      "features": "with_history",
+      "average_precision": 0.6434906330880887,
+      "roc_auc": 0.8588172962005614
+    }
+  ],
+  "permissions": {
+    "delete_source": "AccessDenied",
+    "write_outside_prefix": "AccessDenied",
+    "read_pipeline_bucket": "AccessDenied"
+  },
+  "observed": {
+    "address_count": 4345,
+    "category_counts": {
+      "electronics": 4569,
+      "fashion": 3303,
+      "grocery": 3773,
+      "home": 1462,
+      "travel": 314
+    },
+    "chargebacks": 791,
+    "customer_count": 2967,
+    "device_count": 4132,
+    "duplicate_events": 1420,
+    "duplicate_rate": 0.019998028363400793,
+    "ip_network_count": 1694,
+    "merchant_count": 40,
+    "merchant_max_share": 0.23522837344460173,
+    "payment_method_count": 3561,
+    "scenario_counts": {
+      "account_takeover": 127,
+      "card_testing": 114,
+      "compromised_device_farm": 136,
+      "friendly_fraud": 71,
+      "legitimate": 12471,
+      "obvious_high_value": 66,
+      "reshipping_mule": 98,
+      "retry_attack": 128,
+      "stolen_card_new_device": 210
+    },
+    "schema_field_present_after": 7663,
+    "schema_field_present_before": 0
+  }
+}

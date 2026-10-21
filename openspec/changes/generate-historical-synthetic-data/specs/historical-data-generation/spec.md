@@ -38,7 +38,7 @@ Profiles, and any single day's scenario schedule, SHALL be reproducible from the
 
 ### Requirement: Ecommerce behavior and fraud scenarios
 
-Legitimate customers SHALL purchase mostly from familiar merchants, categories, devices, IP countries and shipping addresses, with amounts drawn per category. The generator SHALL support these fraud scenarios, each individually enabled and parameterized: `obvious_high_value`, `stolen_card_new_device`, `compromised_device_farm`, `account_takeover`, `reshipping_mule`, `card_testing`, `retry_attack`, and `friendly_fraud` label noise. Except for `obvious_high_value`, a scenario SHALL NOT be identifiable from a single attempt's fields alone; detecting it SHALL require history over customers, devices, addresses, payment methods or merchants.
+Legitimate customers SHALL purchase mostly from familiar merchants, devices, IP countries and shipping addresses, with amounts drawn per merchant category. Category skew SHALL be controlled at the merchant level; customer category preferences are outside this change. The generator SHALL support these fraud scenarios, each individually enabled and parameterized: `obvious_high_value`, `stolen_card_new_device`, `compromised_device_farm`, `account_takeover`, `reshipping_mule`, `card_testing`, `retry_attack`, and `friendly_fraud` label noise. Compromised customers SHALL remain active within seeded per-scenario windows that can be reconstructed for any day without replaying earlier purchases. Except for `obvious_high_value`, a scenario SHALL NOT be identifiable from a single attempt's fields alone; detecting it SHALL require history over customers, devices, addresses, payment methods or merchants.
 
 #### Scenario: Card testing burst
 
@@ -50,14 +50,19 @@ Legitimate customers SHALL purchase mostly from familiar merchants, categories, 
 - **WHEN** a scenario rate is zero
 - **THEN** no attempt carries that scenario in simulation truth
 
+#### Scenario: Rebuild an active compromise window
+
+- **WHEN** a customer is activated for a scenario on an earlier day within its configured window
+- **THEN** rebuilding the current day's schedule retains that compromise and its activation identity without generating earlier purchases
+
 ### Requirement: Contract-valid lifecycle histories
 
-Every generated payment SHALL be a complete `payments.v1` history that satisfies the lifecycle transitions, including risk declines, processor declines, unknown processor outcomes that later resolve, retries and expiries. Risk decisions SHALL be recorded with the generator-owned policy version `sim-rules-v1`. The generator SHALL refuse to write a dataset containing an invalid history. Historical generation SHALL NOT call gateway APIs or write to payment event storage.
+Every generated payment SHALL be a complete history written through explicit Arrow schemas and satisfying the shared ODCS source agreement, including risk declines, processor declines, unknown processor outcomes that later resolve, retries and expiries. Risk decisions SHALL be recorded with the generator-owned policy version `sim-rules-v1`. The generator SHALL refuse to write a dataset containing an invalid history. Historical generation SHALL NOT depend on protobuf or gRPC, call gateway APIs or write to payment event storage.
 
 #### Scenario: Invalid history produced
 
 - **WHEN** a generation defect yields a history that violates a transition
-- **THEN** generation fails, identifies the payment and writes no dataset
+- **THEN** native ODCS validation fails, identifies the failed rules and writes no dataset
 
 ### Requirement: Offline data problems
 
@@ -84,7 +89,13 @@ The generator SHALL emit chargeback labels for fraudulent attempts that succeede
 
 ### Requirement: Immutable versioned output
 
-Output SHALL be written under `historical/<dataset_version>/` as Parquet datasets for payment events and labels, partitioned by event date, with a manifest recording the configuration, its hash, the seed, generator revision, contract versions, row counts per partition and data-problem statistics. The manifest SHALL be written last. Generation SHALL refuse to write to a dataset version whose manifest already exists. The same command SHALL target S3-compatible object storage or a local directory.
+Output SHALL be written under `historical/<dataset_version>/` as Parquet datasets for payment events and labels, partitioned by event date, with a manifest recording the configuration, its hash, the seed, generator revision, Arrow schema versions, row counts per partition, data-problem statistics, ODCS contract identity/version/hash and the native validation report path. The manifest SHALL be written last. Generation SHALL refuse to write to a dataset version whose manifest already exists. The same command SHALL target S3-compatible object storage or a local directory.
+
+#### Scenario: Contract validation before publication
+
+- **WHEN** staged output passes the native ODCS schema and quality checks
+- **THEN** the dataset includes validation.json and its last-written manifest identifies the agreement that was executed
+- **AND** per-run report identifiers and timestamps do not alter the deterministic Parquet records
 
 #### Scenario: Existing dataset version
 
@@ -95,3 +106,70 @@ Output SHALL be written under `historical/<dataset_version>/` as Parquet dataset
 
 - **WHEN** generation stops before the manifest is written
 - **THEN** the dataset version is incomplete, and consumers identify it by the missing manifest
+
+### Requirement: Compacted and sorted Parquet layout
+
+The generator SHALL consolidate staged files within each date and physical schema, preserving all rows including intentional duplicates. It SHALL sort events by occurrence time with deterministic identity tie-breakers and labels by availability time with deterministic identity and source tie-breakers. Sorting SHALL use a configurable memory budget and temporary disk rather than collecting whole partitions in Python memory. Final files SHALL use Zstandard level 3, dictionary encoding with writer fallback, row-group statistics and accurate sorting metadata. Configuration SHALL set row-group rows independently from an approximate compressed file-size target; rotation SHALL occur at row-group boundaries. The manifest SHALL record Arrow schema versions and physical storage metrics.
+
+#### Scenario: Consolidate duplicate exports
+
+- **WHEN** a partition contains original events and sampled duplicate exports
+- **THEN** its final sorted files retain exactly the same event rows and duplicate content, with no file dedicated only to the duplicate export
+
+#### Scenario: Independent row groups and files
+
+- **WHEN** a partition exceeds the configured row-group size and file-size target
+- **THEN** its rows span bounded row groups and files rotate after a row group reaches the file target, with no mixing across dates or physical schemas
+
+#### Scenario: Projected and filtered read
+
+- **WHEN** a compatible reader projects columns and filters a sorted partition
+- **THEN** its results equal applying the same projection and filter to a full scan, and timestamp statistics permit nonmatching row groups to be skipped
+
+### Requirement: Cluster-run historical evidence
+
+Historical dataset acceptance SHALL include a bounded execution of the same versioned CLI as a prod Argo Workflow in a data namespace separate from the Kubeflow Profile, using a pinned image and the shared RustFS source identity. Source sanity SHALL be executed in a prod Kubeflow Notebook using that same identity. Its credentials SHALL reside in Doppler `prd`. Local CLI output SHALL remain supported, but no locally executed notebook SHALL be required as acceptance evidence. A live simulator SHALL continue to read the manifest through the shared source identity, without a prod-cluster API dependency.
+
+#### Scenario: Reproduce the accepted source dataset
+
+- **WHEN** a completed workflow and Notebook run are submitted as evidence for a dataset version
+- **THEN** the workflow ID, image digest, manifest hash, seed and notebook output identify the same immutable dataset, and both workloads use the shared source credential
+
+### Requirement: Configurable historical distribution drift
+
+The generator SHALL optionally change purchase frequency using an abrupt or linear gradual multiplier on simulated dates. The multiplier SHALL be positive and finite. Configuration SHALL retain a baseline period and complete the change within the configured history, rejecting inconsistent ramp modes or dates before writing output. Drift SHALL consume no additional random draws and SHALL NOT introduce drift metadata into payment events or labels. The manifest SHALL retain its configuration and daily unique purchase counts, including dates with zero purchases.
+
+#### Scenario: Drift omitted
+
+- **WHEN** no drift block is supplied
+- **THEN** the configured baseline purchase frequency applies on every day and independent seeded schedule reconstruction is preserved
+
+#### Scenario: Gradual frequency change
+
+- **WHEN** a gradual 1.5 multiplier starts with a fourteen-day ramp
+- **THEN** the factor is one before and on the start date, 1.25 seven days later, and 1.5 from fourteen days later
+- **AND** observed purchase counts permit a normalized baseline versus post-drift comparison without counting exported duplicates
+
+#### Scenario: Abrupt decrease
+
+- **WHEN** an abrupt 0.5 multiplier starts on a configured date
+- **THEN** that date and later dates use half the baseline expected purchase frequency
+
+### Requirement: Longer source history
+
+The generator SHALL provide a separate ninety-day preset with baseline, drift and post-drift periods while retaining the accepted v2 configuration. Repeated customer and merchant snapshots SHALL preserve account creation timestamps. Consumers SHALL exclude feature warmup periods and apply label availability cutoffs when evaluating longer histories; source generation SHALL NOT claim to implement DP3 features or #53 model training.
+
+#### Scenario: Thirty-day historical lookup
+
+- **WHEN** a consumer evaluates a decision after the first thirty purchase dates
+- **THEN** the source includes the preceding thirty-day interval and consistent entity account creation timestamps
+- **AND** a delayed-label join excludes labels whose availability exceeds the evaluation cutoff
+
+### Requirement: Source data product description
+
+An ODPS descriptor SHALL identify the source product, its owner and versioned output interface, referencing the shared ODCS agreement by contract ID. Dataset manifests SHALL identify and hash the ODPS descriptor independently of the ODCS agreement and dataset version. Native CI tooling SHALL validate the product descriptor without introducing duplicate field schemas or quality rules.
+
+#### Scenario: Consume a product version
+
+- **WHEN** a consumer selects a completed immutable dataset through the source product
+- **THEN** its manifest identifies the exact product and contract descriptors and the consumer applies the ODCS rules to the published event and label datasets

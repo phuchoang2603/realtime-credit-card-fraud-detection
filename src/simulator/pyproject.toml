@@ -1,0 +1,35 @@
+[project]
+name = "realtime-fraud-simulator"
+version = "0.1.0"
+description = "Deterministic historical payment data generator"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "datacontract-cli[duckdb]==1.2.7",
+    "duckdb>=1.4,<2",
+    "numpy>=2.3,<3",
+    "pyarrow>=23,<25",
+    "pydantic>=2.12,<3",
+    "pyyaml>=6,<7",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.14,<1"]
+notebook = [
+    "matplotlib>=3.10,<4",
+    "scikit-learn>=1.8,<2",
+    "jupyter>=1.1,<2",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 119
+src = ["."]
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.format]
+quote-style = "double"

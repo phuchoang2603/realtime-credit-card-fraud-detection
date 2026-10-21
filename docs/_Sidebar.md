@@ -20,6 +20,7 @@
 **Verification**
 
 - [Evidence](verification/evidence.md)
+- [Historical source verification](verification/historical-data.md)
 
 **Research**
 

@@ -45,7 +45,9 @@ jobs:
       - uses: astral-sh/setup-uv@v10.1.0
         with:
           enable-cache: true
-          cache-dependency-glob: src/fraud-service/uv.lock
+          cache-dependency-glob: |
+            src/fraud-service/uv.lock
+            src/simulator/uv.lock
       - name: Python lint, format and fraud-service tests
         run: bash scripts/ci-checks.sh python
 

@@ -82,7 +82,7 @@ Labels: a truth label is produced after each attempt response. Chargebacks wait 
 
 ### Deployment
 
-One `simulator` image, with the `live` and `faults` commands as two Deployments in one chart. Each runs one replica with the `Recreate` strategy, so a rollout never runs two simulators at once. The chart is enabled in dev values and disabled in prod values. Both connect to `payment-gateway-kafka-kafka-bootstrap:9092`.
+One `simulator` image, with the `live` and `faults` commands as two Deployments in one chart. These are continuous dev workloads, not prod-only Kubeflow Notebooks, KFP runs or Argo Workflows; Argo is appropriate for the finite historical generator run (#43), not this streaming loop. The dev live Deployment uses the shared RustFS source identity from Doppler `prd` to consume the external historical manifest. Each runs one replica with the `Recreate` strategy, so a rollout never runs two simulators at once. The chart is enabled in dev values and disabled in prod values. Both connect to `payment-gateway-kafka-kafka-bootstrap:9092`.
 
 The app-of-apps gains `kafka` and `simulator` children next to the gateway workloads. Prod uses `infra/charts/kafka/values-prod.yaml`. Child sync retries absorb Strimzi CRDs, the database and the Payments Secret appearing in any order, as in the marketplace.
 

@@ -1,0 +1,40 @@
+{
+  "verified_at": "2026-10-21T14:21:14.185706+00:00",
+  "roots": {
+    "payment-gateway-prod-root": {
+      "original_spec_restored": true,
+      "target": "main",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    "platform": {
+      "original_spec_restored": true,
+      "target": "main",
+      "sync": "Synced",
+      "health": "Healthy"
+    }
+  },
+  "remaining_applications_on_temporary_branches": [],
+  "platform_children_restored": {
+    "argo-workflows": "Healthy/Synced on main",
+    "istio": "Healthy/Synced on main"
+  },
+  "historical_generator_application_removed": true,
+  "notebook_removed": true,
+  "retained_pvc": {
+    "name": "historical-sanity-workspace",
+    "uid": "b0a07681-ed4b-47dd-b9b3-9c385207fd4c",
+    "phase": "Bound",
+    "argocd_tracking_removed": true
+  },
+  "retained_source_manifests": {
+    "v2": {
+      "manifest_sha256": "5b45cbbafcc06b8e1cea23ff968cde8a219f9baa534afbedf7c9a0cae2b8cd3d",
+      "unchanged": true
+    },
+    "v3-history90": {
+      "manifest_sha256": "2c5b8636b0393319d1675deab65320bdfdb545c72024252c5117d61c8c2c7a09",
+      "unchanged": true
+    }
+  }
+}

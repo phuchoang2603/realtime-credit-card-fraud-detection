@@ -1,0 +1,103 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: historical-generator
+  namespace: {{ .Values.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: historical-generator
+  namespace: {{ .Values.namespace }}
+rules:
+  - apiGroups: [argoproj.io]
+    resources: [workflowtaskresults]
+    verbs: [create, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: historical-generator
+  namespace: {{ .Values.namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: historical-generator
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: Role
+  name: historical-generator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: historical-generator
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceAccountName: historical-generator
+  entrypoint: generate
+  arguments:
+    parameters:
+      - name: config
+        value: /app/src/simulator/configs/historical-v1.yaml
+  parallelism: 1
+  activeDeadlineSeconds: 3600
+  podSpecPatch: |
+    initContainers:
+      - name: init
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+    containers:
+      - name: wait
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  synchronization:
+    mutexes:
+      - name: historical-source
+  templates:
+    - name: generate
+      retryStrategy:
+        limit: "0"
+      container:
+        image: {{ printf "%s@%s" .Values.image.repository (required "image.digest must be the published sha256 image digest" .Values.image.digest) | quote }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args: ["--config", {{ `"{{workflow.parameters.config}}"` }}, "--output", "s3://synthetic-source"]
+        envFrom:
+          - secretRef:
+              name: historical-source
+        env:
+          - name: AWS_DEFAULT_REGION
+            value: us-east-1
+          - name: HOME
+            value: /tmp
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+          capabilities:
+            drop: [ALL]
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 8Gi
+{{- end }}

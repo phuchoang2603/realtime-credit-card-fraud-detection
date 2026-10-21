@@ -19,7 +19,8 @@ The current repository contains a health-only Go HTTP edge and a Python gRPC fra
 ├── infra/
 │   ├── argocd/            # Application catalog and prod root
 │   ├── charts/            # Application Helm charts
-│   └── docker/            # Service Dockerfiles and reusable Go template
+│   ├── docker/            # Service Dockerfiles and reusable Go template
+│   └── policies/          # RustFS synthetic-source IAM policy
 ├── openspec/              # Capability specifications and change plans
 ├── src/edge/              # Public HTTP edge and generated gRPC client
 ├── src/fraud-service/     # gRPC fraud decision service, tests and generated bindings

@@ -32,6 +32,8 @@ context: |
   business rule, boundary, failure mode, resource lifecycle or integration contract.
   Reuse coverage; avoid duplicate assertions across layers, getter/no-op tests,
   implementation-mirroring tests and equivalent parameter combinations.
+  Keep src/simulator free of automated tests; its CI checks only lint and format.
+  Verify generated datasets through the workflow and notebook evidence.
   Keep Python tests, Go lint and Helm lint in independent CI jobs without
   change-detection jobs or matrices. Discover and validate all Helm charts. Keep
   check jobs in the CI workflow and reuse one image workflow for explicit service

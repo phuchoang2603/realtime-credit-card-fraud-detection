@@ -1,1 +1,4 @@
 secretStoreName: fraud-doppler
+historicalSource:
+  enabled: true
+  notebookImage: ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy@sha256:8f8a000b7eece82c7e874924dc45a3922e9197137eefe67f55c711cc3ce068fd
