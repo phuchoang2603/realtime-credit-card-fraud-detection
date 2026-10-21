@@ -1,53 +1,58 @@
 ## Purpose
 
-Provide one versioned dataset agreement that drives schemas, executable quality checks, documentation and future catalog ingestion.
+Provide one versioned dataset agreement that downstream applications follow and existing tools use for validation, documentation and future catalog ingestion.
 
 ## ADDED Requirements
 
-### Requirement: Authoritative dataset contract
+### Requirement: Authoritative dataset agreement
 
-Historical payment events and separate fraud labels SHALL have an ODCS contract with stable identity, version, ownership, synthetic classification, field meanings and executable quality rules. Arrow schemas SHALL be derived from that contract, including the physical omission of fields introduced after a requested event schema version. Unsupported versions or mappings SHALL fail explicitly.
+Historical payment events and separate fraud labels SHALL have an ODCS agreement with stable identity, version, ownership, synthetic classification, field meanings and quality rules. The agreement SHALL describe physical layout evolution without requiring a custom Python runtime or a second maintained schema agreement.
 
-#### Scenario: Old event schema
+#### Scenario: Physical layout evolution
 
-- **WHEN** a producer requests the pre-cutover event schema
-- **THEN** its Arrow schema omits the subsequently introduced user-agent field
-- **AND** the current schema includes that field without a second maintained definition
+- **WHEN** a producer implements an event schema version
+- **THEN** it follows the version metadata and field meanings declared in ODCS
+- **AND** pipeline integration owns the physical mapping and verifies that it conforms
 
-### Requirement: Shared quality execution
+### Requirement: Declared data quality
 
-One validation entry point SHALL execute the contract's schema and quality checks for source datasets. Identical repeated deliveries SHALL remain valid; conflicting duplicate identities, illegal payment transitions, invalid amounts, invalid label references and labels available before their occurrence SHALL fail. Unsupported or unexecuted declared rules SHALL prevent success.
+The agreement SHALL declare executable SQL rules for payment histories and label integrity. Identical repeated deliveries SHALL be valid; conflicting identities, illegal transitions, invalid amounts, invalid label references and labels available before their occurrence SHALL violate the declared rules. Existing ODCS tooling SHALL execute these rules against a supported configured data source without a repository-owned validation wrapper.
 
 #### Scenario: Duplicate delivery
 
-- **WHEN** two identical copies of a payment event occur in a complete valid history
-- **THEN** quality validation accepts the history without treating the copies as additional transitions
+- **WHEN** the native engine tests identical copies of an event in a complete valid history
+- **THEN** the declared quality rules accept the history without treating copies as additional transitions
 
-#### Scenario: Conflicting duplicate
+#### Scenario: Conflicting delivery
 
-- **WHEN** the same event identity has different content
-- **THEN** validation fails with the declared duplicate-consistency rule
+- **WHEN** the native engine tests the same event identity with different content
+- **THEN** the duplicate-consistency rule fails
 
-#### Scenario: Delayed label
+#### Scenario: Invalid label
 
-- **WHEN** a chargeback label references an attempt without a successful payment
-- **THEN** validation fails with the declared label-linkage rule
+- **WHEN** the native engine tests a chargeback label referencing an unsuccessful attempt
+- **THEN** the label-linkage rule fails
 
-### Requirement: Traceable validation evidence
+### Requirement: Native agreement checks and documentation
 
-Validation SHALL produce structured results on success and failure containing contract identity, version, content hash and individual rule outcomes. Schema inspection SHALL reject unexpected fields and wrong physical types instead of hiding them through projection or coercion.
+CI SHALL lint the ODCS agreement using pinned existing tooling and reject drift in its native generated schema reference. CI in this foundation SHALL NOT claim to validate produced datasets. Full quality definitions SHALL remain in the agreement rather than a separately maintained rule suite.
 
-#### Scenario: Schema mismatch
+#### Scenario: Invalid agreement
 
-- **WHEN** a source Parquet file has a wrong integer width or an unexpected field
-- **THEN** the report identifies the file and schema failure
-- **AND** the validation command exits unsuccessfully
+- **WHEN** the agreement violates the official ODCS schema
+- **THEN** the native lint command exits unsuccessfully
 
-### Requirement: Generated contract documentation
+#### Scenario: Documentation changes
 
-Dataset documentation SHALL be generated from the same ODCS source used by validation. CI SHALL reject invalid contracts and stale generated documentation and exercise representative valid and invalid datasets without requiring a running catalog.
+- **WHEN** a field meaning changes without regenerating the schema reference
+- **THEN** the documentation comparison fails
 
-#### Scenario: Contract changes
+### Requirement: Downstream execution boundaries
 
-- **WHEN** a field meaning or quality rule changes without regenerating documentation
-- **THEN** the documentation check fails
+Integration documentation SHALL distinguish agreement lint, data validation and catalog ingestion. It SHALL identify the current SQL dialect and leave Spark and Flink integration to their pipelines rather than claiming automatic compatibility. The existing engine SHALL provide native validation results for supported data sources.
+
+#### Scenario: Dataset validation
+
+- **WHEN** a job exposes the declared datasets in a configured DuckDB database
+- **THEN** the documented native command executes schema and quality checks and writes a report
+- **AND** the job owns data preparation, physical inspection and publication gating

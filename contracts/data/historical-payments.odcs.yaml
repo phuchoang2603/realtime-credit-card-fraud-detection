@@ -27,7 +27,7 @@ servers:
     type: duckdb
     environment: local
     database: validation.duckdb
-    description: An ephemeral database of staged Parquet views supplied by the shared validator.
+    description: Local tables or views named payment_events and fraud_labels, prepared by the producing or ingesting job. Override the database path with DATACONTRACT_DUCKDB_DATABASE.
 schema:
   - name: payment_events
     physicalName: payment_events

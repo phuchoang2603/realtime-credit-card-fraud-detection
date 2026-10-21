@@ -1,27 +1,28 @@
 ## Context
 
-See proposal.md for motivation. Main has backend protobuf contracts but no historical generator runtime. This foundation must merge independently before the generator PR and remain consumable by later batch pipelines.
+See proposal.md for motivation. Main has backend protobuf contracts but no historical generator runtime. This foundation must merge independently before the generator PR and be usable by later batch pipelines.
 
 ## Goals / Non-Goals
 
-The ODCS document is authoritative for source dataset schemas, quality rules and generated documentation. The implementation supports local staged Parquet, including empty datasets and mixed event schema versions. It does not deploy DataHub, rewrite the generator, define future curated datasets or replace backend protobuf.
+The ODCS agreement is authoritative for source dataset schemas, quality rules, ownership and field meanings. Use existing tooling for lint, documentation and execution. This foundation does not implement a Python contract runtime, wire dataset validation into a producer, deploy DataHub, define future curated datasets or replace backend protobuf.
 
 ## Decisions
 
-- Keep the ODCS agreement under contracts/data and the Python runtime under src/data-contracts. Link the agreement as a package resource and embed its contents in distributions so installed consumers load the exact same document as CI.
-- Pin ODCS v3.1.0, its validated model and Data Contract CLI. Declare nested types using standard properties/items and explicit physical types; use an explicit sinceSchemaVersion custom property only for physical event evolution.
-- Express domain checks as ODCS SQL quality rules executed by Data Contract CLI on DuckDB. Canonicalize identical event deliveries inside the quality SQL; keep conflict detection over the original rows. This removes the need for a second Python payment state machine or per-stage rule implementations.
-- Inspect each Parquet file with derived Arrow schemas before normalization. Build DuckDB views over the files; normalize old event structs only after exact physical inspection. The native runner evaluates schema and quality against the combined logical datasets.
-- Emit contract hash and per-rule results in a JSON report, including failures. Treat warnings, skipped checks and missing declared rules as unsuccessful validation.
-- Generate a Markdown reference from the loaded ODCS model for the existing wiki, with a CI drift check. Keep the commands and execution boundaries in CONTRIBUTING.md.
+- Keep the agreement under contracts/data. Applications follow the declared schema and rules; no shared runtime package is required.
+- Pin the ODCS document to v3.1.0 and use Data Contract CLI 1.2.7 directly through uvx. CI lints the agreement and compares the native Markdown export with its committed schema reference.
+- Keep payment lifecycle and label checks in ODCS SQL quality rules. Canonicalize identical event deliveries inside the quality SQL and detect conflicts over the original rows.
+- The validation server describes local DuckDB tables or views prepared by a producing or ingesting job. The existing CLI executes the rules and writes its native report. Connection settings, physical file inspection and publication gating belong with the job, not a new contract application.
+- Treat schemaVersions and sinceSchemaVersion as descriptive physical layout metadata. They do not imply an automatic Arrow mapper or engine enforcement.
+- Ingest this same agreement into DataHub when catalog integration is implemented; publish execution evidence separately.
 
 ## Risks / Trade-offs
 
-- DuckDB SQL is not universally portable to Spark. Keep the declared rules and identifiers authoritative; add a compatible execution adapter only when Spark is implemented.
-- Data Contract CLI's schema engine does not replace exact Parquet inspection. Physical checks run before union-by-name normalization.
-- Native contract execution brings additional dependencies. Keep them in a validation extra so schema-only consumers need only the ODCS model, YAML and Arrow.
-- ODCS import creates catalog metadata, not observed lineage or executed quality results. Future DataHub integration must ingest the same document and publish run evidence separately.
+- Agreement lint does not validate data. Dataset validation is integrated and tested with the historical generator and each pipeline.
+- Current SQL rules use DuckDB syntax. Spark and Flink support must be verified with the actual job and its execution engine; ODCS does not make arbitrary SQL portable.
+- Great Expectations exports do not automatically execute these ODCS SQL quality rules. Avoid separately maintained rule suites; select an integration only when a pipeline needs it.
+- Native Markdown export documents schemas but does not render every ODCS section, including dataset SQL rules. The full agreement remains authoritative and directly readable.
+- Pinning the CLI fixes its interface while its dependencies are resolved by uvx; this PR introduces no independent application dependency lock.
 
 ## Migration Plan
 
-Merge this foundation first. Rewrite the historical generator to depend on it and delete its local Arrow schemas and lifecycle validator, replacing its protobuf-JSON fixture path with contract-native evidence. Rebase unrelated tooling/infra separately after the generator rewrite. No compatibility aliases are introduced here.
+Merge this agreement foundation first. Update the historical generator to follow it and invoke existing validation tooling at its publication boundary. Remove superseded local rules rather than retaining parallel validation implementations. Rebase unrelated tooling/infra separately. Integrate DataHub and compute-engine execution with their concrete pipelines.

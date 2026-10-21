@@ -1,21 +1,21 @@
 ## Why
 
-Historical payment datasets need one maintained agreement for schema, meaning and quality before the generator and lake pipelines depend on them. Separate Arrow definitions, documentation and catalog assertions would drift and repeat validation logic.
+Historical payment datasets need one maintained agreement for schema, meaning and quality before the generator and lake pipelines depend on them. Separate documentation, pipeline checks and catalog assertions would drift and repeat validation logic.
 
 ## What Changes
 
-- Add a pinned ODCS contract for versioned source payment events and separate delayed labels.
-- Derive Arrow schemas from the contract and expose one reusable validation entry point with structured rule results and contract provenance.
-- Declare payment lifecycle and label quality rules as SQL in ODCS; fail on unsupported checks instead of silently skipping them.
-- Generate contract documentation and check it, the contract and meaningful valid/invalid datasets in CI.
-- Keep backend wire contracts intact. DataHub deployment and rewriting the historical generator are follow-up work.
-- Introduce no legacy schema aliases or protobuf-JSON compatibility path in the new dataset package.
+- Add an ODCS v3.1.0 agreement for versioned source payment events and separate delayed labels under contracts/data.
+- Declare payment lifecycle and label quality rules as SQL in the agreement.
+- Use pinned Data Contract CLI commands directly for contract lint and native Markdown export; CI checks agreement validity and documentation drift.
+- Let producing and ingesting applications enforce the agreement through existing engines, with their own data connections and publication boundaries.
+- Keep backend wire contracts intact. Dataset integration, Spark/Flink execution and DataHub deployment are follow-up work.
+- Add no custom Python application, library, schema mapper, validation wrapper or engine-specific rule suite.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `dataset-contracts`: Authoritative ODCS datasets, Arrow mapping, shared quality execution and generated documentation.
+- `dataset-contracts`: Authoritative ODCS dataset schemas and quality rules, native agreement lint and generated schema documentation.
 
 ### Modified Capabilities
 
@@ -23,4 +23,4 @@ None.
 
 ## Impact
 
-Adds an independently packaged Python contract runtime under `src/data-contracts/`, contract-focused CI and generated documentation linked from the contributor guide. The foundation merges before the historical generator; downstream consumers will use this package rather than copy its schemas or rules. No running service, storage platform or DataHub deployment changes.
+Adds one ODCS agreement, an independent CI job using an existing CLI, and generated schema documentation linked from the contributor guide. The foundation merges before the historical generator; producers and consumers follow the agreement without depending on a new application. No running service, storage platform or DataHub deployment changes.

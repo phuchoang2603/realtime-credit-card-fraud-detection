@@ -24,16 +24,12 @@ jobs:
       - uses: astral-sh/setup-uv@v10.1.0
         with:
           enable-cache: true
-          cache-dependency-glob: src/data-contracts/uv.lock
-      - name: Contract lint, format, behavior and generated documentation
-        working-directory: src/data-contracts
+          cache-dependency-glob: contracts/data/*.odcs.yaml
+      - name: Lint ODCS agreement and check generated documentation
         run: |
-          uv run --locked --extra validation ruff check payment_data_contracts tests
-          uv run --locked --extra validation ruff format --check payment_data_contracts tests
-          uv run --locked --extra validation payment-data-contracts lint
-          uv run --locked --extra validation pytest -q
-          uv run --locked --extra validation payment-data-contracts docs ../../docs/architecture/historical-data-contract.md --check
-          uv build --out-dir "$RUNNER_TEMP/data-contracts-dist"
+          uvx --from datacontract-cli==1.2.7 datacontract lint contracts/data/historical-payments.odcs.yaml --all-errors
+          uvx --from datacontract-cli==1.2.7 datacontract export markdown contracts/data/historical-payments.odcs.yaml --output "$RUNNER_TEMP/historical-data-contract.md"
+          diff -u docs/architecture/historical-data-contract.md "$RUNNER_TEMP/historical-data-contract.md"
 
   python:
     runs-on: ubuntu-latest
