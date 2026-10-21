@@ -6,7 +6,6 @@ import numpy as np
 
 from simulator.arrow import Record
 from simulator.config import HistoricalConfig
-from simulator.history import validate_history
 from simulator.identity import IDENTITY_NAMESPACE, fingerprint
 from simulator.profiles import Customer, Profiles, ScheduledPurchase
 
@@ -253,5 +252,4 @@ def build_history(
             break
         method = fingerprint(config.synthetic_key, "payment_method", f"tok_card-retry-{day_offset}-{ordinal}_ok")
 
-    validate_history(events)
     return GeneratedHistory(tuple(events), tuple(labels), scenario)

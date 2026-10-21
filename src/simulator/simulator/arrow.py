@@ -46,16 +46,6 @@ ASSESSMENT = pa.struct(
         ("risk_score", pa.float64()),
     ]
 )
-EVENT_PAYLOADS = (
-    "payment_created",
-    "attempt_started",
-    "risk_decision_recorded",
-    "processor_operation_requested",
-    "processor_outcome_unknown",
-    "attempt_declined",
-    "payment_succeeded",
-    "payment_expired",
-)
 
 
 def event_schema(version: int) -> pa.Schema:

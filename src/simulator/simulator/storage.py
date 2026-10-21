@@ -10,6 +10,7 @@ import duckdb
 import pyarrow as pa
 import pyarrow.fs as fs
 import pyarrow.parquet as pq
+from datacontract.data_contract import DataContract
 
 from simulator.arrow import LABEL_SCHEMA, Record, event_schema
 from simulator.config import HistoricalConfig, StorageLayout
@@ -170,6 +171,7 @@ def _manifest(
     stats: DatasetStatistics,
     duplicates: int,
     storage: dict,
+    contract: dict,
 ) -> dict:
     configuration = config.model_dump(mode="json")
     canonical_config = json.dumps(configuration, sort_keys=True, separators=(",", ":"))
@@ -179,6 +181,8 @@ def _manifest(
         "configuration": configuration,
         "config_sha256": sha256(canonical_config.encode()).hexdigest(),
         "generator_revision": _generator_revision(),
+        "contract": contract,
+        "validation_report": "validation.json",
         "schema_versions": {"payment_events": [1, 2], "fraud_labels": [1]},
         "profile_sha256": profile_digest,
         "synthetic_key_version": config.synthetic_key_version,
@@ -208,6 +212,9 @@ def _manifest(
 def generate(config: HistoricalConfig, output: str, filesystem: fs.FileSystem, root: str) -> dict:
     prefix = f"{root.rstrip('/')}/historical/{config.dataset_version}"
     _require_empty(filesystem, prefix)
+    contract_source = (
+        Path(__file__).resolve().parents[3] / "contracts/data/historical-payments.odcs.yaml"
+    ).read_text()
     profiles = build_profiles(config)
     stats = DatasetStatistics()
     with TemporaryDirectory(prefix="historical-") as temporary:
@@ -243,7 +250,46 @@ def generate(config: HistoricalConfig, output: str, filesystem: fs.FileSystem, r
                 labels, export / "fraud_labels", config.storage, LABEL_SORT_COLUMNS, Path(temporary) / "sort"
             ),
         }
-        manifest = _manifest(config, output, profiles.digest(), partitions, stats, duplicates, storage)
+        database = Path(temporary) / "validation.duckdb"
+        for name in ("payment_events", "fraud_labels"):
+            (export / name).mkdir(exist_ok=True)
+        with duckdb.connect(str(database)) as connection:
+            for name, schema in (("payment_events", event_schema(2)), ("fraud_labels", LABEL_SCHEMA)):
+                empty = Path(temporary) / f"{name}.parquet"
+                pq.write_table(pa.Table.from_pylist([], schema=schema), empty)
+                paths = sorted((export / name).rglob("*.parquet"))
+                connection.read_parquet(
+                    [str(empty), *(str(path) for path in paths)], union_by_name=True, hive_partitioning=False
+                ).create_view(name)
+        contract = DataContract(
+            data_contract_str=contract_source,
+            server="validation",
+            config={"DATACONTRACT_DUCKDB_DATABASE": str(database), "DATACONTRACT_DUCKDB_SCHEMA": "main"},
+        )
+        run = contract.test()
+        if not run.has_passed():
+            failures = "; ".join(
+                f"{check.qualityId or check.name}: {check.reason or check.result}"
+                for check in run.checks
+                if check.result not in ("passed", "info")
+            )
+            raise ValueError(f"ODCS validation failed: {failures}")
+        (export / "validation.json").write_text(run.model_dump_json(indent=2))
+        definition = contract.get_data_contract()
+        manifest = _manifest(
+            config,
+            output,
+            profiles.digest(),
+            partitions,
+            stats,
+            duplicates,
+            storage,
+            {
+                "id": definition.id,
+                "version": definition.version,
+                "sha256": sha256(contract_source.encode()).hexdigest(),
+            },
+        )
         _require_empty(filesystem, prefix)
         filesystem.create_dir(prefix, recursive=True)
         fs.copy_files(

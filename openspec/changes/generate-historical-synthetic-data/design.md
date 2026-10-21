@@ -41,7 +41,7 @@ Histories need `RiskDecisionRecorded` events. The generator implements its own s
 
 ### Explicit Arrow schemas
 
-The generator creates plain Python records and writes them through explicit, versioned Arrow schemas in `simulator/arrow.py`. Nested values are structs, timestamps are `timestamp[us, UTC]`, categorical values are strings, and integer amounts remain `int64`. The lifecycle validator enforces the payment transitions independently of transport. Protobuf and gRPC remain backend contracts; historical generation needs neither generated bindings nor descriptor conversion.
+The generator creates plain Python records and writes them through explicit, versioned Arrow schemas in `simulator/arrow.py`. Nested values are structs, timestamps are `timestamp[us, UTC]`, categorical values are strings, and integer amounts remain `int64`. The ODCS agreement in contracts/data/historical-payments.odcs.yaml owns schema and lifecycle quality rules; the existing Data Contract CLI engine verifies the written records against it. Protobuf and gRPC remain backend contracts; historical generation needs neither generated bindings nor descriptor conversion.
 
 ### One wide events dataset plus labels
 
@@ -83,7 +83,7 @@ The manifest also stores a SHA-256 digest of the canonical profile records. The 
 
 ### Validation before write
 
-A Python history validator implements the lifecycle rules and runs over every payment before destination files are written. Golden histories in `contracts/payments/v1/testdata/histories.json` are the conformance suite. They remain shared contract fixtures for the Go Payments aggregate. Generation stages bounded Parquet batches on temporary disk and accumulates manifest statistics incrementally. Once all histories pass validation, staged files are copied to the destination and the manifest is written last. Validation failure leaves the destination untouched. Temporary storage must accommodate the exported dataset; profiles, one day's schedule and exact distinct-identity sets remain in memory.
+Generation stages bounded Parquet batches, compacts them and accumulates manifest statistics on temporary disk. DuckDB views expose complete payment histories and labels across all final partitions, normalizing the older event layout with an empty current-layout input. Data Contract CLI 1.2.7 runs the ODCS schema and quality checks directly. Failure identifies the failed rules and leaves the destination untouched. A passing native report is copied as validation.json; the manifest records its path and the ODCS ID, version and SHA-256 and is written last. Parquet records are deterministic; the native report carries per-run identifiers and timestamps. The agreement is read from the repository, and the image preserves that repository layout. Temporary storage must accommodate the exported dataset; profiles, one day's schedule and exact distinct-identity sets remain in memory.
 
 ### Storage access
 
@@ -95,7 +95,7 @@ Do not add a Terraform root for a single externally hosted bucket. In `talos-pro
 
 ### Libraries
 
-numpy `Generator` (PCG64) with streams derived per stage and per day from the seed; pyarrow for schemas, Parquet and S3; DuckDB for bounded external sorting; pydantic for config; PyYAML for the config file. The notebook dependency group adds matplotlib, scikit-learn and Jupyter, and reuses DuckDB for analysis. Polars was considered, but pyarrow plus DuckDB covers writing and analysis without a third dataframe library.
+numpy `Generator` (PCG64) with streams derived per stage and per day from the seed; pyarrow for schemas, Parquet and S3; DuckDB for bounded external sorting and validation views; pinned Data Contract CLI for native ODCS execution; pydantic for config; PyYAML for the config file. The notebook dependency group adds matplotlib, scikit-learn and Jupyter, and reuses DuckDB for analysis. Polars was considered, but pyarrow plus DuckDB covers writing and analysis without a third dataframe library.
 
 ### Sanity notebook
 
@@ -113,7 +113,7 @@ Package the `historical` CLI as a pinned simulator image and a WorkflowTemplate 
 
 - [Scenarios too easy or impossible] → The learnability check in the notebook, then tune parameters and bump `dataset_version`.
 - [Large volumes exhaust memory or temporary storage] → Buffer bounded record batches, reuse Arrow schemas and stage Parquet on disk. Size the workflow's temporary storage for the exported dataset; exact distinct counts and profiles still grow with identity cardinality.
-- [Duplicate policy between the Python validator and the Go aggregate] → Golden histories are the shared oracle for both.
+- [Contract and writer divergence] → Native schema and quality checks gate publication against the shared ODCS agreement; Arrow schemas remain the writer's physical representation.
 - [RustFS or prod Profile unavailable] → Local output keeps generator development and CI independent, but #43 workflow/notebook evidence waits until prod Argo, Notebook and scoped secrets work; record the endpoint, dataset version and failed prerequisites.
 - [Generator decisions differ from rules-v1] → Intentional and labelled by policy version. Training uses labels, not these decisions.
 

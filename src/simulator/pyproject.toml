@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Deterministic historical payment data generator"
 requires-python = ">=3.14,<3.15"
 dependencies = [
+    "datacontract-cli[duckdb]==1.2.7",
     "duckdb>=1.4,<2",
     "numpy>=2.3,<3",
     "pyarrow>=23,<25",

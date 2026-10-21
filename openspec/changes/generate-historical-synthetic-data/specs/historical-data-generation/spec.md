@@ -52,12 +52,12 @@ Legitimate customers SHALL purchase mostly from familiar merchants, categories, 
 
 ### Requirement: Contract-valid lifecycle histories
 
-Every generated payment SHALL be a complete history using generator-owned Arrow schemas and satisfying the `payments.v1` lifecycle transitions, including risk declines, processor declines, unknown processor outcomes that later resolve, retries and expiries. Risk decisions SHALL be recorded with the generator-owned policy version `sim-rules-v1`. The generator SHALL refuse to write a dataset containing an invalid history. Historical generation SHALL NOT depend on protobuf or gRPC, call gateway APIs or write to payment event storage.
+Every generated payment SHALL be a complete history written through explicit Arrow schemas and satisfying the shared ODCS source agreement, including risk declines, processor declines, unknown processor outcomes that later resolve, retries and expiries. Risk decisions SHALL be recorded with the generator-owned policy version `sim-rules-v1`. The generator SHALL refuse to write a dataset containing an invalid history. Historical generation SHALL NOT depend on protobuf or gRPC, call gateway APIs or write to payment event storage.
 
 #### Scenario: Invalid history produced
 
 - **WHEN** a generation defect yields a history that violates a transition
-- **THEN** generation fails, identifies the payment and writes no dataset
+- **THEN** native ODCS validation fails, identifies the failed rules and writes no dataset
 
 ### Requirement: Offline data problems
 
@@ -84,7 +84,13 @@ The generator SHALL emit chargeback labels for fraudulent attempts that succeede
 
 ### Requirement: Immutable versioned output
 
-Output SHALL be written under `historical/<dataset_version>/` as Parquet datasets for payment events and labels, partitioned by event date, with a manifest recording the configuration, its hash, the seed, generator revision, Arrow schema versions, row counts per partition and data-problem statistics. The manifest SHALL be written last. Generation SHALL refuse to write to a dataset version whose manifest already exists. The same command SHALL target S3-compatible object storage or a local directory.
+Output SHALL be written under `historical/<dataset_version>/` as Parquet datasets for payment events and labels, partitioned by event date, with a manifest recording the configuration, its hash, the seed, generator revision, Arrow schema versions, row counts per partition, data-problem statistics, ODCS contract identity/version/hash and the native validation report path. The manifest SHALL be written last. Generation SHALL refuse to write to a dataset version whose manifest already exists. The same command SHALL target S3-compatible object storage or a local directory.
+
+#### Scenario: Contract validation before publication
+
+- **WHEN** staged output passes the native ODCS schema and quality checks
+- **THEN** the dataset includes validation.json and its last-written manifest identifies the agreement that was executed
+- **AND** per-run report identifiers and timestamps do not alter the deterministic Parquet records
 
 #### Scenario: Existing dataset version
 
