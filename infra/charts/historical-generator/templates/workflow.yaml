@@ -37,7 +37,15 @@ metadata:
 spec:
   serviceAccountName: historical-generator
   entrypoint: generate
+  parallelism: 1
   activeDeadlineSeconds: 3600
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
   synchronization:
     mutexes:
       - name: historical-source
@@ -73,5 +81,6 @@ spec:
             mountPath: /tmp
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 8Gi
 {{- end }}

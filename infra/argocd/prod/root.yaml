@@ -46,7 +46,7 @@ spec:
                 factor: 2
                 maxDuration: 3m
           historical-generator:
-            enabled: false
+            enabled: true
             destinationNamespace: argo-cd
             path: infra/charts/historical-generator
   destination:
