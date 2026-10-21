@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self
 from uuid import UUID
 
 import yaml
@@ -95,6 +95,26 @@ class StorageLayout(StrictModel):
     sort_memory_limit_mb: int = Field(default=128, ge=32)
 
 
+class PurchaseFrequencyDrift(StrictModel):
+    start_date: date
+    mode: Literal["abrupt", "gradual"]
+    purchase_frequency_multiplier: float = Field(gt=0, allow_inf_nan=False)
+    ramp_days: int = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def validate_ramp(self) -> Self:
+        if (self.mode == "gradual") != (self.ramp_days > 0):
+            raise ValueError("gradual drift requires positive ramp_days; abrupt drift requires zero ramp_days")
+        return self
+
+    def factor_on(self, day: date) -> float:
+        elapsed = (day - self.start_date).days
+        if elapsed < 0:
+            return 1.0
+        progress = min(elapsed / self.ramp_days, 1.0) if self.mode == "gradual" else 1.0
+        return (1.0 - progress) + self.purchase_frequency_multiplier * progress
+
+
 class HistoricalConfig(StrictModel):
     dataset_version: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
     seed: int = Field(ge=0)
@@ -109,6 +129,7 @@ class HistoricalConfig(StrictModel):
     data_problems: DataProblems
     label_delays: LabelDelays
     storage: StorageLayout = Field(default_factory=StorageLayout)
+    drift: PurchaseFrequencyDrift | None = None
     output: str = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -116,6 +137,13 @@ class HistoricalConfig(StrictModel):
         cutover = self.data_problems.schema_evolution.cutover_date
         if not self.start_date < cutover < self.start_date + timedelta(days=self.duration_days):
             raise ValueError("schema_evolution.cutover_date must fall strictly inside the dataset")
+        if self.drift is not None:
+            if not self.start_date < self.drift.start_date:
+                raise ValueError("drift.start_date must follow the dataset start to retain baseline history")
+            if self.drift.start_date + timedelta(days=self.drift.ramp_days) >= self.start_date + timedelta(
+                days=self.duration_days
+            ):
+                raise ValueError("drift must finish strictly before the dataset end")
         scenario_rates = sum(
             getattr(self.scenarios, name).rate
             for name in self.scenarios.__class__.model_fields

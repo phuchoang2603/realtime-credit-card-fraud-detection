@@ -151,9 +151,10 @@ def schedule_for_day(config: HistoricalConfig, day: date, profiles: Profiles) ->
     random = stage_rng(config.seed, 3, offset)
     merchant_weights = zipf_weights(len(profiles.merchants), config.behavior.merchant_zipf_exponent)
     compromised = compromises_for_day(config, offset)
+    frequency = config.behavior.purchases_per_customer_day * (config.drift.factor_on(day) if config.drift else 1.0)
     scheduled = []
     for customer_index, customer in enumerate(profiles.customers):
-        for _ in range(int(random.poisson(config.behavior.purchases_per_customer_day))):
+        for _ in range(int(random.poisson(frequency))):
             if random.random() < config.behavior.familiar_merchant_probability:
                 merchant_index = int(random.choice(customer.familiar_merchants))
             else:

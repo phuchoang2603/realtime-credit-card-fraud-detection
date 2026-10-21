@@ -134,3 +134,42 @@ Historical dataset acceptance SHALL include a bounded execution of the same vers
 
 - **WHEN** a completed workflow and Notebook run are submitted as evidence for a dataset version
 - **THEN** the workflow ID, image digest, manifest hash, seed and notebook output identify the same immutable dataset, and both workloads use the shared source credential
+
+### Requirement: Configurable historical distribution drift
+
+The generator SHALL optionally change purchase frequency using an abrupt or linear gradual multiplier on simulated dates. The multiplier SHALL be positive and finite. Configuration SHALL retain a baseline period and complete the change within the configured history, rejecting inconsistent ramp modes or dates before writing output. Drift SHALL consume no additional random draws and SHALL NOT introduce drift metadata into payment events or labels. The manifest SHALL retain its configuration and daily unique purchase counts, including dates with zero purchases.
+
+#### Scenario: Drift omitted
+
+- **WHEN** no drift block is supplied
+- **THEN** the configured baseline purchase frequency applies on every day and independent seeded schedule reconstruction is preserved
+
+#### Scenario: Gradual frequency change
+
+- **WHEN** a gradual 1.5 multiplier starts with a fourteen-day ramp
+- **THEN** the factor is one before and on the start date, 1.25 seven days later, and 1.5 from fourteen days later
+- **AND** observed purchase counts permit a normalized baseline versus post-drift comparison without counting exported duplicates
+
+#### Scenario: Abrupt decrease
+
+- **WHEN** an abrupt 0.5 multiplier starts on a configured date
+- **THEN** that date and later dates use half the baseline expected purchase frequency
+
+### Requirement: Longer source history
+
+The generator SHALL provide a separate ninety-day preset with baseline, drift and post-drift periods while retaining the accepted v2 configuration. Repeated customer and merchant snapshots SHALL preserve account creation timestamps. Consumers SHALL exclude feature warmup periods and apply label availability cutoffs when evaluating longer histories; source generation SHALL NOT claim to implement DP3 features or #53 model training.
+
+#### Scenario: Thirty-day historical lookup
+
+- **WHEN** a consumer evaluates a decision after the first thirty purchase dates
+- **THEN** the source includes the preceding thirty-day interval and consistent entity account creation timestamps
+- **AND** a delayed-label join excludes labels whose availability exceeds the evaluation cutoff
+
+### Requirement: Source data product description
+
+An ODPS descriptor SHALL identify the source product, its owner and versioned output interface, referencing the shared ODCS agreement by contract ID. Dataset manifests SHALL identify and hash the ODPS descriptor independently of the ODCS agreement and dataset version. Native CI tooling SHALL validate the product descriptor without introducing duplicate field schemas or quality rules.
+
+#### Scenario: Consume a product version
+
+- **WHEN** a consumer selects a completed immutable dataset through the source product
+- **THEN** its manifest identifies the exact product and contract descriptors and the consumer applies the ODCS rules to the published event and label datasets

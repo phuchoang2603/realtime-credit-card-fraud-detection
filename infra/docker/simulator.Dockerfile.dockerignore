@@ -11,5 +11,7 @@
 !contracts/
 !contracts/data/
 !contracts/data/historical-payments.odcs.yaml
+!contracts/products/
+!contracts/products/historical-payments.odps.yaml
 **/__pycache__
 **/*.pyc

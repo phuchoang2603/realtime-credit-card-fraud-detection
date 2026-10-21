@@ -15,7 +15,7 @@
 - Live generation, transport faults and Kafka (`simulate-live-traffic-with-transport-faults`, which drives the gateway and continues datasets from this generator).
 - A second Argo controller or a KFP training pipeline for source generation; DP1 decides how downstream ingestion is scheduled.
 - Bronze tables, analytical schemas (#45) or feature definitions.
-- Configurable drift for the final coursework (#44 extension). The config leaves room for it.
+- Live-stream drift, feature computation, drift detection and retraining. Historical purchase-frequency drift is supported independently.
 
 ## Decisions
 
@@ -62,6 +62,20 @@ s3://synthetic-source/historical/<dataset_version>/
 - **Duplicates:** a seeded sample of events is exported again with an identical `event_id` and content, simulating export retries. Sampling permits repeated copies so rates above 50% remain supported; the rate is duplicate rows divided by all exported event rows. Final compaction preserves these copies. The histories themselves stay valid.
 
 The manifest records configured and observed values for each, which is the numeric side of the evidence.
+
+### Historical frequency drift and longer history
+
+An optional `drift` block changes only the Poisson purchase frequency. It declares a start date, `abrupt` or `gradual` mode, a positive finite `purchase_frequency_multiplier` and `ramp_days`. Before the start the factor is one. Abrupt mode immediately applies the multiplier and requires zero ramp days; gradual mode starts at one and linearly reaches the multiplier after its positive ramp duration. The start and completed ramp must fall inside the history so baseline and post-drift observations exist. Omitting the block preserves scheduling behavior. Factors use simulated dates and consume no additional random draws; any day remains independently reconstructable.
+
+The separate `historical-90d.yaml` preset retains 3,000 customers, provides 90 purchase dates, starts drift after 45 days and completes a 14-day ramp. Thirty-day feature windows have a warmup period; labels still require their availability cutoff. This does not compute features or accept delayed-label model training. Account creation timestamps are anchored to midnight at the dataset start minus each profile's initial age, so repeated snapshots preserve identity facts and account ages grow over the history.
+
+The manifest records configured drift and observed purchase counts for every purchase date, including empty dates. Counts come from unique payment creation, before export duplicates. DuckDB sort and validation sessions explicitly use UTC; readers must also use UTC when casting timestamps to dates. Observed frequencies are stochastic and must be normalized by configured customers and days before comparing periods. No drift phase, factor or scenario is added to payment events or inference features.
+
+### ODPS product boundary
+
+`contracts/products/historical-payments.odps.yaml` describes source ownership, purpose, access, version selection and the output port linked by ODCS contract ID. The ODCS agreement remains authoritative for fields and quality. ODPS product version, ODCS agreement version, physical schema version and immutable dataset version remain independent. New manifests identify and hash the product descriptor as well as the agreement; the simulator image includes both. Native pinned Data Product CLI lint runs in the existing contracts CI job. This adds no catalog deployment or runtime validation framework.
+
+The v2 production evidence remains the accepted source smoke run. Local extension verification covers boundary configurations, deterministic schedules and output, a full 90-day run, drift measurements, thirty-day lookbacks and label cutoffs. A new production Workflow/Notebook run is required before calling a longer dataset production-accepted.
 
 ### Sorted and compacted Parquet
 

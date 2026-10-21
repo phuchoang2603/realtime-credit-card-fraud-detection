@@ -73,6 +73,7 @@ def build_history(
     merchant = profiles.merchants[purchase.merchant_index]
     payment_id = str(uuid5(IDENTITY_NAMESPACE, f"{config.dataset_version}:{day}:{ordinal}:payment"))
     started_at = datetime.combine(day, time.min, tzinfo=timezone.utc) + timedelta(minutes=purchase.minute)
+    history_start = datetime.combine(config.start_date, time.min, tzinfo=timezone.utc)
     day_offset = (day - config.start_date).days
     category_prices = {"electronics": 13000, "home": 7000, "fashion": 4500, "grocery": 2200, "travel": 25000}
     base_amount = max(50, round(float(random.lognormal(np.log(category_prices[merchant.category]), 0.35))))
@@ -128,8 +129,8 @@ def build_history(
                     "unit_price": {"minor_units": amount, "currency": "USD"},
                 }
             ],
-            "customer_account_created_at": started_at - timedelta(days=customer.account_age_days),
-            "merchant_account_created_at": started_at - timedelta(days=merchant.account_age_days),
+            "customer_account_created_at": history_start - timedelta(days=customer.account_age_days),
+            "merchant_account_created_at": history_start - timedelta(days=merchant.account_age_days),
         },
     )
 

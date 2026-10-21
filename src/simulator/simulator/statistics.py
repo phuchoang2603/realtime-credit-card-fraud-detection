@@ -15,6 +15,7 @@ class DatasetStatistics:
     scenarios: Counter = field(default_factory=Counter)
     merchants: Counter = field(default_factory=Counter)
     categories: Counter = field(default_factory=Counter)
+    daily_purchases: Counter = field(default_factory=Counter)
     identities: dict[str, set[str]] = field(
         default_factory=lambda: {
             name: set() for name in ("customer", "device", "ip_network", "address", "payment_method")
@@ -31,6 +32,7 @@ class DatasetStatistics:
             self.history_end = max(self.history_end, timestamp) if self.history_end is not None else timestamp
             if event.get("payment_created") is not None:
                 created = event["payment_created"]
+                self.daily_purchases[timestamp.date().isoformat()] += 1
                 self.merchants[created["merchant"]["merchant_id"]] += 1
                 self.categories[created["snapshot"]["merchant_category"]] += 1
                 self.identities["customer"].add(created["customer"]["customer_id"])
@@ -52,6 +54,7 @@ class DatasetStatistics:
             "duplicate_rate": duplicate_events / total if total else 0,
             "duplicate_events": duplicate_events,
             "scenario_counts": dict(sorted(self.scenarios.items())),
+            "daily_purchase_counts": dict(sorted(self.daily_purchases.items())),
             "merchant_count": len(self.merchants),
             **{f"{name}_count": len(values) for name, values in self.identities.items()},
             "category_counts": dict(sorted(self.categories.items())),

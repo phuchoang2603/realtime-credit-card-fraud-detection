@@ -10,6 +10,7 @@ import duckdb
 import pyarrow as pa
 import pyarrow.fs as fs
 import pyarrow.parquet as pq
+import yaml
 from datacontract.data_contract import DataContract
 
 from simulator.arrow import LABEL_SCHEMA, Record, event_schema
@@ -98,6 +99,7 @@ def _compact_partitions(
             "memory_limit": f"{layout.sort_memory_limit_mb}MiB",
             "temp_directory": str(temporary),
             "threads": 1,
+            "TimeZone": "UTC",
             "preserve_insertion_order": False,
         }
     ) as connection:
@@ -172,6 +174,7 @@ def _manifest(
     duplicates: int,
     storage: dict,
     contract: dict,
+    data_product: dict,
 ) -> dict:
     configuration = config.model_dump(mode="json")
     canonical_config = json.dumps(configuration, sort_keys=True, separators=(",", ":"))
@@ -182,6 +185,7 @@ def _manifest(
         "config_sha256": sha256(canonical_config.encode()).hexdigest(),
         "generator_revision": _generator_revision(),
         "contract": contract,
+        "data_product": data_product,
         "validation_report": "validation.json",
         "schema_versions": {"payment_events": [1, 2], "fraud_labels": [1]},
         "profile_sha256": profile_digest,
@@ -200,6 +204,7 @@ def _manifest(
         "configured": {
             "duplicate_rate": config.data_problems.duplicate_rate,
             "schema_cutover": config.data_problems.schema_evolution.cutover_date.isoformat(),
+            "drift": config.drift.model_dump(mode="json") if config.drift else None,
             "merchant_zipf_exponent": config.behavior.merchant_zipf_exponent,
             "category_zipf_exponent": config.behavior.category_zipf_exponent,
             "cardinality": config.counts.model_dump(),
@@ -212,9 +217,10 @@ def _manifest(
 def generate(config: HistoricalConfig, output: str, filesystem: fs.FileSystem, root: str) -> dict:
     prefix = f"{root.rstrip('/')}/historical/{config.dataset_version}"
     _require_empty(filesystem, prefix)
-    contract_source = (
-        Path(__file__).resolve().parents[3] / "contracts/data/historical-payments.odcs.yaml"
-    ).read_text()
+    contracts = Path(__file__).resolve().parents[3] / "contracts"
+    contract_source = (contracts / "data/historical-payments.odcs.yaml").read_text()
+    product_source = (contracts / "products/historical-payments.odps.yaml").read_text()
+    product = yaml.safe_load(product_source)
     profiles = build_profiles(config)
     stats = DatasetStatistics()
     with TemporaryDirectory(prefix="historical-") as temporary:
@@ -227,6 +233,7 @@ def generate(config: HistoricalConfig, output: str, filesystem: fs.FileSystem, r
         labels = _PartitionWriter(staging / "fraud_labels", "label_available_date", {1: LABEL_SCHEMA})
         for offset in range(config.duration_days):
             day = config.start_date + timedelta(days=offset)
+            stats.daily_purchases[day.isoformat()] = 0
             random = stage_rng(config.seed, 4, offset)
             for ordinal, purchase in enumerate(schedule_for_day(config, day, profiles)):
                 history = build_history(config, profiles, purchase, day, ordinal, random)
@@ -253,7 +260,7 @@ def generate(config: HistoricalConfig, output: str, filesystem: fs.FileSystem, r
         database = Path(temporary) / "validation.duckdb"
         for name in ("payment_events", "fraud_labels"):
             (export / name).mkdir(exist_ok=True)
-        with duckdb.connect(str(database)) as connection:
+        with duckdb.connect(str(database), config={"TimeZone": "UTC"}) as connection:
             for name, schema in (("payment_events", event_schema(2)), ("fraud_labels", LABEL_SCHEMA)):
                 empty = Path(temporary) / f"{name}.parquet"
                 pq.write_table(pa.Table.from_pylist([], schema=schema), empty)
@@ -288,6 +295,11 @@ def generate(config: HistoricalConfig, output: str, filesystem: fs.FileSystem, r
                 "id": definition.id,
                 "version": definition.version,
                 "sha256": sha256(contract_source.encode()).hexdigest(),
+            },
+            {
+                "id": product["id"],
+                "version": product["version"],
+                "sha256": sha256(product_source.encode()).hexdigest(),
             },
         )
         _require_empty(filesystem, prefix)

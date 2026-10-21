@@ -12,6 +12,8 @@ DP1–DP3, the analytical schemas and the offline rubric rows (#43) need reprodu
 - Run the finite, containerized historical evidence job in a prod data namespace on the existing Argo Workflows controller; retain CLI/local-output support. Do not install a second controller or run the generator interactively in a notebook.
 - Execute the sanity notebook only in a persistent prod Kubeflow Notebook using the same source identity as the generator. Record distributions, schema cutover, duplicates, fraud rates and learnability as #43 evidence; #53 owns the later feature-based training notebook.
 - Run simulator lint and format checks in the existing Python CI job; the simulator has no automated test suite.
+- Add optional abrupt or gradual purchase-frequency drift, daily purchase counts and a separate 90-day preset. Keep the accepted v2 configuration and evidence unchanged; longer histories anchor customer and merchant creation times to the dataset start.
+- Describe the source product in ODPS, referencing the existing ODCS agreement without duplicating its schemas or rules. Record both descriptors' provenance in new manifests and lint the product in CI.
 
 ## Capabilities
 
