@@ -21,7 +21,7 @@ jobs:
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}/simulator
-      context: src/simulator
+      context: .
       dockerfile: infra/docker/simulator.Dockerfile
       publish: ${{ github.event_name == 'push' }}
   edge:

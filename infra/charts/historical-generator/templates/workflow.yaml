@@ -48,7 +48,7 @@ spec:
       container:
         image: {{ printf "%s@%s" .Values.image.repository (required "image.digest must be the published sha256 image digest" .Values.image.digest) | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        args: ["--config", "/app/configs/historical-v1.yaml", "--output", "s3://synthetic-source"]
+        args: ["--config", "/app/src/simulator/configs/historical-v1.yaml", "--output", "s3://synthetic-source"]
         envFrom:
           - secretRef:
               name: historical-source
