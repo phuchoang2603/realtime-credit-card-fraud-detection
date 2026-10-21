@@ -1,0 +1,289 @@
+{
+    "apiVersion": "argoproj.io/v1alpha1",
+    "kind": "Workflow",
+    "metadata": {
+        "annotations": {
+            "workflows.argoproj.io/pod-name-format": "v2"
+        },
+        "creationTimestamp": "2026-10-21T02:05:20Z",
+        "generateName": "historical-v2-",
+        "generation": 6,
+        "labels": {
+            "workflows.argoproj.io/completed": "true",
+            "workflows.argoproj.io/phase": "Succeeded"
+        },
+        "name": "historical-v2-vqccb",
+        "namespace": "fraud-data-prod",
+        "resourceVersion": "20543522",
+        "uid": "f6322680-58ef-4ca4-acd5-0e88764dcc09"
+    },
+    "spec": {
+        "arguments": {},
+        "workflowTemplateRef": {
+            "name": "historical-generator"
+        }
+    },
+    "status": {
+        "artifactGCStatus": {
+            "notSpecified": true
+        },
+        "artifactRepositoryRef": {
+            "artifactRepository": {},
+            "default": true
+        },
+        "conditions": [
+            {
+                "status": "False",
+                "type": "PodRunning"
+            },
+            {
+                "status": "True",
+                "type": "Completed"
+            }
+        ],
+        "finishedAt": "2026-10-21T02:07:01Z",
+        "nodes": {
+            "historical-v2-vqccb": {
+                "children": [
+                    "historical-v2-vqccb-2092023493"
+                ],
+                "displayName": "historical-v2-vqccb",
+                "finishedAt": "2026-10-21T02:07:01Z",
+                "id": "historical-v2-vqccb",
+                "name": "historical-v2-vqccb",
+                "outputs": {
+                    "exitCode": "0"
+                },
+                "phase": "Succeeded",
+                "progress": "1/1",
+                "resourcesDuration": {
+                    "cpu": 13,
+                    "ephemeral-storage": 3,
+                    "memory": 225
+                },
+                "startedAt": "2026-10-21T02:05:25Z",
+                "templateName": "generate",
+                "templateScope": "local/",
+                "type": "Retry"
+            },
+            "historical-v2-vqccb-2092023493": {
+                "displayName": "historical-v2-vqccb(0)",
+                "finishedAt": "2026-10-21T02:06:40Z",
+                "hostNodeName": "prod-server1",
+                "id": "historical-v2-vqccb-2092023493",
+                "name": "historical-v2-vqccb(0)",
+                "nodeFlag": {
+                    "retried": true
+                },
+                "outputs": {
+                    "exitCode": "0"
+                },
+                "phase": "Succeeded",
+                "progress": "1/1",
+                "resourcesDuration": {
+                    "cpu": 13,
+                    "ephemeral-storage": 3,
+                    "memory": 225
+                },
+                "startedAt": "2026-10-21T02:05:25Z",
+                "taskResultSynced": true,
+                "templateName": "generate",
+                "templateScope": "local/",
+                "type": "Pod"
+            }
+        },
+        "phase": "Succeeded",
+        "progress": "1/1",
+        "resourcesDuration": {
+            "cpu": 13,
+            "ephemeral-storage": 3,
+            "memory": 225
+        },
+        "startedAt": "2026-10-21T02:05:25Z",
+        "storedTemplates": {
+            "namespaced/historical-generator/generate": {
+                "container": {
+                    "args": [
+                        "--config",
+                        "/app/src/simulator/configs/historical-v1.yaml",
+                        "--output",
+                        "s3://synthetic-source"
+                    ],
+                    "env": [
+                        {
+                            "name": "AWS_DEFAULT_REGION",
+                            "value": "us-east-1"
+                        },
+                        {
+                            "name": "HOME",
+                            "value": "/tmp"
+                        }
+                    ],
+                    "envFrom": [
+                        {
+                            "secretRef": {
+                                "name": "historical-source"
+                            }
+                        }
+                    ],
+                    "image": "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection/simulator@sha256:e38d8ce5692a04de3011f672bedc52ab8bcad0fc9e4dab938f87a3ca788cecaf",
+                    "imagePullPolicy": "IfNotPresent",
+                    "name": "",
+                    "resources": {
+                        "limits": {
+                            "cpu": "2",
+                            "ephemeral-storage": "10Gi",
+                            "memory": "2Gi"
+                        },
+                        "requests": {
+                            "cpu": "250m",
+                            "ephemeral-storage": "1Gi",
+                            "memory": "512Mi"
+                        }
+                    },
+                    "securityContext": {
+                        "allowPrivilegeEscalation": false,
+                        "capabilities": {
+                            "drop": [
+                                "ALL"
+                            ]
+                        },
+                        "readOnlyRootFilesystem": true,
+                        "runAsNonRoot": true,
+                        "runAsUser": 65532,
+                        "seccompProfile": {
+                            "type": "RuntimeDefault"
+                        }
+                    },
+                    "volumeMounts": [
+                        {
+                            "mountPath": "/tmp",
+                            "name": "tmp"
+                        }
+                    ]
+                },
+                "inputs": {},
+                "metadata": {},
+                "name": "generate",
+                "outputs": {},
+                "retryStrategy": {
+                    "limit": "0"
+                },
+                "volumes": [
+                    {
+                        "emptyDir": {
+                            "sizeLimit": "8Gi"
+                        },
+                        "name": "tmp"
+                    }
+                ]
+            }
+        },
+        "storedWorkflowTemplateSpec": {
+            "activeDeadlineSeconds": 3600,
+            "arguments": {},
+            "entrypoint": "generate",
+            "parallelism": 1,
+            "podSpecPatch": "initContainers:\n  - name: init\n    securityContext:\n      allowPrivilegeEscalation: false\n      capabilities:\n        drop: [ALL]\ncontainers:\n  - name: wait\n    securityContext:\n      allowPrivilegeEscalation: false\n      capabilities:\n        drop: [ALL]\n",
+            "securityContext": {
+                "fsGroup": 65532,
+                "runAsGroup": 65532,
+                "runAsNonRoot": true,
+                "runAsUser": 65532,
+                "seccompProfile": {
+                    "type": "RuntimeDefault"
+                }
+            },
+            "serviceAccountName": "historical-generator",
+            "synchronization": {
+                "mutexes": [
+                    {
+                        "name": "historical-source"
+                    }
+                ]
+            },
+            "templates": [
+                {
+                    "container": {
+                        "args": [
+                            "--config",
+                            "/app/src/simulator/configs/historical-v1.yaml",
+                            "--output",
+                            "s3://synthetic-source"
+                        ],
+                        "env": [
+                            {
+                                "name": "AWS_DEFAULT_REGION",
+                                "value": "us-east-1"
+                            },
+                            {
+                                "name": "HOME",
+                                "value": "/tmp"
+                            }
+                        ],
+                        "envFrom": [
+                            {
+                                "secretRef": {
+                                    "name": "historical-source"
+                                }
+                            }
+                        ],
+                        "image": "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection/simulator@sha256:e38d8ce5692a04de3011f672bedc52ab8bcad0fc9e4dab938f87a3ca788cecaf",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "",
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "ephemeral-storage": "10Gi",
+                                "memory": "2Gi"
+                            },
+                            "requests": {
+                                "cpu": "250m",
+                                "ephemeral-storage": "1Gi",
+                                "memory": "512Mi"
+                            }
+                        },
+                        "securityContext": {
+                            "allowPrivilegeEscalation": false,
+                            "capabilities": {
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "readOnlyRootFilesystem": true,
+                            "runAsNonRoot": true,
+                            "runAsUser": 65532,
+                            "seccompProfile": {
+                                "type": "RuntimeDefault"
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/tmp",
+                                "name": "tmp"
+                            }
+                        ]
+                    },
+                    "inputs": {},
+                    "metadata": {},
+                    "name": "generate",
+                    "outputs": {},
+                    "retryStrategy": {
+                        "limit": "0"
+                    },
+                    "volumes": [
+                        {
+                            "emptyDir": {
+                                "sizeLimit": "8Gi"
+                            },
+                            "name": "tmp"
+                        }
+                    ]
+                }
+            ],
+            "workflowTemplateRef": {
+                "name": "historical-generator"
+            }
+        }
+    }
+}

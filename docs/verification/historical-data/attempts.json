@@ -1,0 +1,17 @@
+[
+  {
+    "workflow": "historical-v2-b6gfk",
+    "result": "Error",
+    "reason": "PodSecurity rejected injected Argo init/wait containers before execution. Added restricted executor security contexts. No dataset written."
+  },
+  {
+    "workflow": "historical-v2-wzwwj",
+    "result": "Failed",
+    "reason": "ODCS validation passed, then RustFS denied the historical/ directory marker. Switched publication to individual objects without directory markers. No manifest or dataset objects written."
+  },
+  {
+    "workflow": "historical-v2-vqccb",
+    "result": "Succeeded",
+    "reason": "Published v2 using the updated pinned image; the prod Notebook read and verified the accepted manifest."
+  }
+]

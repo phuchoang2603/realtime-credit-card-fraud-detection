@@ -119,7 +119,7 @@ Package the `historical` CLI as a pinned simulator image and a WorkflowTemplate 
 
 ## Migration Plan
 
-Additive. Retain the existing RustFS source identity and consolidate its keys into Doppler `prd`. The Development environment and extra data config are removed. Reuse the existing Doppler token and shared ClusterSecretStore across both workload namespaces, grant the shared Argo controller watch access, reconcile the source ExternalSecrets and generator WorkflowTemplate, generate `historical/v1` with the shared Argo controller, execute the prod Notebook and commit the evidence. Rollback of a partially written dataset is an operator action with elevated credentials; the source identity cannot delete objects.
+Additive. Retain the existing RustFS source identity and consolidate its keys into Doppler `prd`. The Development environment and extra data config are removed. Reuse the existing Doppler token and shared ClusterSecretStore across both workload namespaces, grant the shared Argo controller watch access, reconcile the source ExternalSecrets and generator WorkflowTemplate, generate a new `historical/<dataset_version>` with the shared Argo controller, execute the prod Notebook and commit the evidence. Rollback of a partially written dataset is an operator action with elevated credentials; the source identity cannot delete objects.
 
 ## Open Questions
 

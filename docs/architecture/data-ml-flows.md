@@ -15,9 +15,9 @@ flowchart TB
     S[("TrueNAS MinIO: immutable synthetic source")]
     Q[("Strimzi Kafka: committed events")]
     D1["DP1 Spark batch: ingest and validate"]
-    B[("MinIO Iceberg: bronze raw tables")]
+    B[("Governed S3 lake: bronze Iceberg tables")]
     D2["DP2 Spark batch: cleanse and validate"]
-    C[("MinIO Iceberg: silver and gold tables")]
+    C[("Governed S3 lake: silver and gold Iceberg tables")]
     CH[("Separate on-prem analytics ClickHouse")]
     D3["DP3 Spark batch: point-in-time features"]
     O[("Feature-owned offline store")]
@@ -65,7 +65,7 @@ flowchart TB
 
 ## Generation
 
-The [historical payments data product](../data-products/historical-payments.md) supplies valid lifecycle histories outside bronze and outside production payment event storage. Live simulation calls gateway commands so Payments creates authoritative events. Both modes share versioned scenarios for customer, seller, device and synthetic method profiles: ordinary purchases, stolen-card/new-device behavior, unusual geography, reshipping, card testing and retry attacks. Burst, lateness and duplicate delivery are transport conditions; they never fabricate duplicate authoritative transitions.
+The [historical payments data product](../data-products/historical-payments.md) supplies valid lifecycle histories outside bronze and outside production payment event storage. The finite production source run and authenticated sanity Notebook are recorded in [historical source verification](../verification/historical-data.md). Live simulation calls gateway commands so Payments creates authoritative events. Both modes share versioned scenarios for customer, seller, device and synthetic method profiles: ordinary purchases, stolen-card/new-device behavior, unusual geography, reshipping, card testing and retry attacks. Burst, lateness and duplicate delivery are transport conditions; they never fabricate duplicate authoritative transitions.
 
 ## Pipelines and schemas
 

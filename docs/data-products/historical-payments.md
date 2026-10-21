@@ -8,7 +8,7 @@ The product delivers complete payment histories as `payment_events` and separate
 
 Ownership, agreement version, field meanings and quality rules live in the [ODCS agreement](../../contracts/data/historical-payments.odcs.yaml). Its [generated contract reference](historical-payments-contract.md) documents the declared schemas. Producer configuration and deployment details belong to their implementations; the agreement defines the interface consumers follow.
 
-Production workflow execution and authenticated notebook evidence remain pending in the [implementation roadmap](../architecture/roadmap.md).
+Production workflow execution and authenticated Notebook results are recorded in [historical source verification](../verification/historical-data.md), with the implementation status in the [roadmap](../architecture/roadmap.md).
 
 ## Generation and publication
 

@@ -1,0 +1,5 @@
+time=2026-10-21T04:11:13.262Z level=INFO msg="waiting for signals" signalPath=/var/run/argo/ctr/main/signal argo=true
+historical generation failed: dataset version already complete: synthetic-source/historical/v2/manifest.json
+time=2026-10-21T04:11:18.264Z level=INFO msg="sub-process exited" argo=true error="exit status 2"
+time=2026-10-21T04:11:18.264Z level=INFO msg="file signal handler exiting due to context cancellation" argo=true
+Error: exit status 2

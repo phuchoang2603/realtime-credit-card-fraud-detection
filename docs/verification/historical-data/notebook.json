@@ -1,0 +1,90 @@
+{
+  "namespace": "fraud-ml-prod",
+  "notebook": "historical-sanity",
+  "pod_uid": "e8e5091b-6300-480f-a62d-9542d0eab82b",
+  "labels": {
+    "apps.kubernetes.io/pod-index": "0",
+    "controller-revision-hash": "historical-sanity-5988c49b6d",
+    "istio.io/dataplane-mode": "none",
+    "networking.istio.io/tunnel": "http",
+    "notebook-name": "historical-sanity",
+    "security.istio.io/tlsMode": "istio",
+    "service.istio.io/canonical-name": "historical-sanity",
+    "service.istio.io/canonical-revision": "latest",
+    "sidecar.istio.io/inject": "true",
+    "statefulset": "historical-sanity",
+    "statefulset.kubernetes.io/pod-name": "historical-sanity-0"
+  },
+  "containers": [
+    {
+      "name": "historical-sanity",
+      "image": "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy@sha256:8f8a000b7eece82c7e874924dc45a3922e9197137eefe67f55c711cc3ce068fd"
+    }
+  ],
+  "image_status": [
+    {
+      "allocatedResources": {
+        "cpu": "500m",
+        "memory": "1Gi"
+      },
+      "containerID": "containerd://55e09ee413615b0fe000d49e4add7527eb7bd0d08e3183a1f5b2516b77ef0f6b",
+      "image": "sha256:1fe74d16cc58cb111255ecad57c2eca36de55114982ddcb043d6d02ae4b3f470",
+      "imageID": "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy@sha256:8f8a000b7eece82c7e874924dc45a3922e9197137eefe67f55c711cc3ce068fd",
+      "lastState": {},
+      "name": "historical-sanity",
+      "ready": true,
+      "resources": {
+        "limits": {
+          "cpu": "2",
+          "memory": "4Gi"
+        },
+        "requests": {
+          "cpu": "500m",
+          "memory": "1Gi"
+        }
+      },
+      "restartCount": 0,
+      "started": true,
+      "state": {
+        "running": {
+          "startedAt": "2026-10-21T02:04:16Z"
+        }
+      },
+      "user": {
+        "linux": {
+          "gid": 0,
+          "supplementalGroups": [
+            0,
+            100
+          ],
+          "uid": 1000
+        }
+      },
+      "volumeMounts": [
+        {
+          "mountPath": "/home/jovyan",
+          "name": "workspace"
+        },
+        {
+          "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+          "name": "kube-api-access-q2x2w",
+          "readOnly": true,
+          "recursiveReadOnly": "Disabled"
+        }
+      ]
+    }
+  ],
+  "pvc": {
+    "name": "historical-sanity-workspace",
+    "uid": "b0a07681-ed4b-47dd-b9b3-9c385207fd4c",
+    "phase": "Bound",
+    "capacity": {
+      "storage": "5Gi"
+    },
+    "storage_class": "local-path",
+    "prune": "Prune=false"
+  },
+  "authenticated_url": "https://kubeflow.phuchoang.sbs/notebook/fraud-ml-prod/historical-sanity/lab",
+  "anonymous_http_status": 302,
+  "same_source_credentials": true
+}
