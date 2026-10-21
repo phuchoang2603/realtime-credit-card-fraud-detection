@@ -1,27 +1,31 @@
 [Home](Home.md)
 
-**Architecture**
+**Overview**
 
-- [Overview](architecture/payment-gateway.md)
-- [Functional requirements](architecture/payment-gateway.md#functional-requirements)
-- [Non-functional targets](architecture/payment-gateway.md#non-functional-requirements)
-- [Payment flows](architecture/payment-flows.md)
-- [Data and ML flows](architecture/data-ml-flows.md)
-- [Service conventions](architecture/service-conventions.md)
-- [Roadmap](architecture/roadmap.md)
+- [Platform architecture](overview/architecture.md)
+- [Requirements](overview/requirements.md)
+- [Roadmap](overview/roadmap.md)
 
-**Data products**
+**Payment gateway**
 
-- [Historical synthetic payments](data-products/historical-payments.md)
+- [Gateway design](payment-gateway/architecture.md)
+- [Payment flows](payment-gateway/payment-flows.md)
+- [Service conventions](payment-gateway/service-conventions.md)
+
+**Data and ML**
+
+- [Data pipeline](data-ml/data-pipeline.md)
+- [ML pipeline](data-ml/ml-pipeline.md)
+- [Data products](data-ml/data-products.md)
+
+**RAG**
+
+- [Fraud investigation](rag/fraud-investigation.md)
 
 **Deployment**
 
 - [GitOps](deployment/gitops.md)
 - [Observability](deployment/shared-observability.md)
-
-**Verification**
-
-- [Acceptance criteria](verification/evidence.md)
 
 **Research**
 

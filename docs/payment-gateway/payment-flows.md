@@ -1,6 +1,6 @@
 # Payment flows
 
-Identity, checkout and payment-authority contracts for the planned gateway, with the checkout and recovery sequence. Deployable units and the deployment view are in the [architecture overview](payment-gateway.md); data and training flows are in [data and ML flows](data-ml-flows.md).
+Identity, checkout and payment-authority contracts for the planned gateway, with the checkout and recovery sequence. Deployable units and the deployment view are in the [platform architecture](../overview/architecture.md); data and training flows are in the [data pipeline architecture](../data-ml/data-pipeline.md).
 
 ## Identity and checkout contract
 
@@ -30,7 +30,7 @@ Record each risk outcome with model, policy and feature versions. Aggregate repl
 
 The chosen commit-log boundary is the Payments event table: append events, status and idempotency in one Postgres transaction; later WAL CDC publishes committed payloads to Kafka. A `bigserial` position identifies a row but does not establish commit order. Payments uses Redis only for immutable completed-attempt results, keyed by integration/session and a digest of the idempotency key, with a request digest and TTL. Authorize the request before reading the cache. Do not cache pending state, method tokens, checkout credentials or sensitive request bodies. Miss, eviction, malformed entries or outage fall back to durable database idempotency; cache population happens only after commit. A changed request under the same key remains a conflict. Redis does not grant permission to call the processor.
 
-The [bank adapter](payment-gateway.md#bank-adapter-and-iso-8583) translates gateway operations to a selected ISO 8583 or HTTP provider profile. Keep wire encoding, network/session management and bank-specific identifiers out of the domain aggregate. Fraud approval permits proceeding; issuer authentication verifies a separate concern, authorization can reserve funds, capture confirms a financial operation and settlement is established through provider evidence. The minimum synthetic `Sale` path does not implement all these stages.
+The [bank adapter](architecture.md#bank-adapter-and-iso-8583) translates gateway operations to a selected ISO 8583 or HTTP provider profile. Keep wire encoding, network/session management and bank-specific identifiers out of the domain aggregate. Fraud approval permits proceeding; issuer authentication verifies a separate concern, authorization can reserve funds, capture confirms a financial operation and settlement is established through provider evidence. The minimum synthetic `Sale` path does not implement all these stages.
 
 Financial postings are distinct from domain workflow events and integration messages. The Payments-owned journal records balanced confirmed effects per currency in integer minor units; authorization holds differ from captured funds. Source event identity prevents duplicate postings. Refunds cannot cumulatively exceed captured funds, and corrections use compensating postings/events rather than edited history. The transactional/projection boundary belongs to journal work.
 

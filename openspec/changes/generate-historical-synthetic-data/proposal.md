@@ -29,5 +29,5 @@ DP1–DP3, the analytical schemas and the offline rubric rows (#43) need reprodu
 - `codegen:proto` also generates Python bindings into `src/simulator/`.
 - CI Python job runs both Python projects; `.gitignore` drops the legacy `simulated-data-*` entries.
 - External prerequisite: the operator creates the `synthetic-source` bucket and a scoped access key on the TrueNAS MinIO. Credentials come from environment or a gitignored `.env`, never from the repository.
-- Docs: new `docs/verification/historical-data.md` with commands and explained captures, sidebar link, roadmap #43 row status, and data-and-ML flows storage wording.
+- Docs: new `docs/data-ml/historical-data-evidence.md` with commands and explained captures, sidebar link, roadmap #43 row status, and data pipeline storage wording.
 - Depends on `define-payment-and-decision-contracts`. It does not depend on the gateway, Kafka or any orchestrator.

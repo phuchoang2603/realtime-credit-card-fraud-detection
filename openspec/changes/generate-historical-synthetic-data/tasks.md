@@ -25,5 +25,5 @@
 
 - [ ] 4.1 Create the `synthetic-source` bucket and scoped key on TrueNAS MinIO, generate `historical/v1`, and verify `manifest.json` exists with expected partition counts
 - [ ] 4.2 Build and execute `notebooks/historical-sanity.ipynb` against `historical/v1` (distributions, skew, approximate distinct counts, cutover nulls, duplicate rate, fraud rate by scenario, learnability check); tune and bump the dataset version if the check fails; commit executed output
-- [ ] 4.3 Add `docs/verification/historical-data.md` with config, commands, dataset version, manifest statistics and explained captures; link it from the sidebar and the roadmap #43 row; update storage wording in data-and-ML flows; verify links resolve
+- [ ] 4.3 Add `docs/data-ml/historical-data-evidence.md` with config, commands, dataset version, manifest statistics and explained captures; link it from the sidebar and the roadmap #43 row; update storage wording in the data pipeline architecture doc; verify links resolve
 - [ ] 4.4 Run `openspec validate generate-historical-synthetic-data --strict` and verify it passes

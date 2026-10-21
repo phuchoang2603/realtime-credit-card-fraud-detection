@@ -2,27 +2,32 @@
 
 Gateway architecture, deployment configuration and implementation plans. Edit these pages in the repository's `docs/` folder; changes publish to the wiki from `main`. Contributor instructions live in the repository's [CONTRIBUTING.md](https://github.com/phuchoang2603/payment-gateway-fraud-detection/blob/main/CONTRIBUTING.md).
 
-## Architecture
+## Overview
 
-- [Gateway overview](architecture/payment-gateway.md)
-- [Functional requirements](architecture/payment-gateway.md#functional-requirements) and [non-functional targets](architecture/payment-gateway.md#non-functional-requirements)
-- [Payment flows](architecture/payment-flows.md)
-- [Data and ML flows](architecture/data-ml-flows.md)
-- [Service conventions](architecture/service-conventions.md)
-- [Implementation roadmap](architecture/roadmap.md)
+- [Platform architecture](overview/architecture.md)
+- [Requirements](overview/requirements.md)
+- [Implementation roadmap](overview/roadmap.md)
 
-## Data products
+## Payment gateway
 
-- [Historical synthetic payments](data-products/historical-payments.md)
+- [Gateway design](payment-gateway/architecture.md)
+- [Payment flows](payment-gateway/payment-flows.md)
+- [Service conventions](payment-gateway/service-conventions.md)
+
+## Data and ML
+
+- [Data pipeline architecture](data-ml/data-pipeline.md)
+- [ML pipeline architecture](data-ml/ml-pipeline.md)
+- [Data products](data-ml/data-products.md)
+
+## RAG
+
+- [Fraud investigation architecture](rag/fraud-investigation.md)
 
 ## Deployment
 
 - [GitOps and runtime configuration](deployment/gitops.md)
 - [Shared observability](deployment/shared-observability.md)
-
-## Verification
-
-- [Verification acceptance](verification/evidence.md)
 
 ## Research
 

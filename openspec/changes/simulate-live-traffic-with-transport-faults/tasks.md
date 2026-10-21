@@ -30,5 +30,5 @@
 
 - [ ] 6.1 In a controlled synthetic evidence run, generate a continuation dataset ending on the run date, run the simulator, and verify a historical customer's live attempts carry the same `customer_id` and fingerprints as its historical events
 - [ ] 6.2 Run the injector with duplicate, late and burst enabled one at a time, then together; record the configured and observed summaries, and verify that per-payment version order in the clean topic and the Postgres histories are unchanged
-- [ ] 6.3 Add `docs/verification/live-traffic.md` with configuration, seeds, commands, summaries, outbox evidence and the label join by `attempt_id`; update the roadmap #44 row, the publication step in data-and-ML flows (Debezium outbox to Strimzi) and the gitops runtime table with the `kafka` and `simulator` applications; link the page from the sidebar; verify links resolve
+- [ ] 6.3 Add `docs/data-ml/live-traffic-evidence.md` with configuration, seeds, commands, summaries, outbox evidence and the label join by `attempt_id`; update the roadmap #44 row, the publication step in the data pipeline architecture doc (Debezium outbox to Strimzi) and the gitops runtime table with the `kafka` and `simulator` applications; link the page from the sidebar; verify links resolve
 - [ ] 6.4 Run `openspec validate simulate-live-traffic-with-transport-faults --strict` and verify it passes

@@ -1,0 +1,21 @@
+# ML pipeline architecture
+
+Planned training, serving and drift monitoring on top of the [data pipeline architecture](data-pipeline.md). Deployable units and the deployment view are in the [platform architecture](../overview/architecture.md); payment contracts are in [payment flows](../payment-gateway/payment-flows.md). Capability coverage and required proof are tracked in the [roadmap](../overview/roadmap.md).
+
+## Fraud serving design
+
+Fraud serving keeps a small injected feature/model client and a pure policy boundary at its core, so the decision rule stays testable independent of transport. Add an application coordinator to fraud serving once it actually retrieves features and calls inference; keep internal gRPC and the existing `fraud.v2` contract. Payments retains the recorded fail-closed decision on fraud unavailability: an unavailable fraud path is an operational failure, not a silent approval, so no fallback may approve payments when scoring cannot run.
+
+Authoritative risk decisions and effect intents stay in the Payments transaction history. Send monitoring and prediction logging asynchronously from committed records, since an unavailable or awaited logging sink must never become a durable payment audit trail or an unconditional latency guarantee for the payment path itself.
+
+## Training and drift
+
+Training grain is one scored attempt/decision, not one payment event. Joins use scoped identity plus decision/attempt IDs; labels remain separate with `label_available_at`. Features use only information available at decision time, including ingestion/availability timestamps when events arrive late. Future outcomes, fraud truth and the decision itself must not leak into its features. Temporal evaluation splits, cold starts and late-label cases require explicit proof. Label cutoffs, chronological splits and dataset-version recording are all explicit and derived from the gateway's own dataset; maturity and warmup periods, keys and thresholds come from the gateway's own currency and scenario design, not from an external dataset's constants. The gateway training grain remains one attempt with strictly earlier features and labels available at its cutoff.
+
+Training extends the accepted mini baseline: notebook acceptance requires that baseline, although exploration can overlap. Distributed training, incremental dataset storage, model registration and approved-model rollout to KServe (Knative and KServe serving) add capabilities without replacing mini generators, pipelines, windows or evidence. Training functions are shared between the notebook and pipeline, with orchestration kept thin on top of them. Drift compares versioned distributions without assuming immediate labels; retraining is deduplicated and cooldown-controlled, and promotion remains separately gated. See the [handoff checklist](../overview/roadmap.md#mini-to-final-handoff).
+
+The prod-only Kubeflow Profile has GitOps configuration, not verified end-to-end ML workloads. Notebook v1 explores a fixed baseline; Kubeflow Pipelines coordinates the same training/evaluation stages through the shared Argo controller, with bounded Katib trials and Trainer for suitable multi-worker algorithms. DP1–DP3 retain direct Argo Workflows definitions and can use the shared Spark Operator when justified. KFP artifacts and logs use a separate RustFS bucket; curated Iceberg snapshots are the versioned training data. KFP's pinned Kubernetes-native build has no ML Metadata service, so persist explicit dataset snapshot, label cutoff, feature contract, source/image, Katib trial and pipeline run references with each candidate. The Profile's Hub Registry indexes immutable model artifacts and approved versions; KServe loads the approved URI and format, with promotion and rollback gated independently. The shared platform owns Kubeflow controllers, ingress and identity, while this repo owns the notebook, pipeline, registry client and serving contracts.
+
+Use the existing Argo/Kubeflow platform, registry and GitHub Actions for orchestration, training and promotion rather than adding a separate Compose stack, Airflow, Jenkins, MLflow or another Kubernetes cluster.
+
+The later [fraud investigation agent](../rag/fraud-investigation.md) reads recorded payment and fraud evidence; it never sits in the payment decision path.

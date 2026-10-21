@@ -31,5 +31,5 @@
 - New `infra/charts/kafka` (`Kafka`, `KafkaNodePool`, `KafkaTopic`, `KafkaConnect`, `KafkaConnector`, secret-reader RBAC, `values-prod.yaml`), `infra/docker/connect-debezium.Dockerfile`, `infra/charts/simulator`, `infra/docker/simulator.Dockerfile`, `connect-debezium` and `simulator` image jobs, and app-of-apps children.
 - Depends on `build-minimum-payment-gateway` (event store, logical replication, edge, deterministic identities, synthetic fingerprint key) and `generate-historical-synthetic-data` (reproducible profiles and manifest digest). Both changes are amended for this change.
 - Platform prerequisite already owned by talos-proxmox: the Strimzi operator.
-- Docs: `docs/verification/live-traffic.md`, roadmap #44 row, and the publication step in data-and-ML flows.
+- Docs: `docs/data-ml/live-traffic-evidence.md`, roadmap #44 row, and the publication step in the data pipeline architecture doc.
 - Not included: Flink windows and deduplication (#49), drift scenarios (final coursework), Kafka authentication (#63), marketplace traffic (#41).

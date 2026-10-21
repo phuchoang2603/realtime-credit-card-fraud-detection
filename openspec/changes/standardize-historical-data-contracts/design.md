@@ -9,7 +9,7 @@ The ODCS agreement is authoritative for source dataset schemas, quality rules, o
 ## Decisions
 
 - Keep the agreement under contracts/data. Applications follow the declared schema and rules; no shared runtime package is required.
-- Pin the ODCS document to v3.1.0 and use Data Contract CLI 1.2.7 directly through uvx. CI lints the agreement and compares the native Markdown export with its committed schema reference under docs/data-products. Keep product purpose and consumption guidance on a dedicated page alongside the generated reference; the architecture page links to it.
+- Pin the ODCS document to v3.1.0 and use Data Contract CLI 1.2.7 directly through uvx. CI lints the agreement and compares the native Markdown export with its committed schema reference under docs/data-ml. Keep product purpose and consumption guidance on a dedicated page alongside the generated reference; the architecture page links to it.
 - Keep payment lifecycle and label checks in ODCS SQL quality rules. Canonicalize identical event deliveries inside the quality SQL and detect conflicts over the original rows.
 - The validation server describes local DuckDB tables or views prepared by a producing or ingesting job. The existing CLI executes the rules and writes its native report. Connection settings, physical file inspection and publication gating belong with the job, not a new contract application.
 - Treat schemaVersions and sinceSchemaVersion as descriptive physical layout metadata. They do not imply an automatic Arrow mapper or engine enforcement.
