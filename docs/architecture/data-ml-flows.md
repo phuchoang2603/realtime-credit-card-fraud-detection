@@ -69,6 +69,8 @@ Historical generation persists valid lifecycle histories outside bronze and outs
 
 ## Pipelines and schemas
 
+The [historical payments data product](../data-products/historical-payments.md) describes the source interface, agreement and validation workflow. Curated dataset contracts are added with their pipelines.
+
 DP1 ingests and validates raw records; DP2 cleanses and curates them; DP3 computes historical features. Each has observable ingest/validate stages, reusable centrally managed connections/configuration, quarantine or failed-validation evidence, and source/table/job lineage. Bronze uses `raw_`, silver `stg_`, and gold `dim_`, `fact_`, `obt_`, `feat_` conventions. SCD2 dimensions carry `valid_from_ts`, `valid_to_ts`, `is_current`; feature tables carry `event_timestamp` and `created`.
 
 Argo Workflows coordinates finite on-prem Spark batch stages and their retries; a Spark-on-Kubernetes operator is a candidate only if it improves lifecycle management over native Spark jobs. The future Iceberg REST-compatible catalog controls multi-engine snapshots over separate governed MinIO lake buckets; the synthetic source bucket remains immutable input, not an Iceberg table. Compaction, snapshot expiration, orphan cleanup and retention are explicit maintenance work. A separately owned analytical ClickHouse deployment evaluates catalog-backed reads against ingesting selected data into local analytical tables; the existing ClickStack telemetry store is not reused as a warehouse. See [analytics foundation #71](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/71).

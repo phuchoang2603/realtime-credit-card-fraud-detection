@@ -11,6 +11,10 @@ Architecture, deployment and coursework evidence. Edit these pages in the reposi
 - [Implementation roadmap](architecture/roadmap.md)
 - [Delivery board](https://github.com/users/phuchoang2603/projects/3)
 
+## Data products
+
+- [Historical synthetic payments](data-products/historical-payments.md)
+
 ## Deployment
 
 - [GitOps and runtime configuration](deployment/gitops.md)
