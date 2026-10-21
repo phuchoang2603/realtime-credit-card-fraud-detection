@@ -19,7 +19,7 @@
 
 **Verification**
 
-- [Evidence](verification/evidence.md)
+- [Acceptance criteria](verification/evidence.md)
 
 **Research**
 

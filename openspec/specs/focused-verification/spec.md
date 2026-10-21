@@ -41,11 +41,11 @@ generation SHALL NOT be required.
 
 ### Requirement: Honest evidence
 
-The PR and CI logs SHALL record current verification. Historical failures SHALL
-remain identified as historical rather than relabeled successful after a policy
-change. Local checks SHALL be proportional; CI SHALL own full image verification.
+The PR and CI logs SHALL record the revision, commands and results of current
+verification. Claims SHALL cover only the behavior and environment exercised.
+Local checks SHALL be proportional; CI SHALL own full image verification.
 
-#### Scenario: Prior mutation failure
+#### Scenario: Current verification scope
 
-- **WHEN** the simplified test policy replaces scoring gates
-- **THEN** the previous mutation failure is disclosed and no current mutation certification is claimed
+- **WHEN** a change reports passing checks or workload acceptance
+- **THEN** its report identifies the current revision, executed checks and remaining unverified behavior

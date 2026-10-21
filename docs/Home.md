@@ -1,6 +1,6 @@
 # Payment Gateway and Real-Time Fraud Detection
 
-Architecture, deployment and coursework evidence. Edit these pages in the repository's `docs/` folder; changes publish to the wiki from `main`. Contributor instructions live in the repository's [CONTRIBUTING.md](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/blob/main/CONTRIBUTING.md).
+Gateway architecture, deployment configuration and implementation plans. Edit these pages in the repository's `docs/` folder; changes publish to the wiki from `main`. Contributor instructions live in the repository's [CONTRIBUTING.md](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/blob/main/CONTRIBUTING.md).
 
 ## Architecture
 
@@ -22,7 +22,7 @@ Architecture, deployment and coursework evidence. Edit these pages in the reposi
 
 ## Verification
 
-- [Evidence and limitations](verification/evidence.md)
+- [Verification acceptance](verification/evidence.md)
 
 ## Research
 
