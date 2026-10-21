@@ -23,13 +23,13 @@ Run only the checks relevant to your edit; CI owns the full set and the image bu
 
 On NixOS use the shell-provided Ruff; CI uses `uv run --locked ruff`. The Python suite is intentionally small; see the [verification evidence](docs/verification/evidence.md) for its scope.
 
-For dataset contracts, run `cd contracts/data && UV_PROJECT_ENVIRONMENT=.venv uv run --locked --extra validation pytest -q`. This uses an isolated project environment inside devenv.
+For dataset contracts, run `cd src/data-contracts && UV_PROJECT_ENVIRONMENT=.venv uv run --locked --extra validation pytest -q`. This uses an isolated project environment inside devenv.
 
 ## Contracts and generated code
 
-The historical dataset agreement is [ODCS](contracts/data/payment_data_contracts/historical-payments.odcs.yaml). Its [generated reference](docs/architecture/historical-data-contract.md) describes source events, labels and executable quality rules. From `contracts/data/`, use `UV_PROJECT_ENVIRONMENT=.venv uv run --locked --extra validation payment-data-contracts lint`; regenerate the reference with `payment-data-contracts docs ../../docs/architecture/historical-data-contract.md` through the same uv command. CI checks the reference for drift.
+The historical dataset agreement is [ODCS](contracts/data/historical-payments.odcs.yaml). Its [generated reference](docs/architecture/historical-data-contract.md) describes source events, labels and executable quality rules. The Python implementation lives in `src/data-contracts/`; its package resource links to the agreement, and distributions embed that file's contents. From `src/data-contracts/`, use `UV_PROJECT_ENVIRONMENT=.venv uv run --locked --extra validation payment-data-contracts lint`; regenerate the reference with `payment-data-contracts docs ../../docs/architecture/historical-data-contract.md` through the same uv command. CI checks the reference for drift.
 
-Python consumers install `payment-data-contracts` from `contracts/data/` and derive physical schemas with `load_contract().arrow_schema("payment_events", version)` or `arrow_schema("fraud_labels")`. Install the `validation` extra to use `validate_dataset(Path(...))` or `payment-data-contracts validate DATASET --report validation.json`. The local staged dataset must contain `payment_events/` and `fraud_labels/`, including empty directories for empty outputs. Validation inspects physical Parquet schemas, then runs the declared SQL rules over complete histories across partitions; warnings or unexecuted rules fail validation. Reports include per-rule evidence and the contract ID, version and SHA-256. Validate staging before publication and attach that provenance to the eventual manifest.
+Python consumers install `payment-data-contracts` from `src/data-contracts/` and derive physical schemas with `load_contract().arrow_schema("payment_events", version)` or `arrow_schema("fraud_labels")`. Install the `validation` extra to use `validate_dataset(Path(...))` or `payment-data-contracts validate DATASET --report validation.json`. The local staged dataset must contain `payment_events/` and `fraud_labels/`, including empty directories for empty outputs. Validation inspects physical Parquet schemas, then runs the declared SQL rules over complete histories across partitions; warnings or unexecuted rules fail validation. Reports include per-rule evidence and the contract ID, version and SHA-256. Validate staging before publication and attach that provenance to the eventual manifest.
 
 The `schemaVersions` custom property lists supported physical layouts; `sinceSchemaVersion` omits a field from earlier Arrow layouts. Version-one events physically omit the user-agent field. Identical event deliveries are allowed; curated uniqueness rules belong in later dataset contracts. Backend Protobuf owns wire messages. Future DataHub ingestion consumes this ODCS document and receives executed rule results; DataHub is not required to run these checks.
 
@@ -48,7 +48,7 @@ The fraud service exposes internal `fraud.v2.FraudService/Decide` on port 8000 a
 
 Edit `src/fraud-service/pyproject.toml`, run `uv lock --project src/fraud-service`, and commit the manifest and lock together; installs use `--locked` and reject drift. Go dependencies follow the usual `go get` / `go mod tidy` flow inside `src/edge` with `GOWORK=off`.
 
-Dataset contract dependencies live in `contracts/data/pyproject.toml`; update its lock with `uv lock --project contracts/data`. Schema-only consumers use Arrow, YAML and the pinned ODCS model. Native SQL execution and documentation generation use the pinned Data Contract CLI from the `validation` extra.
+Dataset contract dependencies live in `src/data-contracts/pyproject.toml`; update its lock with `uv lock --project src/data-contracts`. Schema-only consumers use Arrow, YAML and the pinned ODCS model. Native SQL execution and documentation generation use the pinned Data Contract CLI from the `validation` extra.
 
 ## CI and images
 

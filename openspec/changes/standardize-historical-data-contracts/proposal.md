@@ -23,4 +23,4 @@ None.
 
 ## Impact
 
-Adds an independently packaged Python contract runtime under `contracts/data/`, contract-focused CI and generated documentation linked from the contributor guide. The foundation merges before the historical generator; downstream consumers will use this package rather than copy its schemas or rules. No running service, storage platform or DataHub deployment changes.
+Adds an independently packaged Python contract runtime under `src/data-contracts/`, contract-focused CI and generated documentation linked from the contributor guide. The foundation merges before the historical generator; downstream consumers will use this package rather than copy its schemas or rules. No running service, storage platform or DataHub deployment changes.

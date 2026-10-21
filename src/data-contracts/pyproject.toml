@@ -27,6 +27,12 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["payment_data_contracts"]
 
+[tool.hatch.build.targets.sdist]
+exclude = ["payment_data_contracts/historical-payments.odcs.yaml"]
+
+[tool.hatch.build.targets.sdist.force-include]
+"../../contracts/data/historical-payments.odcs.yaml" = "payment_data_contracts/historical-payments.odcs.yaml"
+
 [tool.ruff]
 line-length = 120
 

@@ -8,7 +8,7 @@ The ODCS document is authoritative for source dataset schemas, quality rules and
 
 ## Decisions
 
-- Package ODCS and its Arrow adapter together under contracts/data so installed consumers load the exact same document as CI.
+- Keep the ODCS agreement under contracts/data and the Python runtime under src/data-contracts. Link the agreement as a package resource and embed its contents in distributions so installed consumers load the exact same document as CI.
 - Pin ODCS v3.1.0, its validated model and Data Contract CLI. Declare nested types using standard properties/items and explicit physical types; use an explicit sinceSchemaVersion custom property only for physical event evolution.
 - Express domain checks as ODCS SQL quality rules executed by Data Contract CLI on DuckDB. Canonicalize identical event deliveries inside the quality SQL; keep conflict detection over the original rows. This removes the need for a second Python payment state machine or per-stage rule implementations.
 - Inspect each Parquet file with derived Arrow schemas before normalization. Build DuckDB views over the files; normalize old event structs only after exact physical inspection. The native runner evaluates schema and quality against the combined logical datasets.

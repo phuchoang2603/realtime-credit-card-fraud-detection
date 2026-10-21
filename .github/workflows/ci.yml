@@ -24,15 +24,16 @@ jobs:
       - uses: astral-sh/setup-uv@v10.1.0
         with:
           enable-cache: true
-          cache-dependency-glob: contracts/data/uv.lock
+          cache-dependency-glob: src/data-contracts/uv.lock
       - name: Contract lint, format, behavior and generated documentation
-        working-directory: contracts/data
+        working-directory: src/data-contracts
         run: |
           uv run --locked --extra validation ruff check payment_data_contracts tests
           uv run --locked --extra validation ruff format --check payment_data_contracts tests
           uv run --locked --extra validation payment-data-contracts lint
           uv run --locked --extra validation pytest -q
           uv run --locked --extra validation payment-data-contracts docs ../../docs/architecture/historical-data-contract.md --check
+          uv build --out-dir "$RUNNER_TEMP/data-contracts-dist"
 
   python:
     runs-on: ubuntu-latest
