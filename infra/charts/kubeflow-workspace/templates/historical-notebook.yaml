@@ -31,6 +31,7 @@ spec:
       containers:
         - name: historical-sanity
           image: {{ .Values.historicalSource.notebookImage | quote }}
+          workingDir: /home/jovyan
           env:
             - name: NB_PREFIX
               value: /notebook/fraud-ml-prod/historical-sanity
