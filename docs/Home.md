@@ -5,6 +5,7 @@ Gateway architecture, deployment configuration and implementation plans. Edit th
 ## Architecture
 
 - [Gateway overview](architecture/payment-gateway.md)
+- [Functional requirements](architecture/payment-gateway.md#functional-requirements) and [non-functional targets](architecture/payment-gateway.md#non-functional-requirements)
 - [Payment flows](architecture/payment-flows.md)
 - [Data and ML flows](architecture/data-ml-flows.md)
 - [Service conventions](architecture/service-conventions.md)

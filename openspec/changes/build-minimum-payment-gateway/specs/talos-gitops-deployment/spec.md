@@ -2,7 +2,7 @@
 
 ### Requirement: Gateway workload deployment
 
-The deployment SHALL target Accounts, Payments, the processor simulator and the edge in `payment-gateway` through the configured prod root, each as its own Argo CD child application with ClusterIP services only. It SHALL NOT restore a dev app-of-apps root. A CloudNativePG cluster owned by this repository SHALL provide separate databases and owner roles for Accounts, Payments and the processor simulator. No service's application credentials SHALL grant access to another service's database or logical replication. Application secrets SHALL come from External Secrets in the workload namespace, not from the repository or an assumed cross-namespace SecretStore.
+The deployment SHALL target Accounts, Payments, vault simulator, processor simulator, Redis and Edge in `payment-gateway` through the configured prod root, each as its own Argo CD child application with ClusterIP services only. It SHALL NOT restore a dev app-of-apps root. A CloudNativePG cluster owned by this repository SHALL provide separate databases and owner roles for Accounts, Payments, vault and processor. No service's application credentials SHALL grant access to another service's database or logical replication. Application encryption keys, caller credentials and transport trust material SHALL come from namespace-scoped External Secrets, not from the repository or an assumed cross-namespace SecretStore. Network policy SHALL default-deny vault/database/Redis access except the required callers. Redis SHALL use a pinned upstream image, bounded memory, TTL-based disposable entries and Payments-only authenticated access; it SHALL NOT contain authoritative payment state. TLS endpoints SHALL use health checks that support their configured transport.
 
 #### Scenario: Render gateway target
 
@@ -13,6 +13,11 @@ The deployment SHALL target Accounts, Payments, the processor simulator and the 
 
 - **WHEN** Payments' database role attempts to read the Accounts database
 - **THEN** access is denied
+
+#### Scenario: Vault database isolation
+
+- **WHEN** Edge, Payments or processor credentials attempt to access the vault database directly
+- **THEN** access is denied and only authenticated permitted vault API calls can obtain their scoped response
 
 ## MODIFIED Requirements
 
@@ -32,5 +37,5 @@ pushes SHALL publish SHA/latest images to GHCR.
 #### Scenario: Merged service changes
 
 - **WHEN** changes reach main
-- **THEN** the release workflow publishes independently built images for fraud, edge, Accounts, Payments and the processor simulator
+- **THEN** the release workflow publishes independently built images for fraud, edge, Accounts, Payments, vault simulator and processor simulator
 - **AND** publication does not depend on manifest version comparison scripts

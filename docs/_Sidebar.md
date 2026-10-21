@@ -3,6 +3,8 @@
 **Architecture**
 
 - [Overview](architecture/payment-gateway.md)
+- [Functional requirements](architecture/payment-gateway.md#functional-requirements)
+- [Non-functional targets](architecture/payment-gateway.md#non-functional-requirements)
 - [Payment flows](architecture/payment-flows.md)
 - [Data and ML flows](architecture/data-ml-flows.md)
 - [Service conventions](architecture/service-conventions.md)

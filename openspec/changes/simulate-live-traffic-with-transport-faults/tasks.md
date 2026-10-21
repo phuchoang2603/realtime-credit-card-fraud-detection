@@ -6,7 +6,7 @@
 
 ## 2. Outbox publication evidence
 
-- [ ] 2.1 Deploy to dev and verify that the connector is `Ready`, that existing and new events of one payment appear on `payments.events.v1` in version order with values byte-equal to the stored payloads, and that the Connect service account cannot read the Accounts database Secret
+- [ ] 2.1 Validate locally/in integration, then deploy through the configured prod root; verify connector readiness, existing/new event version order and payload equality, and that dedicated CDC credentials publish only event records while Connect cannot read application/vault Secrets
 - [ ] 2.2 Restart Connect during a burst of attempts, then scale Kafka to zero, submit an attempt and scale Kafka back; verify no committed event is missing from the topic, checkout succeeded during the outage, and slot lag returned to near zero afterwards
 
 ## 3. Simulator configuration and fault injector
@@ -18,17 +18,17 @@
 ## 4. Live simulator
 
 - [ ] 4.1 Implement dataset continuation: read the manifest, rebuild profiles and the scenario schedule with the generator's per-stage and per-day streams, and refuse on digest mismatch, start before history end or gap above `max_gap`; verify the digest-mismatch refusal test
-- [ ] 4.2 Implement merchant provisioning, the seeded Poisson arrival loop with bounded async concurrency, payment creation and attempts with seeded idempotency keys, simulated client context, synthetic tokens and retry with the same key only on transport errors or 503/504; verify against a local gateway that a forced edge timeout yields one recorded attempt
+- [ ] 4.2 Add generated vault tokenization bindings and integration-scoped authenticated setup for opaque fictional-method tokens, then implement merchant provisioning, seeded Poisson arrivals, payment creation and attempts with seeded idempotency keys and simulated client context; reuse the original key/token/request on transport or 503/504 retries, verify one recorded attempt after a forced edge timeout and stable historical/live fingerprints after token reissuance, and exclude tokens from logs/manifests/labels
 - [ ] 4.3 Implement truth labels and compressed chargebacks that check payment status when due, published to `fraud.labels.v1`; verify against a local gateway that a pending attempt gets no chargeback and a succeeded fraudulent attempt does
 
 ## 5. Image and deployment
 
 - [ ] 5.1 Add `infra/docker/simulator.Dockerfile` and a `simulator` job in `release.yml` using `build-image.yml`, and add the Kafka service container to the CI Python job; verify the PR build does not publish and CI passes
-- [ ] 5.2 Add `infra/charts/simulator` with `live` and `faults` Deployments (one replica, `Recreate`, ExternalSecret for the integration key), enabled in dev values and disabled in prod values; register it in the app-of-apps roots; verify `helm lint`/`helm template` show the workloads only in dev
+- [ ] 5.2 Add `infra/charts/simulator` with `live` and `faults` Deployments (one replica, `Recreate`), disabled by default and explicitly enabled for bounded synthetic runs through the configured prod root; inject integration/vault-tokenization credentials and vault trust/network access only into `live`; verify Helm rendering introduces no dev root and the fault injector cannot access vault credentials or APIs
 
 ## 6. Evidence and documentation
 
-- [ ] 6.1 In dev, generate a continuation dataset ending on the run date, run the simulator, and verify a historical customer's live attempts carry the same `customer_id` and fingerprints as its historical events
+- [ ] 6.1 In a controlled synthetic evidence run, generate a continuation dataset ending on the run date, run the simulator, and verify a historical customer's live attempts carry the same `customer_id` and fingerprints as its historical events
 - [ ] 6.2 Run the injector with duplicate, late and burst enabled one at a time, then together; record the configured and observed summaries, and verify that per-payment version order in the clean topic and the Postgres histories are unchanged
 - [ ] 6.3 Add `docs/verification/live-traffic.md` with configuration, seeds, commands, summaries, outbox evidence and the label join by `attempt_id`; update the roadmap #44 row, the publication step in data-and-ML flows (Debezium outbox to Strimzi) and the gitops runtime table with the `kafka` and `simulator` applications; link the page from the sidebar; verify links resolve
 - [ ] 6.4 Run `openspec validate simulate-live-traffic-with-transport-faults --strict` and verify it passes

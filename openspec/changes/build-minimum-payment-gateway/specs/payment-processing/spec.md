@@ -66,12 +66,26 @@ Each attempt SHALL request a `fraud.v2` decision within a configured deadline an
 
 ### Requirement: Processor effect intent and unknown outcomes
 
-Payments SHALL record `ProcessorOperationRequested` with a stable operation key before calling the processor and SHALL reuse that key on every retry. A confirmed result SHALL be recorded as success or processor decline. A timeout or lost response SHALL be recorded as `ProcessorOutcomeUnknown` and SHALL NOT be treated as a decline.
+Payments SHALL record `ProcessorOperationRequested` with a stable operation key before calling the processor and SHALL reuse that key on every retry. In the same transaction it SHALL persist an encrypted opaque token and request binding in a private operation-request record for crash recovery, excluded from events and later CDC publication. It SHALL clear the encrypted token when the terminal result commits. A confirmed result SHALL be recorded as success or processor decline. A timeout or lost response SHALL be recorded as `ProcessorOutcomeUnknown` and SHALL NOT be treated as a decline.
 
 #### Scenario: Processor timeout
 
 - **WHEN** the processor does not answer within the deadline
 - **THEN** the attempt records an unknown outcome and the caller receives a pending status
+
+### Requirement: Redis completed-attempt cache
+
+Payments SHALL use Redis as a best-effort cache of immutable completed-attempt results after the database commit. It SHALL authorize access before lookup, scope keys by integration/session and a digest of the idempotency key, and bind entries to a canonical request digest. A request mismatch SHALL remain a conflict. Entries SHALL have a configurable TTL; miss, expiry, eviction, malformed entries and outage SHALL fall back to durable database idempotency. Cache operations SHALL be bounded to 50 ms. Redis SHALL NOT store pending state, payment-method tokens, checkout credentials or sensitive request bodies, and SHALL NOT authorize a processor call or replace durable uniqueness.
+
+#### Scenario: Cache loss after successful payment
+
+- **WHEN** Redis is flushed, restarted or unavailable and a completed request is retried
+- **THEN** Payments returns the database-recorded result without another event or processor effect
+
+#### Scenario: Changed request on cache hit
+
+- **WHEN** the cached key matches but the canonical request digest differs
+- **THEN** Payments rejects the conflict and does not invoke the processor
 
 ### Requirement: Recovery and expiry workers
 

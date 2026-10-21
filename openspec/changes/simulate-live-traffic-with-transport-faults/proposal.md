@@ -6,8 +6,9 @@
 
 - Committed Payments events are published to a Kafka topic `payments.events.v1` in commit order, keyed by payment. This follows the refurbished-marketplace pattern: a Debezium outbox connector on Strimzi Kafka Connect reads the Payments `events` table from the WAL. Payments needs no Kafka code.
 - Add a `live` simulator command. It rebuilds the profiles and scenario schedule of a historical dataset from its manifest, then drives clean gateway commands at a configured rate on wall-clock time. It publishes simulation-truth labels and compressed-delay chargeback labels to `fraud.labels.v1`. The client never injects faults on purpose.
+- Obtain opaque tokens from the isolated vault through scoped tokenization credentials during setup; business/scenario selection remains seeded, while token values are random and never logged or published. The live client cannot resolve vault fixtures or bypass checkout.
 - Add a `faults` command, a topic-to-topic fault injector from `payments.events.v1` to `payments.events.v1.faulty`. It applies burst holds, late delivery and duplicate delivery, each independently configured. Faults are selected by a seeded hash of the event ID, so the same events are affected on every run. The clean topic stays as ground truth.
-- Deploy a `kafka` chart copied from refurbished-marketplace: a Strimzi KRaft cluster with one dual-role node pool, topics declared in values, Kafka Connect with a Debezium image, and the Payments outbox connector. Also add a simulator image and chart with the live simulator and the fault injector (dev only by default).
+- Deploy a `kafka` chart copied from refurbished-marketplace: a Strimzi KRaft cluster with one dual-role node pool, topics declared in values, Kafka Connect with a Debezium image, and the Payments outbox connector. Also add a simulator image and chart with opt-in workloads under the configured prod root; do not restore the retired dev root.
 - Rewrite #44 around this scope. Drift moves to the final-coursework extension.
 
 ## Capabilities
@@ -25,7 +26,7 @@
 
 ## Impact
 
-- `src/payments`: no code change. The gateway's CNPG cluster runs with `wal_level: logical`, and the `payments` role gets replication (amended in `build-minimum-payment-gateway`).
+- `src/payments`: no authority change. The gateway's CNPG cluster runs with `wal_level: logical`; provision separate restricted CDC credentials, not replication on the Payments application role. Publish only the event table, excluding private encrypted operation requests and all vault data.
 - `src/simulator`: `live` and `faults` commands (httpx, confluent-kafka), `configs/live-v1.yaml`.
 - New `infra/charts/kafka` (`Kafka`, `KafkaNodePool`, `KafkaTopic`, `KafkaConnect`, `KafkaConnector`, secret-reader RBAC, `values-prod.yaml`), `infra/docker/connect-debezium.Dockerfile`, `infra/charts/simulator`, `infra/docker/simulator.Dockerfile`, `connect-debezium` and `simulator` image jobs, and app-of-apps children.
 - Depends on `build-minimum-payment-gateway` (event store, logical replication, edge, deterministic identities, synthetic fingerprint key) and `generate-historical-synthetic-data` (reproducible profiles and manifest digest). Both changes are amended for this change.
