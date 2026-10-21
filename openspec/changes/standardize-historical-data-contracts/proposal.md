@@ -23,4 +23,4 @@ None.
 
 ## Impact
 
-Adds one ODCS agreement, an independent CI job using an existing CLI, and generated schema documentation linked from the contributor guide. The foundation merges before the historical generator; producers and consumers follow the agreement without depending on a new application. No running service, storage platform or DataHub deployment changes.
+Adds one ODCS agreement, an independent CI job using an existing CLI, and generated schema documentation linked from the data and ML wiki page. The foundation merges before the historical generator; producers and consumers follow the agreement without depending on a new application. No running service, storage platform or DataHub deployment changes.

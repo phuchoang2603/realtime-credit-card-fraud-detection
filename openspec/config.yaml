@@ -36,10 +36,11 @@ context: |
   relevant fast checks locally.
   Do not add score-only tests or custom coverage/mutation gate tooling. Record real
   failures honestly; replacing a verification policy does not turn old failures into passes.
-  Keep documentation minimal. The root README is the entry point and CONTRIBUTING.md
-  is the only contributor guide; docs/ holds architecture, deployment and coursework
-  evidence for the wiki. Update existing pages instead of adding per-directory
-  READMEs or repeating information maintained elsewhere.
+  Keep documentation minimal. The root README is the entry point; CONTRIBUTING.md
+  covers only initial prerequisites, entering devenv and a wiki link. Keep workflow,
+  storage, CI and project-specific instructions in docs/ for the wiki, not in
+  CONTRIBUTING.md. Update existing pages instead of adding per-directory READMEs
+  or repeating information maintained elsewhere.
 
 rules:
   proposal:
