@@ -43,7 +43,7 @@ Each service owns its schema, migrations and persistence adapter; a deployment o
 
 Internal synchronous communication uses versioned protobuf services under `contracts/<capability>/vN/` with generated, committed Go and Python bindings; no parallel internal REST/JSON API is maintained. Additive changes require compatible readers; breaking semantics require a new version and an announced migration window. Public HTTP/JSON belongs only at the Go edge. Asynchronous events may use protobuf payloads but need their own durable transport with an outbox or equivalent boundary.
 
-The versioned protobufs in `contracts/` are the shared wire contracts. Extract technical helpers only when multiple services in the same language actually reuse them; Go and Python cannot share runtime code directly. Do not share mutable domain models or cross-service repositories. No database, broker, event store or application framework is chosen by these conventions; Payments will add event storage under [#33](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/33) and [#35](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/35).
+The versioned protobufs in `contracts/` are the shared wire contracts. Extract technical helpers only when multiple services in the same language actually reuse them; Go and Python cannot share runtime code directly. Do not share mutable domain models or cross-service repositories. No database, broker, event store or application framework is chosen by these conventions; Payments will add event storage under event-sourced aggregate contracts and payment event storage.
 
 ## Images and reference material
 

@@ -1,6 +1,6 @@
 ## Why
 
-Strict streaming requires every live payment event to be produced by Payments, not fabricated by a simulator. That needs the smallest gateway that can take a checkout snapshot, run an attempt through the fraud decision and a processor, and durably record the lifecycle. This slice covers #34, #35, the API part of #37, #38 and the Payments side of #39. Kafka publication and the live simulator (`simulate-live-traffic-with-transport-faults`), Flink, webhooks and marketplace integration are left out.
+Strict streaming requires every live payment event to be produced by Payments, not fabricated by a simulator. That needs the smallest gateway that can take a checkout snapshot, run an attempt through the fraud decision and a processor, and durably record the lifecycle. This slice covers Accounts, payment event storage, the checkout API, the processor simulator and Payments-side fraud orchestration. Kafka publication and the live simulator (`simulate-live-traffic-with-transport-faults`), Flink, webhooks and marketplace integration are left out.
 
 ## What Changes
 
@@ -38,5 +38,5 @@ Strict streaming requires every live payment event to be produced by Payments, n
 - New charts for each service and the database cluster; app-of-apps children for the configured prod root; ExternalSecrets for fingerprint and token keys. Local/integration validation precedes rollout; the retired dev root is not restored.
 - Platform prerequisites already owned by talos-proxmox: CNPG operator, External Secrets. No new platform component.
 - CI Go job gains `go test` for all modules with Postgres and Redis service containers; `release.yml` gains four image jobs, including vault-simulator. Redis uses an upstream pinned image, not a custom application image.
-- Docs: architecture current foundation, payment flows (fail-closed and synthetic context), gitops runtime table and local run instructions, roadmap rows #34/#35/#37/#38/#39.
+- Docs: architecture current foundation, payment flows (fail-closed and synthetic context), gitops runtime table and local run instructions, the gateway implementation roadmap.
 - Depends on `define-payment-and-decision-contracts`; reuses golden histories from `generate-historical-synthetic-data` when present, otherwise adds them.

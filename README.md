@@ -31,4 +31,4 @@ The current repository contains a health-only Go HTTP edge and a Python gRPC fra
 
 ## Documentation
 
-Browse the [project wiki](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/wiki) for architecture, the implementation roadmap, deployment and verification guidance; see [CONTRIBUTING](CONTRIBUTING.md) to work in the repository. Delivery is tracked on the [project board](https://github.com/users/phuchoang2603/projects/3).
+Browse the [project wiki](https://github.com/phuchoang2603/payment-gateway-fraud-detection/wiki) for architecture, the implementation roadmap, deployment and verification guidance; see [CONTRIBUTING](CONTRIBUTING.md) to work in the repository.

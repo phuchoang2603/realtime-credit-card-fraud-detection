@@ -1,6 +1,6 @@
 replicaCount: 2
 image:
-  repository: "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection"
+  repository: "ghcr.io/phuchoang2603/payment-gateway-fraud-detection"
   tag: "latest"
   pullPolicy: Always
 service:

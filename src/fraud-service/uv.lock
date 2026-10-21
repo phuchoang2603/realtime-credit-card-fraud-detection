@@ -391,7 +391,7 @@ wheels = [
 ]
 
 [[package]]
-name = "realtime-credit-card-fraud-detection"
+name = "payment-gateway-fraud-detection"
 version = "2.0.0"
 source = { virtual = "." }
 dependencies = [

@@ -1,6 +1,6 @@
 ## Why
 
-Generators, data pipelines and the gateway services cannot start until they share one definition of payment identities, checkout snapshots, attempt signals, lifecycle events, risk decisions and labels. Today the only contract is `fraud.v1.Predict`, which carries 21 precomputed credit-card handbook features (terminal risk windows) that no ecommerce gateway produces, and a model trained on that data. The contract must describe ecommerce decision-time inputs now, and leave room for the fraud service to later run on Knative with KServe inference ([#70](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/70)) without another breaking change.
+Generators, data pipelines and the gateway services cannot start until they share one definition of payment identities, checkout snapshots, attempt signals, lifecycle events, risk decisions and labels. Today the only contract is `fraud.v1.Predict`, which carries 21 precomputed credit-card handbook features (terminal risk windows) that no ecommerce gateway produces, and a model trained on that data. The contract must describe ecommerce decision-time inputs now, and leave room for the fraud service to later run on Knative with KServe inference (Knative and KServe serving) without another breaking change.
 
 ## What Changes
 

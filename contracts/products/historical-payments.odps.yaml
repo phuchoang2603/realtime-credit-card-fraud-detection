@@ -35,10 +35,10 @@ outputPorts:
         value: Deduplicate identical event deliveries, read complete histories across occurrence dates, exclude feature warmup and join labels only after label_available_at. Drift metadata is manifest-only.
     authoritativeDefinitions:
       - type: dataContract
-        url: https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/blob/main/contracts/data/historical-payments.odcs.yaml
+        url: https://github.com/phuchoang2603/payment-gateway-fraud-detection/blob/main/contracts/data/historical-payments.odcs.yaml
       - type: implementation
-        url: https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/tree/main/src/simulator
+        url: https://github.com/phuchoang2603/payment-gateway-fraud-detection/tree/main/src/simulator
 support:
-  - channel: GitHub issues
-    url: https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues
-    scope: issues
+  - channel: GitHub maintainer
+    url: https://github.com/phuchoang2603
+    scope: support

@@ -23,7 +23,7 @@ None. Existing Talos deployment and shared observability requirements remain unc
 
 ## Impact
 
-- Tracking: [PG-01 / issue #29](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/29), [project](https://github.com/users/phuchoang2603/projects/3), and [mini baseline acceptance #67](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/67).
+- Tracking: PG-01 / issue, [project](https://github.com/users/phuchoang2603/projects/3), and mini baseline acceptance.
 - Planned implementation files: `README.md`, `docs/architecture/payment-gateway.md`, `docs/coursework/README.md`, `docs/coursework/mini-coursework.md`, and `docs/coursework/final-ml.md`.
 - No application/API changes, migrations, infrastructure deployment, new dependencies, or edits to the marketplace repository.
 - Completing this change proves documentation coverage only, not completion of any payment or coursework implementation.

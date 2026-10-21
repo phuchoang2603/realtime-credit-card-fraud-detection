@@ -1,5 +1,5 @@
 global:
-  repoURL: https://github.com/phuchoang2603/realtime-credit-card-fraud-detection.git
+  repoURL: https://github.com/phuchoang2603/payment-gateway-fraud-detection.git
   targetRevision: main
 destinationName: dev
 namePrefix: payment-gateway-dev

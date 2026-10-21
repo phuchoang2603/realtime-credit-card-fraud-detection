@@ -13,9 +13,9 @@ After `define-payment-and-decision-contracts`, the repository has `payments.v1` 
 **Non-Goals:**
 
 - Kafka publication, live simulator and transport faults (`simulate-live-traffic-with-transport-faults`).
-- Hosted checkout HTML page and browser redirect, webhooks (#40), marketplace integration (#41), public routing and rate limits (#63).
-- Financial journal and postings (#36), capture/refund (#58), database sharding and Redis-backed distributed rate limits. Automated reconciliation and bank settlement-file ingestion are excluded from project scope, rather than assigned a later worker.
-- Credential rotation, integration disablement flows beyond a flag, dashboards (#66).
+- Hosted checkout HTML page and browser redirect, webhooks, marketplace integration, public routing and rate limits.
+- Financial journal and postings, capture/refund, database sharding and Redis-backed distributed rate limits. Automated reconciliation and bank settlement-file ingestion are excluded from project scope, rather than assigned a later worker.
+- Credential rotation, integration disablement flows beyond a flag, dashboards.
 - Real bank connectivity, ISO 8583 wire exchange, raw-card vault/CDE, VND-specific policy and issuer-authentication challenges. These are adopted follow-up directions, not implemented by the synthetic sale interface in this slice.
 
 ## Decisions
@@ -129,7 +129,7 @@ pgx v5, sqlc for queries, goose v3, grpc-go with the health service, client_gola
 - [Synchronous attempt latency is the sum of fraud and processor] → Deadlines cap it. Unknown outcomes return `PENDING` rather than blocking.
 - [Advisory-lock leader election] → If the leader dies its lock is released with the connection, and another replica takes over within one poll interval.
 - [Global position gaps and out-of-order commits] → Later publication uses WAL commit order and durable connector offsets, not a `global_position > last_seen` scan.
-- [HMAC keys rotate] → Rotation changes fingerprints. Keys are versioned in secret names, and rotation handling belongs to #63.
+- [HMAC keys rotate] → Rotation changes fingerprints. Keys are versioned in secret names, and rotation handling belongs to the routing, service access and secrets work.
 
 ## Migration Plan
 

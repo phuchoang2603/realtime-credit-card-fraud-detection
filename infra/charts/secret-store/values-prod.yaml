@@ -1,7 +1,7 @@
 secretStore:
   enabled: true
   name: fraud-doppler
-  project: realtime-credit-card-fraud-detection
+  project: payment-gateway-fraud-detection
   config: prd
   namespaces:
     - fraud-ml-prod

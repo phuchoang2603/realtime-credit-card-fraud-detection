@@ -2,7 +2,7 @@
 
 This is the **planned target** for an ecommerce payment gateway with fraud decisioning. The repository currently supplies a Go HTTP edge and a Python gRPC fraud service; the target integrates with the refurbished marketplace, takes synthetic payment-method tokens through hosted checkout, evaluates risk, executes simulated processor operations, and delivers durable payment outcomes. It also produces reproducible data for the mini-coursework and its final ML extension.
 
-Companion pages: [payment flows](payment-flows.md) (identity, checkout and payment authority contracts with the checkout sequence), [data and ML flows](data-ml-flows.md) (generators, DP1–DP3, features, training and drift), [service conventions](service-conventions.md) and the [implementation roadmap](roadmap.md). Delivery is tracked on the [project board](https://github.com/users/phuchoang2603/projects/3).
+Companion pages: [payment flows](payment-flows.md) (identity, checkout and payment authority contracts with the checkout sequence), [data and ML flows](data-ml-flows.md) (generators, DP1–DP3, features, training and drift), [service conventions](service-conventions.md) and the [implementation roadmap](roadmap.md).
 
 ## Functional requirements
 
@@ -186,7 +186,7 @@ Use the [Vietnam payment-policy research](../research/vietnam-payment-policy.md)
 
 ## Delivery sequence
 
-The first working slice is [hosted checkout #37](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/37) → [rules-based fraud decision #39](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/39) → simulated capture → durable financial outcome → [signed webhook delivery #40](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/40) → [marketplace integration #41](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/41). Demonstrate duplicates, timeouts and recovery before layering in learned risk models. The fraud contract leaves feature retrieval and model inference independently deployable as ML capabilities arrive.
+The first working slice is hosted checkout → rules-based fraud decision → simulated capture → durable financial outcome → signed webhook delivery → marketplace integration. Demonstrate duplicates, timeouts and recovery before layering in learned risk models. The fraud contract leaves feature retrieval and model inference independently deployable as ML capabilities arrive.
 
 The API-driven first slice includes the isolated vault simulator and Redis result cache. Then accept the mini data baseline, extend it into feature publication/training/serving, and add authorization/capture and refunds. Database sharding follows measured load and migration evidence. Security, infrastructure reproducibility, tests, telemetry and CI/CD begin with the first service and expand with each workload.
 
@@ -210,5 +210,5 @@ The first refactor should implement the minimum checkout slice already described
 - Versioned payment events and fraud RPC schemas exist under [`contracts/`](../../contracts). Remaining identity and checkout APIs belong to the minimum gateway implementation.
 - Synthetic processing comes first. Real card custody, live processor connectivity, wallets, seller payouts, FX and PCI certification are outside this baseline.
 - Availability and fraud quality require measured evidence. There is no five-nines or real-world model-quality claim.
-- Fraud is internal-only gRPC on port 8000 with named health probes; the chart creates no public ingress. The Go edge owns HTTP/JSON translation. Gateway exposure and routing policy remain with [#63](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/63).
-- Model traffic experiments [#61](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/61) record the authoritative model per decision. Shadow inference cannot execute payment effects. Application canary delivery [#28](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/28) is related but does not itself prove model A/B evaluation.
+- Fraud is internal-only gRPC on port 8000 with named health probes; the chart creates no public ingress. The Go edge owns HTTP/JSON translation. Gateway exposure and routing policy remain with routing, service access and secrets.
+- Model traffic experiments record the authoritative model per decision. Shadow inference cannot execute payment effects. Application canary delivery is related but does not itself prove model A/B evaluation.

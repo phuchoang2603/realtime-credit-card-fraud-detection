@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/phuchoang2603/realtime-credit-card-fraud-detection/edge/internal/config"
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/config"
 )
 
 type Server struct {
