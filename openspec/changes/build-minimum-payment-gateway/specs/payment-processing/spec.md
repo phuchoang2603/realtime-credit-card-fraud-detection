@@ -6,7 +6,7 @@ Own authoritative payment state as an append-only event stream, orchestrating fr
 
 ### Requirement: Event-store append semantics
 
-Payments SHALL persist each payment as the ordered `payments.v1` event stream and SHALL append only with the expected current version, rejecting stale writers. Each committed event SHALL receive a monotonically increasing global commit position. Status views SHALL be rebuildable from events alone, and rebuilding SHALL NOT call fraud or the processor.
+Payments SHALL persist each payment as the ordered `payments.v1` event stream and SHALL append only with the expected current version, rejecting stale writers. Each append SHALL atomically commit its events, status projection and command idempotency state. Each event SHALL receive a unique global sequence position; positions SHALL NOT be treated as transaction commit order or used alone as a publication cursor. Status views SHALL be rebuildable from events alone, and rebuilding SHALL NOT call fraud or the processor.
 
 #### Scenario: Concurrent writers
 
@@ -17,6 +17,11 @@ Payments SHALL persist each payment as the ordered `payments.v1` event stream an
 
 - **WHEN** the status view is discarded and rebuilt
 - **THEN** it equals the view before discarding, and no external call occurs
+
+#### Scenario: Concurrent transaction commit order
+
+- **WHEN** a transaction allocated a lower global position but commits after another transaction
+- **THEN** both committed histories remain valid, and the sequence does not imply publication order
 
 ### Requirement: Idempotent payment creation
 
@@ -38,12 +43,17 @@ Each session SHALL have a checkout token that authorizes attempts only for that 
 
 ### Requirement: Idempotent attempts
 
-Starting an attempt SHALL require an idempotency key scoped to the session. A repeated key with the same content SHALL return the recorded result without new events. A repeated key with different content SHALL be a conflict. An attempt SHALL be refused when the payment is not open or another attempt is active.
+Starting an attempt SHALL require an idempotency key scoped to the session. A repeated key with the same content SHALL return the recorded result without new events. A repeated key with different content SHALL be a conflict. Database constraints and durable idempotency state SHALL arbitrate concurrent retries and survive process restarts without relying on an in-memory or Redis pre-check. An attempt SHALL be refused when the payment is not open or another attempt is active.
 
 #### Scenario: Retried submission
 
 - **WHEN** the same attempt request is sent twice
 - **THEN** one attempt and one set of events exist, and both calls return the same result
+
+#### Scenario: Retry after process restart
+
+- **WHEN** Payments restarts after recording a completed attempt and receives the same key and request
+- **THEN** it returns the stored result without another processor effect
 
 ### Requirement: Risk decision orchestration
 

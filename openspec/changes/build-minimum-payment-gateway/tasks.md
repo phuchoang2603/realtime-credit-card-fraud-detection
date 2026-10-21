@@ -13,33 +13,33 @@
 ## 3. Processor simulator
 
 - [ ] 3.1 Scaffold `src/processor-simulator` with its own database, migrations and gRPC health; verify readiness follows the database
-- [ ] 3.2 Implement idempotent Sale with token behaviors, seeded latency and timeout injection, and GetOperation; verify tests for same-key replay, different-request rejection, timeout-then-status and not-found
+- [ ] 3.2 Implement idempotent Sale with token behaviors, seeded latency and timeout injection, and GetOperation; verify tests for same-key replay, different-request rejection, timeout-then-status, not-found and raw-card rejection
 
 ## 4. Payments
 
 - [ ] 4.1 Implement the pure domain aggregate (`Apply`, command decisions) for the `payments.v1` lifecycle; verify it accepts all valid and rejects all invalid golden histories
-- [ ] 4.2 Add migrations and sqlc queries for `events` (global position, unique event ID and payment version), `payment_status` and `idempotency`; implement append-with-expected-version in one transaction; verify the stale-append integration test against Postgres
+- [ ] 4.2 Add migrations and sqlc queries for `events` (global sequence position, unique event ID and payment version), `payment_status` and `idempotency`; implement append-with-expected-version in one transaction; verify stale append, rollback atomicity, concurrent same-key requests and allocation-order/commit-order divergence against Postgres without using a Redis pre-check
 - [ ] 4.3 Implement CreatePayment with idempotency per integration, merchant and order reference, expiry, and HMAC checkout tokens; verify repeat-returns-same and changed-snapshot-conflict tests
-- [ ] 4.4 Implement StartAttempt orchestration (attempt idempotency, active-attempt guard, fraud call with fail-closed fallback, committed effect intent, processor call, unknown outcome); verify tests for retried submission, fraud timeout and processor timeout
+- [ ] 4.4 Implement StartAttempt orchestration (attempt idempotency, active-attempt guard, fraud call with fail-closed fallback, committed effect intent, processor call through an application-owned port and simulator transport adapter, unknown outcome); verify tests for retried submission after restart, fraud timeout and processor timeout
 - [ ] 4.5 Implement recovery and expiry workers with advisory-lock leadership; verify crash-after-intent, unknown-then-resolved and expiry-blocked-by-pending tests
 - [ ] 4.6 Implement GetPayment scoped to the owning integration and status-view rebuild from events; verify the foreign-integration not-found and rebuild-equals-original tests
 
 ## 5. Edge checkout API
 
 - [ ] 5.1 Restructure the edge into transport/application packages with Accounts and Payments gRPC clients, deadlines and correlation propagation; verify `golangci-lint` passes
-- [ ] 5.2 Implement the four public routes, integration-key and checkout-token authentication, `Idempotency-Key` enforcement, return URL validation and error mapping; verify with a local end-to-end run against all services
+- [ ] 5.2 Implement the four public routes, integration-key and checkout-token authentication, `Idempotency-Key` enforcement, return URL validation, synthetic-token-only payment input and error mapping; verify raw-card rejection and a local end-to-end run against all services
 - [ ] 5.3 Implement address, IP-network and payment-method fingerprints with the secret key for real integrations and the non-secret synthetic key for synthetic ones, and the synthetic-only simulated client context; verify formatting-insensitive address fingerprints, the identity vector fingerprint cases, and rejection of simulated context from a real integration
 
 ## 6. CI, images and deployment
 
 - [ ] 6.1 Change the CI Go job to lint and test every Go module with a Postgres service container; verify CI passes on the PR
 - [ ] 6.2 Add explicit accounts, payments and processor-simulator jobs to `release.yml` using `build-image.yml`; verify PR builds do not publish
-- [ ] 6.3 Add the CNPG cluster chart with per-service databases, owner roles, revoked public connect, `wal_level: logical` and replication for the `payments` role; add charts for accounts, payments, processor-simulator and edge (ClusterIP, gRPC or HTTP probes, migrate init containers, ExternalSecrets for keys), without application telemetry dashboards, alerts or trace endpoints; verify `helm lint` and `helm template` for base and prod values
-- [ ] 6.4 Register child applications in the dev and prod app-of-apps roots; verify rendered application names are environment-qualified and target only their cluster
+- [ ] 6.3 Add the CNPG cluster chart with per-service databases, owner roles, revoked public connect and `wal_level: logical`, without replication privileges on application roles; add charts for accounts, payments, processor-simulator and edge (ClusterIP, gRPC or HTTP probes, migrate init containers, namespace-scoped SecretStore/ExternalSecrets for keys), without application telemetry dashboards, alerts or trace endpoints; verify `helm lint` and `helm template` for base and prod values
+- [ ] 6.4 Register child applications in the configured prod app-of-apps root; verify rendered application names are prod-qualified, target only that cluster and do not restore a dev root
 
 ## 7. Evidence and documentation
 
-- [ ] 7.1 Deploy to dev, create a synthetic integration, run the smoke flow (provision merchant, create payment, approve, risk decline, processor decline, timeout then recovery, expiry) and verify every resulting history passes the aggregate validator
-- [ ] 7.2 Verify that the Payments role is denied access to the Accounts database in dev and record the command output
-- [ ] 7.3 Update architecture current foundation, payment flows (fail closed, synthetic context, token format), gitops runtime table, CONTRIBUTING local run instructions and roadmap rows #34/#35/#37/#38/#39 with evidence links; verify links resolve
+- [ ] 7.1 Create a synthetic integration and run the smoke flow (provision merchant, create payment, approve, risk decline, processor decline, timeout then recovery, expiry) locally/in integration; verify every resulting history passes the aggregate validator, then repeat after the normal GitOps rollout to the configured target
+- [ ] 7.2 Verify that the Payments application role is denied access to the Accounts database and has no replication privileges in integration and after rollout; record the command output
+- [ ] 7.3 Update architecture current foundation, payment flows (fail closed, synthetic context, token format), gitops runtime/local run instructions and roadmap rows #34/#35/#37/#38/#39 with evidence links; distinguish implemented simulator behavior from later ISO 8583, VND/authentication, capture and settlement work; verify links resolve
 - [ ] 7.4 Run `openspec validate build-minimum-payment-gateway --strict` and verify it passes

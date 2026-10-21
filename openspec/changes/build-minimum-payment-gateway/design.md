@@ -16,6 +16,7 @@ After `define-payment-and-decision-contracts`, the repository has `payments.v1` 
 - Hosted checkout HTML page and browser redirect, webhooks (#40), marketplace integration (#41), public routing and rate limits (#63).
 - Financial journal and postings (#36), capture/refund (#58), reconciliation reports (#59).
 - Credential rotation, integration disablement flows beyond a flag, dashboards (#66).
+- Real bank connectivity, ISO 8583 wire exchange, raw-card vault/CDE, VND-specific policy and issuer-authentication challenges. These are adopted follow-up directions, not implemented by the synthetic sale interface in this slice.
 
 ## Decisions
 
@@ -39,7 +40,9 @@ The edge resolves identity through Accounts and passes gateway IDs to Payments. 
 
 ### Event store in Postgres
 
-The `events` table stores `global_position bigserial`, `event_id uuid unique`, `payment_id`, `aggregate_version` (unique with `payment_id`), `event_type`, `payload bytea` (serialized `PaymentEvent`), `occurred_at` and `recorded_at`. An append runs in one transaction: insert events at `expected_version + 1…`, update the `payment_status` view row, and write the idempotency result. A unique violation on `(payment_id, aggregate_version)` means a stale writer. The event table is the commit-log boundary. In `simulate-live-traffic-with-transport-faults`, a Debezium outbox connector reads it from the WAL in commit order, the same pattern refurbished-marketplace uses, so no separate outbox table or publisher code exists in Payments. `bigserial` positions can commit out of order across concurrent transactions; consumers rely on WAL commit order and per-payment versions, not on positions. Alternatives: EventStoreDB or Kafka as the store. Rejected because they add infrastructure, and a broker is not an authoritative store (payment-flows).
+The `events` table stores `global_position bigserial`, `event_id uuid unique`, `payment_id`, `aggregate_version` (unique with `payment_id`), `event_type`, `payload bytea` (serialized `PaymentEvent`), `occurred_at` and `recorded_at`. An append runs in one transaction: insert events at `expected_version + 1…`, update the `payment_status` view row, and write the idempotency result. A unique violation on `(payment_id, aggregate_version)` means a stale writer. The event table is the commit-log boundary. In `simulate-live-traffic-with-transport-faults`, Debezium reads committed inserts from the WAL and maps the stored event payload to Kafka, so no separate outbox table or publisher code exists in Payments. `bigserial` positions can commit out of order across concurrent transactions; consumers rely on WAL commit order and per-payment versions, not on positions. Alternatives: EventStoreDB or Kafka as the store. Rejected because they add infrastructure; the chosen authority is the Payments-owned Postgres event stream.
+
+Idempotency scope, request-content binding and in-flight/final results survive process restarts in Postgres. Database uniqueness and transaction semantics arbitrate concurrent requests; a Redis pre-check is not the authority and is unnecessary for the first slice. Later caches or rate limits must not make cache eviction, expiry or outage permit another payment effect.
 
 ### Domain aggregate replays golden histories
 
@@ -71,7 +74,19 @@ Tokens look like `tok_<card-id>_<behavior>` with behavior `ok`, `nsf`, `issuer` 
 
 ### Processor simulator store and faults
 
-The simulator has its own database with a table of operations keyed by `operation_key`, request hash and outcome. Faults (latency distribution, timeout rate) are seeded configuration. A timeout records the outcome and then sleeps past the caller's deadline, which reproduces a lost response realistically. Transport is `processor.v1` gRPC for consistency with internal conventions, even though a real processor would be an external HTTP API. The adapter boundary in Payments keeps that swap local.
+The simulator has its own database with a table of operations keyed by `operation_key`, request hash and outcome. Faults (latency distribution, timeout rate) are seeded configuration. A timeout records the outcome and then sleeps past the caller's deadline, which reproduces a lost response realistically. Transport is `processor.v1` gRPC for this synthetic slice. Payments depends on application-owned provider operations, not generated transport types; a transport adapter maps them to the simulator. `Sale` and `GetOperation` describe this simulator's capabilities, not a guarantee that every bank exposes an idempotency key or status query.
+
+### Adopted bank integration and policy direction
+
+The [architecture comparison and bank boundary](../../../docs/architecture/payment-gateway.md#reference-payment-gateway-alignment) adopt the reference gateway's separation of synchronous processing, asynchronous delivery and reconciliation, preserving event-sourced authority. Follow-up increments must meet these gates:
+
+- First prove a synthetic ISO 8583 request/response exchange through a bank adapter and a bank simulator, with a named, versioned fictional profile, byte-level fixtures and no live bank or real card data. The current gRPC simulator remains the minimum slice; it is not an ISO wire test. Keep ISO codecs and connection/session state outside the payment aggregate and fraud API.
+- Before real connectivity, obtain the chosen bank/acquirer's integration specification and certification requirements. Pin its ISO edition/profile, MTIs, required/conditional fields, encoding/bitmap rules, framing, transport/session management, security/MAC/key responsibilities, response codes and amount/currency rules. ISO 8583 standardizes messages; it does not prescribe transport or settlement. HTTP-based acquiring interfaces remain a provider-specific alternative.
+- Durably correlate the gateway operation key with provider context and transaction identifiers. STAN/RRN alone are not global gateway identities. Specify handling for duplicate, late, malformed and unmatched responses. Recovery must use the profile's supported query, reversal/advice or reconciliation process; never infer that a timed-out financial request is safe to resend because the synthetic `GetOperation` API exists.
+- A separate lifecycle increment must distinguish issuer authentication, authorization holds, capture, reversal, refund and settlement before adapting such operations to ISO messages. The current `Sale`/`PaymentSucceeded` contract does not prove settlement, and `fraud.v2` APPROVE does not authenticate a cardholder. Add the required events, API states and caller/generator scenarios together rather than reinterpreting existing payloads.
+- Adopt the [Vietnam research](../../../docs/research/vietnam-payment-policy.md) as a source-backed policy-design baseline. Version regulation, provider terms and synthetic policy separately with role/channel/effective dates. Add VND units/validation and authentication success, failure, pending, expiry and cancellation only with coordinated contract changes. Issuer-wide daily totals belong to issuer fixtures/provider evidence, not gateway-only fraud features. Do not ingest real PAN, PIN, OTP or biometric data for these simulations.
+
+Real card collection requires a separately designed vault or hosted tokenization boundary and a cardholder-data environment for components that handle credentials, including a bank connector when applicable. Keep raw credentials and wire dumps out of Payments events, fraud inputs, Kafka and analytical stores. An isolated vault alone does not establish PCI DSS compliance; the synthetic slice makes no compliance or five-nines availability claim.
 
 ### Workers inside Payments
 
@@ -83,7 +98,7 @@ Each Go module keeps its own `gen/` with only the packages it uses. `codegen:pro
 
 ### Database layout
 
-One CNPG `Cluster` (`payment-gateway-pg`, one instance in dev, three in prod) with declarative `Database` resources and managed roles `accounts`, `payments`, `processor`. Each role owns only its database, with `CONNECT` revoked from `PUBLIC`. As in the marketplace, the cluster sets `wal_level: logical` and the `payments` role has `replication: true`, so the later Debezium connector can read the events table. Each service's migrations (goose, embedded SQL) run as an init container invoking `<service> migrate`, so a service can only migrate its own schema. Alternative: one cluster per service. Rejected for homelab resource cost; the role separation gives the ownership guarantee.
+One CNPG `Cluster` (`payment-gateway-pg`, three instances in the configured prod target) with declarative `Database` resources and managed roles `accounts`, `payments`, `processor`. Each role owns only its database, with `CONNECT` revoked from `PUBLIC`. The cluster enables `wal_level: logical` for later CDC; the later publication change must scope replication credentials separately from normal application credentials. Each service's migrations (goose, embedded SQL) run as an init container invoking `<service> migrate`, so a service can only migrate its own schema. Local/integration Postgres supports validation without restoring the retired dev root. Alternative: one cluster per service. Rejected for homelab resource cost; database roles isolate ordinary application access, while cluster administrators and replication credentials remain privileged.
 
 ### Libraries
 
@@ -94,15 +109,15 @@ pgx v5, sqlc for queries, goose v3, grpc-go with the health service, client_gola
 - [Large change] → Tasks are grouped so contracts plus Accounts, then Payments plus processor, then edge plus deployment, can each land as a PR.
 - [Synchronous attempt latency is the sum of fraud and processor] → Deadlines cap it. Unknown outcomes return `PENDING` rather than blocking.
 - [Advisory-lock leader election] → If the leader dies its lock is released with the connection, and another replica takes over within one poll interval.
-- [Global position gaps and out-of-order commits] → The relay reads below a snapshot watermark (see the event-store decision).
+- [Global position gaps and out-of-order commits] → Later publication uses WAL commit order and durable connector offsets, not a `global_position > last_seen` scan.
 - [HMAC keys rotate] → Rotation changes fingerprints. Keys are versioned in secret names, and rotation handling belongs to #63.
 
 ## Migration Plan
 
-1. Land contracts and Accounts; deploy the database cluster and Accounts in dev.
-2. Land processor simulator and Payments; deploy in dev with fraud already running.
-3. Land edge routes; create a synthetic integration with `accounts create-integration --synthetic` and store its key in Doppler; run a scripted smoke flow (provision merchant, create payment, approve, decline, timeout-then-recover) and record evidence.
-4. Promote to prod after dev evidence. Rollback: revert applications; the database is retained, and nothing outside this repository reads it.
+1. Land contracts and Accounts; validate migrations and database-role isolation against local/integration Postgres.
+2. Land processor simulator and Payments; validate idempotency, replay and recovery with fraud in the integration environment.
+3. Land edge routes; create a synthetic integration with `accounts create-integration --synthetic` and run a scripted local smoke flow (provision merchant, create payment, approve, decline, timeout-then-recover) and record evidence.
+4. Render the configured prod root and review namespace-scoped secret prerequisites for `payment-gateway`; the existing workspace SecretStore is in `fraud-ml-prod` and does not cover gateway workloads automatically. Roll out through the normal GitOps process after validation, provision the synthetic key through Doppler, and repeat the smoke flow against the rollout. Rollback: revert applications; retain the database and use schema-compatible images. No dev root is introduced.
 
 ## Open Questions
 

@@ -4,6 +4,15 @@ Stand in for an external card processor so Payments can exercise approvals, decl
 
 ## ADDED Requirements
 
+### Requirement: Synthetic provider boundary
+
+The simulator SHALL use `processor.v1` gRPC and synthetic payment-method tokens. Payments SHALL access it through a transport adapter outside its domain aggregate. The simulator SHALL NOT accept real card credentials. Its operation-key idempotency and status query SHALL be treated as simulator capabilities, not universal bank-protocol guarantees.
+
+#### Scenario: Raw card credentials
+
+- **WHEN** a sale supplies raw card credentials instead of a supported synthetic token
+- **THEN** the simulator rejects the request without recording a sale
+
 ### Requirement: Idempotent sale
 
 The simulator SHALL execute a sale for an operation key, synthetic payment-method token and amount. It SHALL durably record the outcome so that a repeated key with the same request returns the original outcome, and a repeated key with a different request is rejected. Recorded operations SHALL survive restarts.

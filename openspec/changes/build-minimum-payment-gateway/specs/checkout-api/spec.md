@@ -50,6 +50,15 @@ Attempt requests SHALL accept device fingerprint and user-agent family. For synt
 - **WHEN** a synthetic integration submits an attempt with a simulated IP country
 - **THEN** the recorded attempt signals carry that country
 
+### Requirement: Synthetic payment methods
+
+Attempt requests SHALL accept only supported synthetic payment-method tokens in this slice. The edge SHALL reject raw card fields rather than passing them into Payments, Fraud or logs. Real card collection and tokenization SHALL require a separately designed boundary before enabling real processor connectivity.
+
+#### Scenario: Raw card submission
+
+- **WHEN** an attempt includes a card-number or card-security-code field
+- **THEN** the edge rejects it without calling Payments or logging those values
+
 ### Requirement: Safe error mapping
 
 The edge SHALL map invalid input to 400, authentication failure to 401, unknown or foreign resources to 404, idempotency conflicts to 409, unavailable dependencies to 503 and deadline expiry to 504, without exposing internal details. Attempt responses SHALL report `SUCCEEDED`, `DECLINED` with reason, or `PENDING`.

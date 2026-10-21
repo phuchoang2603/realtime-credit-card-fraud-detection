@@ -49,14 +49,15 @@ Solid arrows carry synchronous requests/responses or storage operations. Dotted 
 flowchart TB
     M["External marketplace"]
     B["Buyer browser"]
-    X["External processor simulator"]
+    X["Processor simulator / later bank or acquirer"]
     subgraph gateway["Gateway application workloads - planned"]
         E["Go edge / hosted checkout"]
         A["Go Accounts"]
         AS[("Accounts-owned identity store")]
         P["Go Payments with processor adapter"]
         PS[("Payments-owned event store, projections and journal")]
-        Q[("Integration event transport - product TBD")]
+        C["Later WAL CDC / Debezium"]
+        Q[("Kafka integration events")]
         W["Go webhook delivery"]
         WS[("Delivery-owned inbox and retry store")]
         R["Payments reconciliation worker"]
@@ -84,8 +85,9 @@ flowchart TB
     F -->|"9. validated feature vector"| I
     I -->|"10. score and model version"| F
     F -->|"11. risk decision and versions"| P
-    P <-->|"12. keyed operation / outcome"| X
-    P -.->|"13. committed integration events"| Q
+    P <-->|"12. adapter: simulator gRPC / bank-specific ISO 8583 or HTTP"| X
+    PS -.->|"13a. committed event inserts"| C
+    C -.->|"13b. stored payloads; keyed by payment"| Q
     Q -.->|"14. payment outcomes"| W
     W -->|"15. deduplication and delivery attempts"| WS
     W -.->|"16. signed webhook"| M
@@ -102,6 +104,44 @@ flowchart TB
 ```
 
 Shared platform hosting applies to all gateway/data workloads; the last two edges are representative to keep the view readable and do not give application services ownership of the platform.
+
+## Reference payment gateway alignment
+
+Adopt the reference video's gateway boundaries while retaining the proposed event-sourced payment authority. These are target decisions; the current health-only edge and rules service do not yet implement checkout.
+
+| Reference component | Adopted gateway design |
+| --- | --- |
+| API gateway and Payment Service | Go Edge, Accounts and Payments; synchronous fraud and provider calls use bounded deadlines. |
+| Payment Order and Payment Event | Payments' append-only Postgres event streams are authoritative; current-status projections are rebuildable. Commands atomically persist events, status and idempotency using expected versions. |
+| Main ledger | A later Payments-owned balanced financial journal, separate from workflow events. An authorization hold, captured payment and settled funds are different facts. |
+| Redis idempotency | Durable database constraints, request binding and stored results arbitrate retries. Redis may later support caching/rate limits; losing a cache entry must not permit another charge. |
+| Outbox, Debezium and Kafka | The committed event table supplies the publication boundary. Later WAL CDC publishes stored payloads to Kafka without a second outbox table. Sequence allocation is not commit order; checkpoint CDC offsets and preserve per-payment versions. |
+| Webhook listener and notifications | A separate delivery service owns durable inbox/retry state and signed merchant webhooks; consumers deduplicate stable event IDs. Neither Kafka nor merchant webhook availability blocks the synchronous processor path. |
+| External gateway adapter | An adapter maps canonical operations to the synthetic processor now and a chosen bank/acquirer profile later. ISO 8583 and provider HTTP APIs remain outside payment-domain and fraud contracts. |
+| Card vault | Synthetic tokens first. Real card collection later needs an isolated vault or hosted tokenization integration and a reviewed cardholder-data environment, including any connector that handles credentials. A vault alone does not establish PCI DSS compliance. |
+| Bank files and reconciliation | A worker compares provider reports using stable operation identifiers and requests corrective Payments commands. It does not directly edit aggregate events or journal rows. |
+
+The initial simulator exposes a combined `Sale`; `PaymentSucceeded` records that provider result, not bank settlement. Separate authorization/capture, refunds and settlement require their own lifecycle and journal work. Five-nines availability is a possible future SLO requiring a failure model and measured evidence, not a property established by this diagram. Merchant sharding is deferred until load and access patterns justify it; it must preserve aggregate and idempotency ownership.
+
+### Bank adapter and ISO 8583
+
+Yes, the target must transmit and parse ISO 8583 payloads **when the selected bank/acquirer requires that interface**. The bank-facing adapter owns this translation; browsers, merchant APIs, fraud RPCs, event streams and analytical tables keep their own versioned contracts. [ISO 8583:2023](https://www.iso.org/standard/79451.html) specifies message structure/format and explicitly excludes transport and settlement. A standard number alone is insufficient to connect to a bank.
+
+Before implementing a real bank connection, obtain its integration profile and certification requirements:
+
+- Pin the ISO edition, MTIs, required/conditional fields, bitmap and character/binary encoding, length prefixes/framing, amount/currency mapping and response-code semantics.
+- Specify connection lifecycle, network management/echo, deadlines, authentication/encryption, and MAC/HSM/key-management responsibilities where the profile requires them. Do not assume a universal TCP, TLS or HTTP transport.
+- Persist a mapping from gateway operation identity to provider context and transaction identifiers. STAN/RRN are correlation fields within a profile, not globally unique replacements for gateway IDs.
+- Define duplicate, late, unmatched and malformed response handling; timeout recovery uses the profile's supported query, reversal/advice or settlement reconciliation. A missing response must not trigger an unqualified resend of a financial request.
+- Keep raw card credentials and sensitive ISO wire fields out of ordinary logs, event payloads, Kafka and the ML lake. Real credential retrieval/encoding must stay within the deliberately scoped cardholder-data environment.
+
+For a concrete example of profile differences, [Worldpay's Lync host format](https://docs.worldpay.com/core/lync-iso-8583-message-specification/host-message-format) uses `0100/0110` for authorization, `0220/0230` for completion/capture, `0400/0410` for reversal, and ASCII hexadecimal bitmaps. Its timeout reversal behavior is part of that provider's interface. This is evidence for profile-specific design, not a Vietnamese-bank field map to copy.
+
+Delivery proceeds from the gRPC operation simulator to a **named synthetic ISO profile with an actual encoded request/response exchange**, then a selected bank's certified profile. The synthetic ISO increment must prove byte fixtures, response correlation, duplicates, late responses and uncertain-outcome recovery without live cards. The current gRPC simulator is not an ISO 8583 implementation. The [minimum gateway plan](../../openspec/changes/build-minimum-payment-gateway/design.md#adopted-bank-integration-and-policy-direction) records these follow-up gates.
+
+### Vietnam policy adoption
+
+Use the [Vietnam payment-policy research](../research/vietnam-payment-policy.md) as the source-backed baseline, preserving regulation, provider policy and fictional scenarios as separately versioned material. Introduce a VND profile with coherent units, validation and generator changes; the current fraud input is USD-only. Add issuer-authentication outcomes and pending/expiry/cancellation contracts separately from `fraud.v2` APPROVE/DECLINE. Issuer-wide daily totals must come from issuer fixtures or provider evidence. No real PAN, OTP, PIN, biometric or identity images are needed for this work.
 
 ## Delivery sequence
 
