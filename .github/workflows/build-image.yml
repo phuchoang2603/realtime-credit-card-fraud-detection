@@ -37,7 +37,7 @@ jobs:
         with:
           images: ghcr.io/${{ inputs.image }}
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=,format=short
       - uses: docker/build-push-action@v6.19.2
         with:

@@ -20,6 +20,9 @@ context: |
   coupling domain code to generated modules.
   Prefer supported modern APIs and idiomatic code; use Context7 for current public
   library, SDK and framework guidance. Prefer the repository's Nix devenv.
+  Keep devenv task definitions and CI workflow steps short. Move substantive shell
+  logic into tracked scripts, reuse focused functions for repeated checks, and
+  include devenv script paths in execIfModified so edits rerun tasks.
   Remove obsolete code, dead paths and unnecessary compatibility layers when
   changing an area. Preserve legacy behavior only when explicitly required.
   Update affected producers, consumers, contracts and configuration together.
@@ -36,10 +39,11 @@ context: |
   relevant fast checks locally.
   Do not add score-only tests or custom coverage/mutation gate tooling. Record real
   failures honestly; replacing a verification policy does not turn old failures into passes.
-  Keep documentation minimal. The root README is the entry point and CONTRIBUTING.md
-  is the only contributor guide; docs/ holds architecture, deployment and coursework
-  evidence for the wiki. Update existing pages instead of adding per-directory
-  READMEs or repeating information maintained elsewhere.
+  Keep documentation minimal. The root README is the entry point; CONTRIBUTING.md
+  covers only initial prerequisites, entering devenv and a wiki link. Keep workflow,
+  storage, CI and project-specific instructions in docs/ for the wiki, not in
+  CONTRIBUTING.md. Update existing pages instead of adding per-directory READMEs
+  or repeating information maintained elsewhere.
 
 rules:
   proposal:

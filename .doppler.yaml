@@ -1,0 +1,3 @@
+setup:
+  project: realtime-credit-card-fraud-detection
+  config: prd

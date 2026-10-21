@@ -15,9 +15,9 @@ flowchart TB
     S[("TrueNAS MinIO: immutable synthetic source")]
     Q[("Strimzi Kafka: committed events")]
     D1["DP1 Spark batch: ingest and validate"]
-    B[("MinIO Iceberg: bronze raw tables")]
+    B[("Governed S3 lake: bronze Iceberg tables")]
     D2["DP2 Spark batch: cleanse and validate"]
-    C[("MinIO Iceberg: silver and gold tables")]
+    C[("Governed S3 lake: silver and gold Iceberg tables")]
     CH[("Separate on-prem analytics ClickHouse")]
     D3["DP3 Spark batch: point-in-time features"]
     O[("Feature-owned offline store")]
@@ -26,8 +26,8 @@ flowchart TB
     WN["Online feature writer"]
     N[("Feature-owned online store")]
     MT["Incremental materialization job"]
-    TR["Argo-orchestrated training and distributed workers"]
-    MR[("ML-owned incremental datasets and model registry")]
+    TR["Kubeflow Pipelines training, Katib and distributed workers"]
+    MR[("Versioned lake datasets and Hub Registry metadata")]
     F["Fraud feature API - Knative"]
     I["Model inference - KServe"]
     D["Drift API - Knative, and scheduled comparison job"]
@@ -85,4 +85,4 @@ Training grain is one scored attempt/decision, not one payment event. Joins use 
 
 Training extends the accepted [mini baseline (#67)](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/67): [notebook acceptance (#53)](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/53) requires that baseline, although exploration can overlap. Distributed training, incremental dataset storage, model registration and approved-model rollout to KServe ([#70](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/70)) add capabilities without replacing mini generators, pipelines, windows or evidence. Drift compares versioned distributions without assuming immediate labels; retraining is deduplicated and cooldown-controlled, and promotion remains separately gated. See the [handoff checklist](roadmap.md#mini-to-final-handoff).
 
-Kubeflow Pipelines is the preferred on-prem orchestrator for ML training and evaluation; it may use Argo Workflows as its backend, while DP1–DP3 retain their direct Argo Workflows definitions. Platform components are provisioned separately by the shared cluster owner, and model registry/serving choices still require the versioning and rollout evidence in #55 and #70. The later [fraud investigation agent (#74)](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/74) reads recorded payment and fraud evidence; it never sits in the payment decision path.
+The prod-only Kubeflow Profile has GitOps configuration, not verified end-to-end ML workloads. Notebook v1 explores a fixed baseline (#53); Kubeflow Pipelines coordinates the same training/evaluation stages (#54) through the shared Argo controller, with bounded Katib trials and Trainer for suitable multi-worker algorithms. DP1–DP3 retain direct Argo Workflows definitions and can use the shared Spark Operator when justified. KFP artifacts and logs use a separate RustFS bucket; curated Iceberg snapshots are the versioned training data. KFP's pinned Kubernetes-native build has no ML Metadata service, so persist explicit dataset snapshot, label cutoff, feature contract, source/image, Katib trial and pipeline run references with each candidate. The Profile's Hub Registry indexes immutable model artifacts and approved versions (#55); KServe loads the approved URI and format (#56, #70), with promotion and rollback gated independently (#61). The shared platform owns Kubeflow controllers, ingress and identity, while this repo owns the notebook, pipeline, registry client and serving contracts. The later [fraud investigation agent (#74)](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/74) reads recorded payment and fraud evidence; it never sits in the payment decision path.
