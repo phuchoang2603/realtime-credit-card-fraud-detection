@@ -40,6 +40,6 @@ Production completion is verified against the combined #75/#76 stack and platfor
 - [x] 5.1 Add validated optional abrupt/gradual purchase-frequency drift and stable account creation timestamps; verify disabled behavior, boundaries, increasing/decreasing factors and independent seeded day reconstruction.
 - [x] 5.2 Add a separate 90-day, 3,000-customer preset and daily unique purchase counts, including empty days, in new manifests; preserve accepted v2 configuration and event schemas.
 - [x] 5.3 Add an ODPS source-product descriptor linked to the ODCS agreement, include its provenance in manifests and simulator images, and lint it with pinned native tooling in contracts CI.
-- [ ] 5.4 Execute local CLI verification of reproducible output, native ODCS validation, full 90-day history, observed drift, thirty-day lookbacks and delayed-label cutoffs; record scope and results without claiming a new production or #53 acceptance.
-- [ ] 5.5 Update affected product/evidence guidance and reconcile #43, #53 and #67 with shared source credentials, runtime verification, accepted v2 evidence and the scoped extension.
-- [ ] 5.6 Run simulator lint/format, native ODCS/ODPS lint, generated contract-reference comparison and strict OpenSpec validation.
+- [x] 5.4 Execute local CLI verification of reproducible output, native ODCS validation, full 90-day history, observed drift, thirty-day lookbacks and delayed-label cutoffs; record scope and results without claiming a new production or #53 acceptance.
+- [x] 5.5 Update affected product/evidence guidance and reconcile #43, #53 and #67 with shared source credentials, runtime verification, accepted v2 evidence and the scoped extension.
+- [x] 5.6 Run simulator lint/format, native ODCS/ODPS lint, generated contract-reference comparison and strict OpenSpec validation.

@@ -86,3 +86,21 @@ Rotate the RustFS source key pair using operator credentials, update `HISTORICAL
 A version without a manifest is incomplete and must not be consumed. The CLI refuses nonempty incomplete prefixes too. Inspect workflow logs and the prefix, then choose a new version or use elevated operator credentials for deliberate cleanup; the source identity cannot delete. Never remove or overwrite an accepted manifest to retry. Record failed attempts alongside successful evidence.
 
 The production root Applications were temporarily switched to the feature branches for this verification. [Restoration verification](historical-data/restoration.json) confirms both original specs are restored, both roots are Healthy/Synced on `main`, and no Application tracks either temporary branch. The temporary Notebook, historical generator Application and data namespace were removed. The bound workspace PVC and immutable external dataset remain. Its Argo tracking annotation was removed so the retained workspace does not keep the existing workspace Application out of sync. Git contains the accepted notebook and evidence; redeploy the merged stack to reopen the retained PVC.
+
+## Local 90-day extension
+
+[PR #78](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/pull/78) adds the separate [90-day preset](../../src/simulator/configs/historical-90d.yaml), optional abrupt/gradual purchase-frequency drift, fixed entity creation timestamps and [ODPS product metadata](../../contracts/products/historical-payments.odps.yaml) referencing the unchanged ODCS agreement. The [extension report](historical-data/history-extension.json) and [local manifest](historical-data/history-extension-manifest.json) identify this generator revision, configuration and both descriptors. This is local CLI verification; the accepted `v2` production Workflow/Notebook evidence above remains separate from the extension and #53 training acceptance.
+
+Enter `devenv shell` and select a fresh local output directory:
+
+```bash
+cd src/simulator
+uv run --locked python -m simulator.cli \
+  --config configs/historical-90d.yaml --output /tmp/historical-drift
+```
+
+The generated `historical/v3-history90/manifest.json` records daily unique purchase counts for all ninety UTC dates, including empty days. Compare counts per customer-day before `2026-09-06` with the post-ramp period from `2026-09-20`; exclude the intervening ramp. The configured rates are 0.5 and 0.75 purchases per customer-day. Native `validation.json` records publication-gating ODCS results. The [native report](historical-data/history-extension-validation.json) contains 233 passing checks. The completed local run generated 162,893 purchases and 862,503 delivered payment events, including 17,250 identical duplicates, in 112,566,110 Parquet bytes. Generation took 162.6 seconds with peak child RSS of about 1.44 GiB on this workstation; these are local measurements, not cluster capacity guarantees. Observed frequency was 0.4982 before drift and 0.7540 after the ramp, a 1.5134 ratio. A checked thirty-day window contained fourteen strictly earlier purchases; the history-end label cutoff admitted 7,575 chargebacks and excluded 1,706 future labels.
+
+Independent DuckDB reads use `TimeZone=UTC`, deduplicate creation events, and compare daily counts with the manifest. A strictly earlier thirty-day window is checked against an independent timestamp-range query; repeated snapshots retain one creation timestamp per customer and merchant. Chargebacks with `label_available_at > history_end` are excluded from the cutoff read. These checks establish source availability and consumption semantics; DP3 still owns feature tables, and #53 owns delayed-label training.
+
+Small runtime probes reject thirteen invalid drift configurations before output, preserve independently reconstructed seeded days and the previous scheduler when drift is omitted, reproduce nineteen byte-identical Parquet files, and retain six zero-purchase dates. An initial diagnostic inherited the workstation's `US/Eastern` timezone and failed the UTC daily-count comparison. Generator sort/validation sessions and these reader checks now set UTC explicitly. Interrupted attempts that produced no completed manifest are not accepted runs.

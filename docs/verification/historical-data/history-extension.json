@@ -1,0 +1,129 @@
+{
+  "scope": "Local CLI verification; not a new production acceptance or DP3/#53 implementation",
+  "checks": {
+    "schedules": {
+      "baseline_matches_previous_scheduler": true,
+      "independent_days": [
+        0,
+        30,
+        44,
+        45,
+        52,
+        59,
+        89
+      ],
+      "profiles_unchanged": true,
+      "reference_revision": "bfb3e093e441dcfc80388c5fba628f53e38d034e"
+    },
+    "factors": {
+      "gradual_increase_boundaries": [
+        1,
+        1,
+        1.25,
+        1.5,
+        1.5
+      ],
+      "abrupt_and_gradual_decrease": true
+    },
+    "invalid_configurations_rejected": 13,
+    "invalid_cli_writes_nothing": true,
+    "repeat_parquet_byte_identical": 19,
+    "empty_purchase_dates": 6
+  },
+  "environment": {
+    "python": "3.14.6",
+    "numpy": "2.5.3",
+    "duckdb": "1.5.6",
+    "pyarrow": "24.0.0",
+    "pydantic": "2.14.0",
+    "datacontract-cli": "1.2.7"
+  },
+  "long_run": {
+    "command": "cd src/simulator && uv run --locked python -m simulator.cli --config configs/historical-90d.yaml --output /tmp/fraud-history-extension-evidence-utc/long-output",
+    "generator_revision": "3f18bf10d710d4bf65d23e5f6e86d9926984e712e0dcdb54c20961d472cb07a0",
+    "config_sha256": "3b8e3485126f992d04773203f2c8a65341a1d18e2a44cc7d87c48dd8a1b208be",
+    "manifest_sha256": "8755f4dc0d06682fbe07a5d4c96d66126b7aff46178a6107d6de610c4640f0c2",
+    "data_product": {
+      "id": "urn:dataproduct:fraud:historical-payments",
+      "sha256": "3f1abee716eda4e0c3783d837f3833257bc271541cfcb95596ee6d1519520a87",
+      "version": "1.0.0"
+    },
+    "contract": {
+      "id": "urn:datacontract:fraud:historical-payments",
+      "sha256": "02574f2536ba42a4524ec6b992ced6b78c9817e4efb860228b1da626c0f518e4",
+      "version": "1.0.0"
+    },
+    "generation_seconds": 162.589,
+    "generation_and_verification_seconds": 168.312,
+    "peak_child_rss_kib": 1510580,
+    "native_checks": 233,
+    "dataset_version": "v3-history90",
+    "purchase_days": 90,
+    "purchases": 162893,
+    "delivered_events": 862503,
+    "duplicate_events": 17250,
+    "duplicate_rate": 0.019999930435024574,
+    "parquet_bytes": 112566110,
+    "history_end": "2026-10-21T00:42:00+00:00",
+    "baseline": {
+      "days": 45,
+      "purchases_per_customer_day": 0.4982148148148148
+    },
+    "post_ramp": {
+      "days": 31,
+      "purchases_per_customer_day": 0.754
+    },
+    "observed_frequency_ratio": 1.5134034106959664,
+    "thirty_day_lookup": {
+      "decision_time": "2026-09-21T00:00:00+00:00",
+      "window_start": "2026-08-22T00:00:00+00:00",
+      "prior_purchases": 14,
+      "independent_query_matches": true
+    },
+    "consistent_customer_and_merchant_creation_times": true,
+    "label_cutoff": {
+      "cutoff": "2026-10-21T00:42:00+00:00",
+      "chargebacks": 9281,
+      "available": 7575,
+      "excluded_future": 1706
+    },
+    "storage": {
+      "compression": "zstd",
+      "compression_level": 3,
+      "dictionary_encoding": true,
+      "format": "parquet",
+      "fraud_labels": {
+        "file_count": 111,
+        "row_group_count": 111,
+        "size_bytes": 9146868,
+        "sort_columns": [
+          "label_available_at",
+          "payment_id",
+          "attempt_id",
+          "source"
+        ]
+      },
+      "payment_events": {
+        "file_count": 91,
+        "row_group_count": 91,
+        "size_bytes": 103419242,
+        "sort_columns": [
+          "occurred_at",
+          "payment_id",
+          "aggregate_version",
+          "event_id"
+        ]
+      },
+      "write_statistics": true
+    },
+    "validation_report_sha256": "3f05946d4e0d3d91d8fbc2b81e641c9ab071a5c3e10afb425cb3e04c6d180046"
+  },
+  "implementation_revision": "dc8582fb951c0b5cdbce0ad1032f75e579adf184",
+  "descriptor_lint": {
+    "odps_api_version": "v1.1.0",
+    "dataproduct_cli": "0.3.2",
+    "odcs_api_version": "v3.1.0",
+    "datacontract_cli": "1.2.7",
+    "linked_contract_resolved": true
+  }
+}
