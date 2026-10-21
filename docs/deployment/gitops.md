@@ -1,8 +1,8 @@
 # GitOps deployment
 
-The first GitOps rollout is a prod-only Kubeflow workspace. [talos-proxmox](https://github.com/phuchoang2603/talos-proxmox/blob/main/docs/operations/kubeflow.md) owns the shared Talos clusters, Argo CD, Kubeflow controllers, Dex SSO, External Secrets, Argo Workflows, and ingress. This repository owns its own Profile and workload resources. The fraud-service chart is available for a later rollout but is not enabled in either environment.
+The first GitOps rollout is a prod-only Kubeflow workspace. [talos-proxmox](https://github.com/phuchoang2603/talos-proxmox/blob/main/docs/operations/kubeflow.md) owns the shared Talos clusters, Argo CD, Kubeflow controllers, Dex SSO, External Secrets, Argo Workflows, and ingress. This repository owns its own Profile and workload resources. The fraud-service chart is available for a later rollout but is not enabled.
 
-Argo roots are [`infra/argocd/dev/root.yaml`](../../infra/argocd/dev/root.yaml) and [`infra/argocd/prod/root.yaml`](../../infra/argocd/prod/root.yaml). Each environment has its own Argo CD in `argo-cd` and manages only its local cluster. The dev root currently renders no children. The prod children target prod's local Kubernetes server and create resources in the Profile-owned `fraud-ml-prod` namespace; they use `argo-cd` as their Argo destination so Argo does not create the Profile namespace first.
+The Argo root is [`infra/argocd/prod/root.yaml`](../../infra/argocd/prod/root.yaml). Its enabled children target the prod cluster and create resources in the Profile-owned `fraud-ml-prod` namespace; they use `argo-cd` as their Argo destination so Argo does not create the Profile namespace first.
 
 | Environment | Root                        | Enabled child Application                   | Helm release         | Configuration                                       |
 | ----------- | --------------------------- | ------------------------------------------- | -------------------- | --------------------------------------------------- |
@@ -19,7 +19,7 @@ Once the Profile namespace exists, provision Kubernetes Secret `fraud-doppler-to
 
 Each root defines `targetRevision: &revision main` and reuses `*revision` in `spec.source.helm.valuesObject.global.targetRevision`. For a branch rollout, change the anchored value in the root for that environment to the branch or commit SHA. YAML resolves the same revision for the root catalog and child chart/value sources. Commit the chart changes on that branch, then submit the updated root to that environment's Argo CD using the normal GitOps process. Changing only the live root's `targetRevision` through the Argo UI does not update the embedded child revision: update both fields together or use the anchored source file. Restore the anchor to `main` when the branch rollout ends.
 
-When fraud-service is later enabled, dev follows the moving GHCR `latest` image and always pulls it. Production tracks `main` and should pin an immutable commit-SHA tag in `values-prod.yaml` once a promotion policy exists; the release workflow publishes both `latest` and short-SHA tags on every `main` push.
+When fraud-service is later enabled, production should pin an immutable commit-SHA tag in `values-prod.yaml` once a promotion policy exists; the release workflow publishes both `latest` and short-SHA tags on every `main` push.
 
 ## Runtime configuration
 
@@ -48,6 +48,6 @@ kubectl --context <workload-context> -n payment-gateway port-forward svc/fraud-s
 
 The fraud-service chart creates a `ClusterIP` exposing gRPC 8000 and HTTP metrics 8010. Kubernetes 1.27+ probes the standard gRPC health service using the `liveness` and `readiness` names. The chart creates no Gateway, HTTPRoute or public ingress. This Deployment/ClusterIP layout is staged but not deployed; the planned target replaces it with a cluster-local Knative Service and a KServe predictor ([#70](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/issues/70)). Public HTTP traffic belongs at the Go edge; edge deployment remains part of gateway delivery. Pair the gRPC image and chart in a rollout or rollback; the old HTTP image cannot satisfy gRPC probes. Use an immutable published image SHA for a real rollout, replacing the development `latest` default.
 
-The [shared observability guide](shared-observability.md) describes the interim limits: platform-collected stdout logs, an exposed but uncollected fraud metrics endpoint, and disabled trace export. No application dashboard or alert is installed; telemetry integration is not a rollout prerequisite. Image publication is described in [CONTRIBUTING](../../CONTRIBUTING.md#ci-and-images).
+The [shared observability guide](shared-observability.md) describes the interim limits: platform-collected stdout logs, an exposed but uncollected fraud metrics endpoint, and disabled trace export. No application dashboard or alert is installed; telemetry integration is not a rollout prerequisite. Image publication is defined by the [release workflow](../../.github/workflows/release.yml).
 
 ![Historical Argo CD application dashboard](images/argocd.png)

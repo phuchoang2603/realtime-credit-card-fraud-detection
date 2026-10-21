@@ -46,12 +46,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: src/fraud-service/uv.lock
-      - name: Python lint, format and behavior tests
-        working-directory: src/fraud-service
-        run: |
-          uv run --locked ruff check app tests
-          uv run --locked ruff format --check app tests
-          uv run --locked pytest -q
+      - name: Python lint, format and fraud-service tests
+        run: bash scripts/ci-checks.sh python
 
   go:
     runs-on: ubuntu-latest
@@ -76,15 +72,4 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: azure/setup-helm@v4.3.1
       - name: Lint and render all charts
-        shell: bash
-        run: |
-          shopt -s nullglob
-          while IFS= read -r -d '' manifest; do
-            chart=$(dirname "$manifest")
-            helm lint "$chart"
-            helm template check "$chart" > /dev/null
-            for values in "$chart"/values-*.yaml; do
-              helm lint "$chart" -f "$values"
-              helm template check "$chart" -f "$values" > /dev/null
-            done
-          done < <(git ls-files -z -- '**/Chart.yaml' 'Chart.yaml')
+        run: bash scripts/ci-checks.sh helm
