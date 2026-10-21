@@ -13,6 +13,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            contracts/data/*.odcs.yaml
+            contracts/products/*.odps.yaml
+      - name: Lint ODCS and ODPS and check generated documentation
+        run: |
+          uvx --from datacontract-cli==1.2.7 datacontract lint contracts/data/historical-payments.odcs.yaml --all-errors
+          uvx --from datacontract-cli==1.2.7 datacontract export markdown contracts/data/historical-payments.odcs.yaml --output "$RUNNER_TEMP/historical-data-contract.md"
+          diff -u docs/data-products/historical-payments-contract.md "$RUNNER_TEMP/historical-data-contract.md"
+          uvx --from dataproduct-cli==0.3.2 --with datacontract-cli==1.2.7 dataproduct lint contracts/products/historical-payments.odps.yaml --all-errors --local-references
+
   python:
     runs-on: ubuntu-latest
     timeout-minutes: 15

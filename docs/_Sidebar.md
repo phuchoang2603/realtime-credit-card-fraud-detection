@@ -8,6 +8,10 @@
 - [Service conventions](architecture/service-conventions.md)
 - [Roadmap](architecture/roadmap.md)
 
+**Data products**
+
+- [Historical synthetic payments](data-products/historical-payments.md)
+
 **Deployment**
 
 - [GitOps](deployment/gitops.md)
