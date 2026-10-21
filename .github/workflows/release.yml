@@ -4,6 +4,13 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      service:
+        type: choice
+        default: simulator
+        options: [simulator, fraud, edge, all]
+        description: Service image to publish from the selected revision
 
 permissions:
   contents: read
@@ -11,20 +18,23 @@ permissions:
 
 jobs:
   fraud:
+    if: github.event_name != 'workflow_dispatch' || inputs.service == 'fraud' || inputs.service == 'all'
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}
       context: src/fraud-service
       dockerfile: infra/docker/fraud-service.Dockerfile
-      publish: ${{ github.event_name == 'push' }}
+      publish: ${{ github.event_name != 'pull_request' }}
   simulator:
+    if: github.event_name != 'workflow_dispatch' || inputs.service == 'simulator' || inputs.service == 'all'
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}/simulator
       context: .
       dockerfile: infra/docker/simulator.Dockerfile
-      publish: ${{ github.event_name == 'push' }}
+      publish: ${{ github.event_name != 'pull_request' }}
   edge:
+    if: github.event_name != 'workflow_dispatch' || inputs.service == 'edge' || inputs.service == 'all'
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}/edge
@@ -35,4 +45,4 @@ jobs:
         BUILD_PKG=./cmd/edge
         BUILD_BIN=edge
         EXPOSE_PORT=8080
-      publish: ${{ github.event_name == 'push' }}
+      publish: ${{ github.event_name != 'pull_request' }}

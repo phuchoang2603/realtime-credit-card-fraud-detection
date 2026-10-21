@@ -40,7 +40,7 @@ spec:
   activeDeadlineSeconds: 3600
   synchronization:
     mutexes:
-      - name: historical-v1
+      - name: historical-source
   templates:
     - name: generate
       retryStrategy:

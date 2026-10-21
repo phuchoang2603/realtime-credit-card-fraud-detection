@@ -1,0 +1,49 @@
+{{- if .Values.historicalSource.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: historical-sanity-workspace
+  namespace: fraud-ml-prod
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: kubeflow.org/v1
+kind: Notebook
+metadata:
+  name: historical-sanity
+  namespace: fraud-ml-prod
+  annotations:
+    notebooks.kubeflow.org/server-type: jupyter
+spec:
+  template:
+    spec:
+      serviceAccountName: default-editor
+      securityContext:
+        fsGroup: 100
+      containers:
+        - name: historical-sanity
+          image: {{ .Values.historicalSource.notebookImage | quote }}
+          env:
+            - name: NB_PREFIX
+              value: /notebook/fraud-ml-prod/historical-sanity
+          envFrom:
+            - secretRef:
+                name: historical-source
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          volumeMounts:
+            - name: workspace
+              mountPath: /home/jovyan
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: historical-sanity-workspace
+{{- end }}
