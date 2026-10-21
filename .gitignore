@@ -84,7 +84,6 @@ simulated-data-transformed
 # OS-specific files
 .DS_Store
 Thumbs.db
-/.agents/skills
 /docs/coursework/
 
 # Local development shell state
@@ -92,3 +91,7 @@ Thumbs.db
 .direnv/
 .ruff_cache/
 /.pre-commit-config.yaml
+
+# Agents
+.agents/
+.claude/
