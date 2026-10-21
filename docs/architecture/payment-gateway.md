@@ -120,6 +120,8 @@ The sibling [card-fraud-platform](https://github.com/cvinhnguyen/card-fraud-plat
 - Borrow explicit label cutoffs, chronological splits and dataset-version recording from [`ml/fraud_ml/data.py`](https://github.com/cvinhnguyen/card-fraud-platform/blob/35d4295a1e5a409fa242bc6aa9eff9b06038c111/ml/fraud_ml/data.py) and [`split.py`](https://github.com/cvinhnguyen/card-fraud-platform/blob/35d4295a1e5a409fa242bc6aa9eff9b06038c111/ml/fraud_ml/split.py). Derive maturity and warmup from the gateway dataset; do not copy the card-based keys, VND thresholds, sixty-day maturity constant or one-millisecond join adjustment. The gateway training grain remains one attempt with strictly earlier features and labels available at its cutoff.
 - Reuse training functions between the notebook and pipeline, as the reference does with `ml/fraud_ml` and its KFP wrappers. Keep orchestration thin. Use the existing Argo/Kubeflow platform, registry and GitHub Actions instead of adding Compose, Airflow, Jenkins, MLflow or another Kubernetes cluster to reproduce the reference environment.
 
+The [Vietnam payment policy research](../research/vietnam-payment-policy.md) separates current regulatory sources, provider policies and fictional simulator assumptions, including authentication and dispute scope.
+
 The first refactor should implement the minimum checkout slice already described in the [minimum gateway design](../../openspec/changes/build-minimum-payment-gateway/design.md), then prove retry, timeout and recovery behavior. Shared storage infrastructure may host separate service-owned databases and credentials; services must not share mutable domain models or query one another's tables.
 
 ## Deferred decisions and limits

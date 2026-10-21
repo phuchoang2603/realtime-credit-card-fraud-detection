@@ -28,3 +28,4 @@ Gateway architecture, deployment configuration and implementation plans. Edit th
 
 - [Background](research/ccfd-background.md)
 - [Historical experiments](research/ccfd-experiements-report.md)
+- [Vietnam payment policy research](research/vietnam-payment-policy.md)

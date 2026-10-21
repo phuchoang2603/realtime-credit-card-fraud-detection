@@ -25,3 +25,4 @@
 
 - [Background](research/ccfd-background.md)
 - [Experiments](research/ccfd-experiements-report.md)
+- [Vietnam payment policy research](research/vietnam-payment-policy.md)
