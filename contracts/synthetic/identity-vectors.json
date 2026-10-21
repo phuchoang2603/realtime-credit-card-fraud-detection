@@ -1,0 +1,15 @@
+{
+  "uuid_namespace": "71088b85-53a3-5ed5-bf27-8ea372bf796d",
+  "integration_id": "01234567-89ab-4cde-8fab-0123456789ab",
+  "ids": [
+    {"kind": "merchant", "external_id": "seller-01", "expected": "0a1da25b-c927-5084-8f10-f33b3eced9b4"},
+    {"kind": "customer", "external_id": "buyer-01", "expected": "87d92bde-0bc7-5d3d-be21-113c6bbebd1e"}
+  ],
+  "synthetic_key": "synthetic-fingerprint-v1",
+  "synthetic_key_version": "v1",
+  "fingerprints": [
+    {"kind": "address", "input": "  42  MAIN St   Apt 5 ", "normalized": "42 main st apt 5", "expected": "3e749dce5096ba78de0bd0faebbd401473ce860f9810c7f6571377c8ff8643a6"},
+    {"kind": "ip_network", "input": "203.0.113.77", "normalized": "203.0.113.0/24", "expected": "cb67edbe05e7d95ff6abc00b5b7721eadb7f73326599a73f83bee60bd4678c72"},
+    {"kind": "payment_method", "input": "tok_card-0001_ok", "normalized": "card-0001", "expected": "b1da4f34aef8ad201aacc913ded9afaecf07632414b82c70bdfbcdcc78f40b7a"}
+  ]
+}

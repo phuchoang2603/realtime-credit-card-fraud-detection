@@ -1,7 +1,7 @@
-# urn:datacontract:fraud:historical-payments
+# urn:datacontract:fraud:historical-payment-events
 ## Info
-*Complete synthetic payment histories and separately delivered fraud labels for reproducible pipeline development.*
-- **name:** Historical synthetic payments
+*Complete synthetic payment lifecycle histories for reproducible pipeline development.*
+- **name:** Historical synthetic payment events
 - **version:** 1.0.0
 - **status:** active
 - **team:** Fraud data platform
@@ -11,15 +11,15 @@
 Validate source datasets before publication and ingestion. Deduplicate identical event deliveries before interpreting lifecycle transitions.
 
 ### Purpose
-Complete synthetic payment histories and separately delivered fraud labels for reproducible pipeline development.
+Complete synthetic payment lifecycle histories for reproducible pipeline development.
 
 ### Limitations
-Synthetic data only. Scenario truth and future outcomes must never become decision inputs. Labels may only be used after label_available_at. Empty configured schedules are valid.
+Synthetic data only. Histories are complete across all date partitions. Empty configured schedules are valid.
 
 ## Servers
 | Name | Type | Attributes |
 | ---- | ---- | ---------- |
-| validation | duckdb | *Local tables or views named payment_events and fraud_labels, prepared by the producing or ingesting job. Override the database path with DATACONTRACT_DUCKDB_DATABASE.*<br />• **environment:** local<br />• **database:** validation.duckdb |
+| validation | duckdb | *Local table or view named payment_events, prepared by the producing or ingesting job. Override the database path with DATACONTRACT_DUCKDB_DATABASE.*<br />• **environment:** local<br />• **database:** validation.duckdb |
 
 ## Schema
 ### payment_events
@@ -100,18 +100,5 @@ Synthetic data only. Scenario truth and future outcomes must never become decisi
 | &#x2007;&#x21b3; processor_reference | string | *Synthetic processor result reference.*<br />• `required` |
 |  payment_expired | object | *Terminal expiry with no pending processor result.* |
 | &#x2007;&#x21b3; _present | boolean | *True marker for the otherwise empty expiry payload.*<br />• `required` |
-### fraud_labels
-*Separate synthetic attempt truth and delayed chargebacks. Never join future labels into features.*
-
-| Field | Type | Attributes |
-| ----- | ---- | ---------- |
-|  integration_id | string | *Same dedicated synthetic namespace as the referenced payment.*<br />• `required` |
-|  payment_id | string | *Referenced payment aggregate identity.*<br />• `required` |
-|  attempt_id | string | *Referenced started attempt identity.*<br />• `required` |
-|  is_fraud | boolean | *Fraud truth according to this source; friendly-fraud chargebacks may differ from simulation truth.*<br />• `required` |
-|  occurred_at | timestamp | *Time of the labeled business occurrence.*<br />• **logicalTypeOptions:** {'timezone': True, 'defaultTimezone': 'UTC'}<br />• `required` |
-|  label_available_at | timestamp | *Earliest time this label may be used by training or evaluation.*<br />• **logicalTypeOptions:** {'timezone': True, 'defaultTimezone': 'UTC'}<br />• `required` |
-|  source | string | *LABEL_SOURCE_SIMULATION_TRUTH or LABEL_SOURCE_CHARGEBACK.*<br />• `required` |
-|  scenario | string | *Synthetic generating scenario on simulation truth only; excluded from features.* |
 
 ## SLA Properties

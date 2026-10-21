@@ -27,6 +27,7 @@ Strict streaming requires every live payment event to be produced by Payments, n
 
 ### Modified Capabilities
 
+- `payment-contracts`: Adds shared golden lifecycle histories that the Payments aggregate must accept or reject.
 - `service-conventions`: Adds health, lifecycle and persistence expectations for internal Go gRPC services.
 - `focused-verification`: Adds Go service tests (aggregate against golden histories, idempotency, recovery, store integration) to CI.
 - `talos-gitops-deployment`: Adds gateway workload and database deployment, and one image job per service.
@@ -39,4 +40,4 @@ Strict streaming requires every live payment event to be produced by Payments, n
 - Platform prerequisites already owned by talos-proxmox: CNPG operator, External Secrets. No new platform component.
 - CI Go job gains `go test` for all modules with Postgres and Redis service containers; `release.yml` gains four image jobs, including vault-simulator. Redis uses an upstream pinned image, not a custom application image.
 - Docs: architecture current foundation, payment flows (fail-closed and synthetic context), gitops runtime table and local run instructions, the gateway implementation roadmap.
-- Depends on `define-payment-and-decision-contracts`; reuses golden histories from `generate-historical-synthetic-data` when present, otherwise adds them.
+- Depends on `define-payment-and-decision-contracts`; owns the golden lifecycle histories under `contracts/payments/v1/testdata/`.
