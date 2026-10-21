@@ -1,0 +1,137 @@
+{
+  "cluster": "prod-talos",
+  "workflow": "historical-v3-history90-lzfzb",
+  "namespace": "fraud-data-prod",
+  "workflow_uid": "c75a8217-9ff7-46e3-807f-efa09c9ee5a0",
+  "template": "historical-generator",
+  "config": "/app/src/simulator/configs/historical-90d.yaml",
+  "image_revision": "f805bc391106cd1395569ab85e25c46c35051550",
+  "deployment_revision": "5e042ac68999695b0086785985f1c7838874fcaf",
+  "image": "ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection/simulator@sha256:e65c52bf8fdb9154f918b1abc42ed0fcd1d77959f933b264b58e9108b3ad2447",
+  "image_build_run": 39612396428,
+  "namespace_source_credentials_equal": true,
+  "notebook_authenticated_content_http_status": 200,
+  "infrastructure_interruption": {
+    "node": "prod-server2",
+    "ready_unknown_at": "2026-10-21T13:59:15Z",
+    "recovered_before_workflow_submission": true,
+    "source_workflow_submitted_after_recovery": true
+  },
+  "notebook_anonymous_content_http_status": 302,
+  "workflow_started_at": "2026-10-21T14:04:41Z",
+  "workflow_finished_at": "2026-10-21T14:08:52Z",
+  "generator_container": {
+    "exitCode": 0,
+    "finishedAt": "2026-10-21T14:08:42Z",
+    "reason": "Completed",
+    "startedAt": "2026-10-21T14:05:16Z"
+  },
+  "immutable_guard": {
+    "workflow": "historical-v3-history90-guard-sw7xj",
+    "exit_code": 2,
+    "reason": "dataset version already complete",
+    "manifest_unchanged": true,
+    "manifest_sha256_after": "2c5b8636b0393319d1675deab65320bdfdb545c72024252c5117d61c8c2c7a09"
+  },
+  "notebook_attempts": [
+    {
+      "attempt": 1,
+      "accepted": false,
+      "failure": "Diagnostic compared raw YAML bytes to the canonical configuration hash; fixed to verify source-file and canonical JSON hashes separately."
+    },
+    {
+      "attempt": 2,
+      "accepted": false,
+      "failure": "DuckDB timezone-aware Python timestamp fetch required pytz, absent in the Notebook image; changed the sample timestamp output to ISO text parsed with the standard library."
+    },
+    {
+      "attempt": 3,
+      "accepted": true,
+      "all_cells_executed": true,
+      "errors": 0
+    }
+  ],
+  "scope": "Production source verification; DP3 features, delayed-label model training and drift detection remain separate.",
+  "dataset_version": "v3-history90",
+  "manifest_sha256": "2c5b8636b0393319d1675deab65320bdfdb545c72024252c5117d61c8c2c7a09",
+  "native_checks": 233,
+  "history_extension": {
+    "purchase_days": 90,
+    "purchases": 162893,
+    "baseline": {
+      "days": 45,
+      "purchases_per_customer_day": 0.4982148148148148
+    },
+    "post_ramp": {
+      "days": 31,
+      "purchases_per_customer_day": 0.754
+    },
+    "observed_frequency_ratio": 1.5134034106959664,
+    "stable_customer_and_merchant_creation_times": true,
+    "thirty_day_lookup": {
+      "decision_time": "2026-09-21T00:00:00+00:00",
+      "window_start": "2026-08-22T00:00:00+00:00",
+      "prior_purchases": 14,
+      "independent_query_matches": true
+    },
+    "label_cutoff": {
+      "cutoff": "2026-10-21T00:42:00+00:00",
+      "chargebacks": 9281,
+      "available": 7575,
+      "excluded_future": 1706
+    },
+    "odcs_odps_config_hashes_match": true,
+    "generator_revision_matches": true
+  },
+  "learnability": {
+    "average_precision_gain": 0.3975697789936508,
+    "single_attempt_not_near_perfect": true,
+    "history_improves": true
+  },
+  "metrics": [
+    {
+      "features": "single_attempt",
+      "average_precision": 0.4327738258821913,
+      "roc_auc": 0.768209191910848
+    },
+    {
+      "features": "with_history",
+      "average_precision": 0.8303436048758421,
+      "roc_auc": 0.923072918291324
+    }
+  ],
+  "source_permissions": {
+    "delete_source": "AccessDenied",
+    "write_outside_prefix": "AccessDenied",
+    "read_pipeline_bucket": "AccessDenied"
+  },
+  "parquet_bytes": 112566110,
+  "delivered_events": 862503,
+  "parquet_reproducibility": {
+    "parquet_files": 202,
+    "all_byte_identical_to_local_run": true,
+    "aggregate_sha256": "2566c619b5e195188d2a142292199b6e1df781b2d4403b7761204d98b3a0ba24"
+  },
+  "executed_notebook_sha256": "eac64f8bb854eb75f33049ec515cd283f8db386586a48fab12ee201e71f150b4",
+  "notebook": {
+    "name": "historical-sanity",
+    "namespace": "fraud-ml-prod",
+    "pod": "historical-sanity-0",
+    "uid": "f7e1049f-9c8b-4209-a65c-268047b96167",
+    "node": "prod-server1",
+    "image": "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy@sha256:8f8a000b7eece82c7e874924dc45a3922e9197137eefe67f55c711cc3ce068fd",
+    "workspace_claim": "historical-sanity-workspace",
+    "authenticated_content_http_status": 200,
+    "anonymous_content_http_status": 302
+  },
+  "retained_source_manifests": {
+    "v2": {
+      "manifest_sha256": "5b45cbbafcc06b8e1cea23ff968cde8a219f9baa534afbedf7c9a0cae2b8cd3d",
+      "unchanged": true
+    },
+    "v3-history90": {
+      "manifest_sha256": "2c5b8636b0393319d1675deab65320bdfdb545c72024252c5117d61c8c2c7a09",
+      "unchanged": true
+    }
+  }
+}

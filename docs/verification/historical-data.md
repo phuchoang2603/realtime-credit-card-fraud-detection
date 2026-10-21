@@ -89,7 +89,7 @@ The production root Applications were temporarily switched to the feature branch
 
 ## Local 90-day extension
 
-[PR #78](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/pull/78) adds the separate [90-day preset](../../src/simulator/configs/historical-90d.yaml), optional abrupt/gradual purchase-frequency drift, fixed entity creation timestamps and [ODPS product metadata](../../contracts/products/historical-payments.odps.yaml) referencing the unchanged ODCS agreement. The [extension report](historical-data/history-extension.json) and [local manifest](historical-data/history-extension-manifest.json) identify this generator revision, configuration and both descriptors. This is local CLI verification; the accepted `v2` production Workflow/Notebook evidence above remains separate from the extension and #53 training acceptance.
+[PR #78](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/pull/78) adds the separate [90-day preset](../../src/simulator/configs/historical-90d.yaml), optional abrupt/gradual purchase-frequency drift, fixed entity creation timestamps and [ODPS product metadata](../../contracts/products/historical-payments.odps.yaml) referencing the unchanged ODCS agreement. The [extension report](historical-data/history-extension.json) and [local manifest](historical-data/history-extension-manifest.json) identify this generator revision, configuration and both descriptors. This section records local CLI verification; the [production extension verification](#production-90-day-extension) below records the later Workflow/Notebook run. Both remain separate from #53 training acceptance.
 
 Enter `devenv shell` and select a fresh local output directory:
 
@@ -104,3 +104,29 @@ The generated `historical/v3-history90/manifest.json` records daily unique purch
 Independent DuckDB reads use `TimeZone=UTC`, deduplicate creation events, and compare daily counts with the manifest. A strictly earlier thirty-day window is checked against an independent timestamp-range query; repeated snapshots retain one creation timestamp per customer and merchant. Chargebacks with `label_available_at > history_end` are excluded from the cutoff read. These checks establish source availability and consumption semantics; DP3 still owns feature tables, and #53 owns delayed-label training.
 
 Small runtime probes reject thirteen invalid drift configurations before output, preserve independently reconstructed seeded days and the previous scheduler when drift is omitted, reproduce nineteen byte-identical Parquet files, and retain six zero-purchase dates. An initial diagnostic inherited the workstation's `US/Eastern` timezone and failed the UTC daily-count comparison. Generator sort/validation sessions and these reader checks now set UTC explicitly. Interrupted attempts that produced no completed manifest are not accepted runs.
+
+
+## Production 90-day extension
+
+Production Workflow [`historical-v3-history90-lzfzb`](historical-data/history90/workflow.json), UID `c75a8217-9ff7-46e3-807f-efa09c9ee5a0`, succeeded on `2026-10-21` from `14:04:41Z` to `14:08:52Z`. Its generator container ran for 206 seconds on `prod-server1`, within the existing two-CPU and 2 GiB limits. [Image publication run 39612396428](https://github.com/phuchoang2603/realtime-credit-card-fraud-detection/actions/runs/39612396428) built revision `f805bc3`; the deployed image is `ghcr.io/phuchoang2603/realtime-credit-card-fraud-detection/simulator@sha256:e65c52bf8fdb9154f918b1abc42ed0fcd1d77959f933b264b58e9108b3ad2447`.
+
+The accepted output is `s3://synthetic-source/historical/v3-history90/`. Its [manifest](historical-data/history90/manifest.json) SHA-256 is `2c5b8636b0393319d1675deab65320bdfdb545c72024252c5117d61c8c2c7a09`; all 233 checks passed in the [native ODCS report](historical-data/history90/validation.json). It contains 162,893 purchases across ninety dates and 862,503 delivered events, including 17,250 identical duplicates, in 112,566,110 Parquet bytes. All 202 Parquet files are [byte-identical to the independently generated local reference](historical-data/history90/parquet-comparison.json). The manifest differs because the output destination is S3.
+
+The [executed production notebook](../../src/simulator/notebooks/historical-90d-sanity.ipynb) and [machine-readable sanity results](historical-data/history90/sanity.json) verify physical schema cutover, partitions, duplicates, all scenarios, skew, stable entity creation times and exact ODCS/ODPS/configuration provenance. Baseline frequency is 0.4982 purchases/customer/day and post-ramp frequency is 0.7540, a 1.5134 ratio. An independently checked thirty-day window contains fourteen strictly earlier purchases. The history-end cutoff admits 7,575 chargebacks and excludes 1,706 future labels. After excluding the first thirty dates as warmup, the source diagnostic trains on dates 31–60 and evaluates dates 61–90: average precision improves from 0.4328 to 0.8303 using strictly earlier history. Simulation truth remains a diagnostic target; this does not accept DP3 features or #53 delayed-label training.
+
+![Production Notebook drift, history and label results](historical-data/history90/notebook-history.png)
+
+The capture shows the executed output served through the authenticated prod Notebook route, including the measured drift and label cutoff. Authenticated Notebook contents returned HTTP 200; an anonymous request redirected to sign-in. Source deletion, out-of-prefix writing and pipeline-bucket access were denied. The [verification report](historical-data/history90/verification.json) records the pinned Notebook image, retained workspace, descriptor identities and failed diagnostic attempts. The first Notebook attempt compared raw YAML bytes with a canonical JSON configuration hash; the second encountered DuckDB's optional `pytz` dependency when fetching a timezone-aware Python timestamp. The accepted rerun checks both hash forms separately and parses the sample timestamp from ISO text with the standard library. No source data was regenerated for these diagnostic fixes.
+
+The WorkflowTemplate accepts a `config` argument; its default remains the nine-day preset. To reproduce the longer run, use the submission above with this added `spec.arguments` block after selecting a fresh dataset version:
+
+```yaml
+arguments:
+  parameters:
+    - name: config
+      value: /app/src/simulator/configs/historical-90d.yaml
+```
+
+Copy `historical-90d-sanity.ipynb` and the versioned ODCS, ODPS and preset files into the Notebook workspace; the notebook expects the three files under `history90-descriptors/`. Execute it with `jupyter nbconvert --to notebook --execute historical-90d-sanity.ipynb --output historical-90d-sanity.executed.ipynb --ExecutePreprocessor.timeout=1200`.
+
+The [immutable-version guard](historical-data/history90/immutable-guard-workflow.json), workflow `historical-v3-history90-guard-sw7xj`, exited 2 with [the expected refusal](historical-data/history90/immutable-guard.log). A subsequent read confirmed the same manifest hash. A transient `prod-server2` NotReady interval delayed Argo reconciliation before submission; the node recovered before the source workflow began. [Restoration evidence](historical-data/history90/restoration.json) records both original root specs restored on `main`, temporary generator/Notebook resources removed, and the immutable dataset and bound workspace retained.

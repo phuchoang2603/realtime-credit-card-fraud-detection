@@ -75,7 +75,7 @@ The manifest records configured drift and observed purchase counts for every pur
 
 `contracts/products/historical-payments.odps.yaml` describes source ownership, purpose, access, version selection and the output port linked by ODCS contract ID. The ODCS agreement remains authoritative for fields and quality. ODPS product version, ODCS agreement version, physical schema version and immutable dataset version remain independent. New manifests identify and hash the product descriptor as well as the agreement; the simulator image includes both. Native pinned Data Product CLI lint runs in the existing contracts CI job. This adds no catalog deployment or runtime validation framework.
 
-The v2 production evidence remains the accepted source smoke run. Local extension verification covers boundary configurations, deterministic schedules and output, a full 90-day run, drift measurements, thirty-day lookbacks and label cutoffs. A new production Workflow/Notebook run is required before calling a longer dataset production-accepted.
+The v2 production evidence remains the accepted source smoke run. Local extension verification covers boundary configurations, deterministic schedules and output, a full 90-day run, drift measurements, thirty-day lookbacks and label cutoffs. The 90-day extension is additionally accepted through a separate digest-pinned prod Workflow and authenticated persistent Notebook run; its immutable manifest, native validation, drift/history/label checks and restoration evidence are recorded alongside the original v2 evidence. The WorkflowTemplate accepts a configuration parameter while retaining the nine-day default.
 
 ### Sorted and compacted Parquet
 
