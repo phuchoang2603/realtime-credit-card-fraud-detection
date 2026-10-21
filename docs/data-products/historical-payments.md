@@ -10,6 +10,14 @@ Ownership, agreement version, field meanings and quality rules live in the [ODCS
 
 Production workflow execution and authenticated notebook evidence remain pending in the [implementation roadmap](../architecture/roadmap.md).
 
+## Generation and publication
+
+The [generator configuration](../../src/simulator/configs/historical-v1.yaml) controls the seed, date range, profiles, purchase behavior, scenarios, schema cutover, duplicate rate and storage layout. The generator builds deterministic profiles and purchase histories, then writes explicit [Arrow schemas](../../src/simulator/simulator/arrow.py) for events and separate labels.
+
+The writer stages bounded batches, compacts and sorts each date partition, and publishes Zstandard-compressed Parquet with dictionaries and statistics. Row-group size and the approximate file-size target are configured independently; intentional duplicate exports and physical schema cutovers survive compaction. Published versions contain date-partitioned event and label Parquet, `validation.json` and `manifest.json` under `historical/<dataset_version>/`. The CLI supports configured S3 output and local output through `--output`.
+
+Before publishing, the generator runs Data Contract CLI against the ODCS agreement over its compacted Parquet. It publishes the native `validation.json` report and records the agreement ID, version and hash in the last-written manifest; validation failure leaves the destination untouched. Parquet records remain deterministic while validation reports contain per-run identifiers and timestamps.
+
 ## Agreement and validation
 
 Producers and consumers validate against the same agreement using supported engines. Current SQL rules target DuckDB; Spark and Flink integration is added with the relevant pipelines. Future DataHub ingestion uses the same ODCS source.

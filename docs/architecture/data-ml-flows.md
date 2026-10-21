@@ -65,7 +65,7 @@ flowchart TB
 
 ## Generation
 
-Historical generation persists valid lifecycle histories outside bronze and outside production payment event storage. Before publishing, the generator runs Data Contract CLI against the ODCS agreement over its compacted Parquet. It publishes the native validation.json report and records the agreement ID, version and hash in the last-written manifest; validation failure leaves the destination untouched. Parquet records remain deterministic while validation reports contain per-run identifiers and timestamps. Live simulation calls gateway commands so Payments creates authoritative events. Both modes share versioned scenarios for customer, seller, device and synthetic method profiles: ordinary purchases, stolen-card/new-device behavior, unusual geography, reshipping, card testing and retry attacks. Burst, lateness and duplicate delivery are transport conditions; they never fabricate duplicate authoritative transitions.
+The [historical payments data product](../data-products/historical-payments.md) supplies valid lifecycle histories outside bronze and outside production payment event storage. Live simulation calls gateway commands so Payments creates authoritative events. Both modes share versioned scenarios for customer, seller, device and synthetic method profiles: ordinary purchases, stolen-card/new-device behavior, unusual geography, reshipping, card testing and retry attacks. Burst, lateness and duplicate delivery are transport conditions; they never fabricate duplicate authoritative transitions.
 
 ## Pipelines and schemas
 
