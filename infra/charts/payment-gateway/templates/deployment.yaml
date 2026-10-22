@@ -7,6 +7,8 @@ kind: Deployment
 metadata:
   name: {{ $name }}
   namespace: {{ $.Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     {{- include "payment-gateway.selector" $name | nindent 4 }}
 spec:
