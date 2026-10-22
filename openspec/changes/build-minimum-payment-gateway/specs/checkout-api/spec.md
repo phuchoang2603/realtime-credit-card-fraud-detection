@@ -24,7 +24,7 @@ Payment creation SHALL accept the full checkout snapshot in one request: order r
 
 ### Requirement: Configured integrations
 
-Edge SHALL load integrations from configuration: integration ID, API key hash, synthetic flag, fingerprint key selection and, optionally, a webhook URL with its signing secret and subscribed event types. Keys SHALL be stored only as hashes. Unknown keys SHALL be rejected. Integration identity SHALL come only from the credential, never from caller-supplied identifiers. Only synthetic integrations SHALL supply simulated client context or use the payment-method route. A synthetic integration's ID SHALL be operator-chosen so live traffic continues a historical dataset.
+Edge SHALL load integrations from configuration: integration ID, API key hash, synthetic flag, fingerprint key selection and, optionally, a webhook URL with its signing secret and subscribed event types. Keys SHALL be stored only as hashes. Unknown keys SHALL be rejected. Integration identity SHALL come only from the credential, never from caller-supplied identifiers. Marketplace callers reach Edge over the mesh because their namespace is listed in Edge's `callerNamespaces`; the API key SHALL remain required because mesh identity identifies only the caller's namespace, not the integration. Only synthetic integrations SHALL supply simulated client context or use the payment-method route. A synthetic integration's ID SHALL be operator-chosen so live traffic continues a historical dataset.
 
 #### Scenario: Caller claims another integration
 
@@ -108,7 +108,7 @@ A separately deployed vault simulator SHALL own its database, migrations and cre
 
 #### Scenario: Unauthorized resolution
 
-- **WHEN** Edge, Payments or an unmeshed caller invokes processing-fixture resolution
+- **WHEN** Edge, Payments or any other workload invokes processing-fixture resolution
 - **THEN** access is denied without exposing token mappings or fixture contents
 
 #### Scenario: Foreign integration token
