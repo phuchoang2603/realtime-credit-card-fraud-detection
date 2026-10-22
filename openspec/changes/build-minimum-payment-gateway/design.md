@@ -57,7 +57,7 @@ Redis is not a lock, effect-intent store or permission to process a payment. Red
 
 ### Domain aggregate replays golden histories
 
-The aggregate is a pure Go state machine: `Apply(event)` for replay and `Decide(command) → events` for commands. Tests feed every golden history from `contracts/payments/v1/testdata/` through `Apply` and assert accept or reject. That is the same oracle the Python generator uses. If the generator change has not landed, this change adds the golden histories itself.
+The aggregate is a pure Go state machine: `Apply(event)` for replay and `Decide(command) → events` for commands. Tests feed every golden history from `contracts/payments/v1/testdata/` through `Apply` and assert accept or reject. This change owns the golden histories. The historical generator does not use them; its data is checked by the historical-payments ODCS lifecycle rules instead.
 
 ### Attempt orchestration as sequential commits
 

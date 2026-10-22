@@ -2,7 +2,7 @@
 
 - [ ] 1.1 Add `contracts/accounts/v1/accounts.proto` (AuthenticateIntegration, ProvisionMerchant, ResolveCustomer), `contracts/payments/v1/payments.proto` (CreatePayment, StartAttempt, GetPayment), `contracts/vault/v1/vault.proto` (TokenizeSyntheticMethod, DescribeMethod, ResolveForProcessing) and `contracts/processor/v1/processor.proto` (Sale with integration scope, GetOperation); verify all compile with `protoc -I contracts` and existing payment/fraud event meanings are unchanged
 - [ ] 1.2 Remove `go_package` options and extend `codegen:proto` with per-module Go generation using `M` import overrides for edge, accounts, payments, vault-simulator and processor-simulator; verify each module's `gen/` contains only the packages it imports and `GOWORK=off go build ./...` passes per module
-- [ ] 1.3 Ensure golden histories exist under `contracts/payments/v1/testdata/` and `contracts/synthetic/identity-vectors.json` exists with the UUIDv5 namespace, merchant and customer ID cases, and synthetic-key address, network and payment-method fingerprint cases (add them if `generate-historical-synthetic-data` has not landed); verify they parse
+- [ ] 1.3 Add golden histories under `contracts/payments/v1/testdata/` (one protobuf-JSON history per file, marked `valid` or `invalid: <rule>`, covering every legal and each prohibited transition) and ensure `contracts/synthetic/identity-vectors.json` exists with the UUIDv5 namespace, merchant and customer ID cases, and synthetic-key address, network and payment-method fingerprint cases (add it if `generate-historical-synthetic-data` has not landed); verify they parse
 
 ## 2. Accounts
 

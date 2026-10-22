@@ -61,8 +61,6 @@ dmypy.json
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
-simulated-data-raw
-simulated-data-transformed
 
 # dotenv
 .env

@@ -17,6 +17,22 @@ check_python() {
   )
 }
 
+check_data_product() {
+  local product="$1" name contract reference
+  name="$(basename "$product")"
+  for contract in "$product"/*.odcs.yaml; do
+    reference="docs/data-ml/data-products/$name/$(basename "$contract" .odcs.yaml).md"
+    uvx --from "datacontract-cli==$DATACONTRACT_CLI" datacontract lint "$contract" --all-errors
+    uvx --from "datacontract-cli==$DATACONTRACT_CLI" datacontract export markdown "$contract" --output "$TMPDIR_CHECKS/reference.md"
+    diff -u "$reference" "$TMPDIR_CHECKS/reference.md"
+  done
+  (
+    cd "$product"
+    uvx --from "dataproduct-cli==$DATAPRODUCT_CLI" --with "datacontract-cli==$DATACONTRACT_CLI" \
+      dataproduct lint product.odps.yaml --all-errors --local-references
+  )
+}
+
 check_chart() {
   local chart="$1" values
   helm lint "$chart"
@@ -28,9 +44,20 @@ check_chart() {
   done
 }
 
+DATACONTRACT_CLI=1.2.7
+DATAPRODUCT_CLI=0.3.2
+
 case "${1:-}" in
+  contracts)
+    TMPDIR_CHECKS="$(mktemp -d)"
+    trap 'rm -rf "$TMPDIR_CHECKS"' EXIT
+    while IFS= read -r -d '' product; do
+      check_data_product "$(dirname "$product")"
+    done < <(find contracts/data-products -mindepth 2 -maxdepth 2 -name product.odps.yaml -print0 | sort -z)
+    ;;
   python)
     check_python src/fraud-service app tests
+    check_python src/simulator simulator tests
     ;;
   helm)
     while IFS= read -r -d '' manifest; do
@@ -38,7 +65,7 @@ case "${1:-}" in
     done < <(find infra -type f -name Chart.yaml -print0)
     ;;
   *)
-    printf 'Usage: %s {python|helm}\n' "$0" >&2
+    printf 'Usage: %s {contracts|python|helm}\n' "$0" >&2
     exit 2
     ;;
 esac
