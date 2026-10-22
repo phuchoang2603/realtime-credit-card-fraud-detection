@@ -1,0 +1,39 @@
+{{- range $name, $settings := .Values.services }}
+{{- if $settings.enabled }}
+{{- $svc := mergeOverwrite (deepCopy $.Values.defaults) $settings }}
+---
+{{- if $svc.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "payment-gateway.selector" $name | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    {{- if $svc.mesh.enabled }}
+    - ports:
+        - port: 15008
+          protocol: TCP
+    - from:
+        - ipBlock:
+            cidr: 169.254.7.127/32
+    {{- end }}
+    {{- if $svc.networkPolicy.ingressFrom }}
+    - from:
+        {{- toYaml $svc.networkPolicy.ingressFrom | nindent 8 }}
+      ports:
+        {{- range $svc.networkPolicy.ingressPorts }}
+        - port: {{ . }}
+          protocol: TCP
+        {{- end }}
+    {{- else if not $svc.mesh.enabled }}
+    []
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -36,7 +36,7 @@ The [bank adapter](architecture.md#bank-adapter-and-iso-8583) translates gateway
 
 Financial postings are distinct from domain workflow events and integration messages. The Payments-owned journal records balanced confirmed effects per currency in integer minor units; authorization holds differ from captured funds. Source event identity prevents duplicate postings. Refunds cannot cumulatively exceed captured funds, and corrections use compensating postings/events rather than edited history. The transactional/projection boundary belongs to journal work.
 
-Event schemas and legal/prohibited lifecycle histories live in [`contracts/payments/v1`](../../contracts/payments/v1); the pure state machine checks every golden history. Refunds and the financial journal remain later work.
+Event schemas and representative Go/Python serialization fixtures live in [`contracts/payments/v1`](../../contracts/payments/v1); compact table-driven domain tests check lifecycle transitions and rejection rules. Refunds and the financial journal remain later work.
 
 ## Checkout and recovery sequence
 

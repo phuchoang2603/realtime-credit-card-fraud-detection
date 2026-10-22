@@ -30,26 +30,12 @@ spec:
                 duration: 5s
                 factor: 2
                 maxDuration: 3m
-          gateway-platform:
+          payment-gateway:
             enabled: true
             destinationNamespace: payment-gateway
-            path: infra/charts/gateway-platform
+            path: infra/charts/payment-gateway
             valuesFile:
-              - infra/charts/gateway-platform/values-prod.yaml
-            syncRetry: *retry
-          gateway-database:
-            enabled: true
-            destinationNamespace: payment-gateway
-            path: infra/charts/gateway-database
-            valuesFile:
-              - infra/charts/gateway-database/values-prod.yaml
-            syncRetry: *retry
-          gateway-redis:
-            enabled: true
-            destinationNamespace: payment-gateway
-            path: infra/charts/gateway-redis
-            valuesFile:
-              - infra/charts/gateway-redis/values-prod.yaml
+              - infra/charts/payment-gateway/values-prod.yaml
             syncRetry: *retry
           kafka:
             enabled: true
@@ -57,46 +43,6 @@ spec:
             path: infra/charts/kafka
             valuesFile:
               - infra/charts/kafka/values-prod.yaml
-            syncRetry: *retry
-          vault-simulator:
-            enabled: true
-            destinationNamespace: payment-gateway
-            path: infra/charts/gateway-service
-            valuesFile:
-              - infra/charts/gateway-service/services/vault-simulator.yaml
-              - infra/charts/gateway-service/values-prod.yaml
-            syncRetry: *retry
-          processor-simulator:
-            enabled: true
-            destinationNamespace: payment-gateway
-            path: infra/charts/gateway-service
-            valuesFile:
-              - infra/charts/gateway-service/services/processor-simulator.yaml
-              - infra/charts/gateway-service/values-prod.yaml
-            syncRetry: *retry
-          payments:
-            enabled: true
-            destinationNamespace: payment-gateway
-            path: infra/charts/gateway-service
-            valuesFile:
-              - infra/charts/gateway-service/services/payments.yaml
-              - infra/charts/gateway-service/values-prod.yaml
-            syncRetry: *retry
-          notifier:
-            enabled: true
-            destinationNamespace: payment-gateway
-            path: infra/charts/gateway-service
-            valuesFile:
-              - infra/charts/gateway-service/services/notifier.yaml
-              - infra/charts/gateway-service/values-prod.yaml
-            syncRetry: *retry
-          edge:
-            enabled: true
-            destinationNamespace: payment-gateway
-            path: infra/charts/gateway-service
-            valuesFile:
-              - infra/charts/gateway-service/services/edge.yaml
-              - infra/charts/gateway-service/values-prod.yaml
             syncRetry: *retry
           secret-store:
             enabled: true

@@ -1,19 +1,19 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ .Values.name }}
+  name: {{ .Values.database.name }}
   namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
-      cnpg.io/cluster: {{ .Values.name }}
+      cnpg.io/cluster: {{ .Values.database.name }}
   policyTypes:
     - Ingress
   ingress:
     - from:
         - podSelector:
             matchLabels:
-              cnpg.io/cluster: {{ .Values.name }}
+              cnpg.io/cluster: {{ .Values.database.name }}
       ports:
         - port: 5432
           protocol: TCP

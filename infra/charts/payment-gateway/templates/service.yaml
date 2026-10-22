@@ -1,0 +1,27 @@
+{{- range $name, $settings := .Values.services }}
+{{- if $settings.enabled }}
+{{- $svc := mergeOverwrite (deepCopy $.Values.defaults) $settings }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "payment-gateway.selector" $name | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    {{- range $svc.ports }}
+    - name: {{ .name }}
+      port: {{ .containerPort }}
+      targetPort: {{ .name }}
+      protocol: TCP
+      {{- with .appProtocol }}
+      appProtocol: {{ . }}
+      {{- end }}
+    {{- end }}
+  selector:
+    {{- include "payment-gateway.selector" $name | nindent 4 }}
+{{- end }}
+{{- end }}

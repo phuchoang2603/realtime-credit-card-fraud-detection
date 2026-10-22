@@ -1,8 +1,8 @@
 ## 1. Contracts and codegen
 
 - [x] 1.1 Land the reworked contracts (`payments/v1` types, events, labels and PaymentService; `fraud/v1` with `RiskAssessment`; `vault/v1`; `processor/v1`), remove `fraud/v2` and `labels/v1` and their generated bindings, and port the fraud service minimally to `fraud.v1`; verify all compile with `protoc -I contracts`, fraud-service tests pass, and a generated historical event row parses as `payments.v1.PaymentEvent` protobuf JSON
-- [x] 1.2 Remove `go_package` options and extend `codegen:proto` with per-module Go generation using `M` import overrides for edge, payments, notifier, vault-simulator and processor-simulator; verify each module's `gen/` contains only the packages it imports and `GOWORK=off go build ./...` passes per module
-- [x] 1.3 Add golden histories under `contracts/payments/v1/testdata/` (one protobuf-JSON history per file, marked `valid` or `invalid: <rule>`, covering every legal and each prohibited transition) and add test-card method fingerprint cases to `contracts/synthetic/identity-vectors.json`; verify they parse and the existing vector cases are unchanged
+- [x] 1.2 Declare `go_package` and generate Go bindings once in `shared/proto`, consumed by edge, payments, notifier, vault-simulator and processor-simulator through the single shared module and local replacements; verify Python generation stays intact and `GOWORK=off go build ./...` passes per module
+- [x] 1.3 Retain representative protobuf-JSON histories under `contracts/payments/v1/testdata/` for Go/Python serialization parity and add test-card method fingerprint cases to `contracts/synthetic/identity-vectors.json`; verify they parse and the existing vector cases are unchanged
 
 ## 2. Vault and processor simulators
 
@@ -13,7 +13,7 @@
 ## 3. Payments
 
 - [x] 3.1 Scaffold `src/payments` (composition root, config, gRPC health with DB readiness, bounded shutdown, slog, metrics and optional OTel without a configured exporter); verify readiness is NOT_SERVING with the database down and SERVING with Redis or fraud down
-- [x] 3.2 Implement the pure payment state machine (`Transition(state, command) → (state', event)`) for the `payments.v1` lifecycle; verify it accepts all valid and rejects all invalid golden histories
+- [x] 3.2 Implement the pure payment state machine (`Transition(state, command) → (state', event)`) for the `payments.v1` lifecycle; verify lifecycle transitions and rejection rules with compact table-driven direct domain commands
 - [x] 3.3 Add migrations and sqlc queries for versioned `payments` and `attempts` rows, the append-only `payment_events` ledger (global sequence position, unique event ID and payment version; `SELECT`/`INSERT`-only grant to `payments_app` and a trigger rejecting `UPDATE`/`DELETE`/`TRUNCATE`), `idempotency` (unique per integration and scope) and private encrypted `processor_requests`; commit each state change with exactly one ledger event, commit request recovery data with its effect intent and clear the encrypted token with the terminal outcome; verify stale transition, ledger update/delete rejection, latest ledger version equals row version, rollback atomicity, crash recovery and allocation-order/commit-order divergence against Postgres
 - [x] 3.4 Add the Redis idempotency adapter: `SET NX` claim with request digest and in-flight marker, completion after commit, configurable TTL, 50 ms operation deadline and Postgres fallback on miss/error/unique violation; verify concurrent same-key requests yield one effect, digest-mismatch conflict, and flush/restart/outage fallback without another processor effect or tokens in records
 - [x] 3.5 Implement CreatePayment with idempotency per integration and key, unique order reference, UUIDv5 merchant and customer IDs from the identity vectors, expiry and HMAC checkout tokens; verify repeat-returns-same, changed-snapshot conflict and identity-vector cases
@@ -38,11 +38,11 @@
 
 ## 6. CI, images and deployment
 
-- [x] 6.1 Change the CI Go job to lint and test every Go module with module-local testcontainers-go Postgres, Redis and Kafka helpers locally and in CI (no TEST_* overrides or silent skips; skip only with `go test -short`); verify CI passes on the PR
+- [x] 6.1 Change the CI Go job to lint and test every Go module with shared testcontainers-go Postgres, Redis and Kafka helpers locally and in CI (no TEST_* overrides or silent skips; skip only with `go test -short`); verify CI passes on the PR
 - [x] 6.2 Add explicit payments, notifier, vault-simulator and processor-simulator jobs to `release.yml` using `build-image.yml`; verify PR builds do not publish
-- [x] 6.3 Add the CNPG chart with separate Payments/notifier/vault/processor databases, owner roles plus a separate `payments_app` runtime role (Payments migrations run as owner) and a `payments_cdc` principal with replication and `SELECT` on `payment_events` only, revoked public connect and `wal_level: logical`, without replication privileges on application roles; add application charts (ClusterIP, migrate init containers, namespace-scoped SecretStore/ExternalSecrets for integration keys, webhook secrets and encryption keys, authenticated encrypted service calls, TLS-aware health probes, default-deny vault/DB/Redis network policies, notifier egress only to configured webhook destinations) and one Gateway API HTTPRoute for Edge `/checkout/*` only; verify `helm lint` and `helm template` for base and prod values
+- [x] 6.3 Add one payment-gateway application chart with a services map and CNPG with separate Payments/notifier/vault/processor databases, owner roles plus a separate `payments_app` runtime role (Payments migrations run as owner) and a `payments_cdc` principal with replication and `SELECT` on `payment_events` only, revoked public connect and `wal_level: logical`, without replication privileges on application roles; include workloads (ClusterIP, migrate init containers, namespace-scoped SecretStore/ExternalSecrets for integration keys, webhook secrets and encryption keys, authenticated encrypted service calls, TLS-aware health probes, default-deny vault/DB/Redis network policies, notifier egress only to configured webhook destinations) and one Gateway API HTTPRoute for Edge `/checkout/*` only; verify `helm lint` and `helm template` for base and prod values
 - [ ] 6.4 Add a standalone `Redis` resource for the platform's Redis operator (Valkey image, `maxmemory` sized for the retention window, `maxmemory-policy noeviction`, no persistence, password from an ExternalSecret, network policy admitting only Payments); verify it renders without a sidecar and Payments connects with the secret
-- [x] 6.5 Register child applications (including `kafka`) in the configured prod app-of-apps root; verify rendered application names are prod-qualified, target only that cluster and do not restore a dev root
+- [x] 6.5 Register one consolidated gateway child and the separate `kafka` child in the configured prod app-of-apps root; verify rendered application names are prod-qualified, target only that cluster and do not restore a dev root
 
 ## 7. Evidence and documentation
 
@@ -51,3 +51,9 @@
 - [ ] 7.3 Update architecture current foundation (no Accounts service, notifier added), payment flows (fail closed, synthetic context, token format, versioned state plus append-only ledger instead of event-sourced streams/projections, Redis-first idempotency), requirements FR-03/FR-08 (browser tokenization, webhooks and Kafka publication in the first slice), NFR-01/NFR-08 and the roadmap's event-sourced recovery novelty wording, gitops runtime/local run instructions and the gateway implementation roadmap with evidence links; distinguish implemented simulator behavior from later ISO 8583, VND/authentication, capture and settlement work; verify links resolve
 - [x] 7.4 Run `openspec validate build-minimum-payment-gateway --strict` and verify it passes
 - [ ] 7.5 Record a nominal 50-attempt/s, 10-minute synthetic load run on the prod Kubernetes cluster after GitOps rollout against the documented p95/error goals, plus separate deadline/lost-response and restart-recovery runs, capturing request rate, p95/p99 latency, failures, pending-outcome age, Redis hit/error rates, Redis memory and vault authorization failures; include resource/latency settings and sensitive-data exclusion evidence, without presenting this as proof of the monthly availability SLO or PCI DSS compliance
+
+## 8. Simplify gateway sharing and deployment
+
+- [x] 8.1 Reduce redundant contract fixtures and mappings; retain serialization parity and direct domain lifecycle coverage
+- [x] 8.2 Consolidate protobuf, reusable testcontainers/TLS and runtime/security helpers into one shared Go module; validate independent Go/Docker/CI builds
+- [x] 8.3 Merge the four gateway charts and eight gateway children into one application chart/child; compare base/prod resource identities, secrets, policies, routes, migrations and roles

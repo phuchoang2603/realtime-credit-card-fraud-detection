@@ -1,0 +1,27 @@
+defaults:
+  replicaCount: 2
+  mesh:
+    enabled: true
+  image:
+    pullPolicy: Always
+database:
+  instances: 3
+  storage:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 2Gi
+redis:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 1536Mi
+    limits:
+      cpu: '1'
+      memory: 2Gi
+  maxmemory: 1536mb
+ingress:
+  enabled: true

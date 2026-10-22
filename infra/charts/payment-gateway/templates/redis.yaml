@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.redis.name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.redis.name }}
+data:
+  redis-additional.conf: |
+    maxmemory {{ .Values.redis.maxmemory }}
+    maxmemory-policy noeviction
+    save ""
+    appendonly no
+---
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: Redis
+metadata:
+  name: {{ .Values.redis.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.redis.name }}
+spec:
+  kubernetesConfig:
+    image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+    imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+    redisSecret:
+      name: {{ .Values.redis.password.secretName }}
+      key: {{ .Values.redis.password.secretKey }}
+    resources:
+      {{- toYaml .Values.redis.resources | nindent 6 }}
+  redisConfig:
+    additionalRedisConfig: {{ .Values.redis.name }}-config
+  redisExporter:
+    enabled: false
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ .Values.redis.password.secretName }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  refreshInterval: {{ .Values.redis.externalSecrets.refreshInterval }}
+  secretStoreRef:
+    kind: {{ .Values.redis.externalSecrets.secretStoreRef.kind }}
+    name: {{ .Values.redis.externalSecrets.secretStoreRef.name }}
+  target:
+    name: {{ .Values.redis.password.secretName }}
+    creationPolicy: Owner
+  data:
+    - secretKey: {{ .Values.redis.password.secretKey }}
+      remoteRef:
+        key: {{ .Values.redis.password.remoteKey }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.redis.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.redis.name }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- range .Values.redis.clients }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ . }}
+        {{- end }}
+      ports:
+        - port: 6379
+          protocol: TCP

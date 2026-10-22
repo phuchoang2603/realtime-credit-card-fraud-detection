@@ -1,13 +1,13 @@
 ## ADDED Requirements
 
-### Requirement: Golden lifecycle histories
+### Requirement: Representative contract fixtures
 
-The contracts SHALL include versioned golden payment histories encoded as protobuf JSON, each marked valid or invalid with the violated rule. They SHALL cover every legal transition and at least each prohibited transition named by the lifecycle requirement. The Payments state machine SHALL accept all valid and reject all invalid golden histories.
+The contracts SHALL retain a small representative set of payment histories encoded as protobuf JSON for Go/Python serialization parity. Compact table-driven Go tests using direct domain commands SHALL cover lifecycle transitions and rejection rules, including expiry, terminal fencing, unknown outcomes, version conflicts, active attempts, external-effect guards and retry.
 
-#### Scenario: State machine conformance
+#### Scenario: Contract serialization parity
 
-- **WHEN** the golden histories are stepped through the Payments state machine's transition rules
-- **THEN** it accepts each valid history and rejects each invalid history for its recorded rule
+- **WHEN** the representative histories are parsed and serialized by Go and Python protobuf bindings
+- **THEN** their event payloads and fields are preserved
 
 ## MODIFIED Requirements
 

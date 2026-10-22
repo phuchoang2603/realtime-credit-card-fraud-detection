@@ -1,5 +1,0 @@
-replicaCount: 2
-mesh:
-  enabled: true
-image:
-  pullPolicy: Always
