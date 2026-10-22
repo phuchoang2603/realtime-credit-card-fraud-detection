@@ -81,6 +81,6 @@ Long-running Flink jobs and their checkpoints stay on premises near Kafka and th
 
 ## Shared storage and service boundaries
 
-Shared storage infrastructure may host separate service-owned databases and credentials; services must not share mutable domain models or query one another's tables. Start with Edge, Accounts, Payments, the existing fraud decision service, a processor simulator, an isolated vault simulator and Redis. Keep recovery and expiry workers inside Payments until independent scaling or isolation is needed. Add webhook delivery when its durable delivery workflow is implemented; features, inference, drift and investigation follow their own acceptance steps.
+Shared storage infrastructure may host separate service-owned databases and credentials; services must not share mutable domain models or query one another's tables. Start with Edge, Payments, the existing fraud decision service, a processor simulator, an isolated vault simulator, Redis, Kafka and the webhook notifier. Integration configuration and derived IDs replace Accounts. Keep recovery and expiry workers inside Payments until independent scaling or isolation is needed; features, inference, drift and investigation follow their own acceptance steps.
 
 The [Vietnam payment policy research](../research/vietnam-payment-policy.md) separates current regulatory sources, provider policies and fictional simulator assumptions, including authentication and dispute scope.
