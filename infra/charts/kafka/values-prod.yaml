@@ -9,3 +9,6 @@ entities:
   payments:
     connector:
       databaseName: payments
+
+global:
+  imageTag: 269de69

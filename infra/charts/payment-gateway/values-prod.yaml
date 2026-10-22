@@ -25,3 +25,19 @@ redis:
   maxmemory: 1536mb
 ingress:
   enabled: true
+services:
+  edge:
+    image:
+      tag: 269de69
+  notifier:
+    image:
+      tag: 269de69
+  payments:
+    image:
+      tag: 269de69
+  processor-simulator:
+    image:
+      tag: 269de69
+  vault-simulator:
+    image:
+      tag: 269de69
