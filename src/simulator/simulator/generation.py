@@ -8,10 +8,14 @@ import numpy as np
 from simulator.config import HistoricalConfig
 from simulator.identity import IDENTITY_NAMESPACE, fingerprint
 from simulator.profiles import (
+    ACCESSORY,
     ACCOUNT_TAKEOVER,
     CARD_TESTING,
     CATEGORIES,
     CATEGORY_PRICES,
+    CONDITION_PRICE_FACTORS,
+    CONDITION_WEIGHTS,
+    CONDITIONS,
     COUNTRIES,
     LEGITIMATE,
     OBVIOUS_HIGH_VALUE,
@@ -24,7 +28,7 @@ from simulator.profiles import (
 
 Record = dict[str, Any]
 POLICY_VERSION = "sim-rules-v1"
-HIGH_VALUE_MINOR_UNITS = 400_000
+HIGH_VALUE_MINOR_UNITS = 150_000
 MAX_ATTEMPTS = 3
 
 
@@ -37,7 +41,10 @@ class GeneratedHistory:
 
 @dataclass(frozen=True)
 class _Context:
-    amount: int
+    category: int
+    condition: int
+    quantity: int
+    unit_price: int
     device: str
     network: str
     ip_country: str
@@ -61,8 +68,13 @@ def _context(
     kind = int(schedule.scenarios[index])
     group = int(schedule.groups[index])
     category = int(profiles.merchant_categories[schedule.merchants[index]])
+    if kind == CARD_TESTING:
+        category = ACCESSORY
+    condition = int(random.choice(len(CONDITIONS), p=CONDITION_WEIGHTS))
+    quantity = int(random.integers(1, 4)) if category == ACCESSORY else 1
+    typical = CATEGORY_PRICES[category] * CONDITION_PRICE_FACTORS[condition]
+    unit_price = max(50, round(float(random.lognormal(np.log(typical), 0.3))))
     home_country = COUNTRIES[profiles.customer_countries[customer]]
-    amount = max(50, round(float(random.lognormal(np.log(CATEGORY_PRICES[category]), 0.4))))
     device = profiles.device_pool[profiles.familiar_devices[customer, int(random.integers(0, 2))]]
     network = profiles.network_pool[profiles.home_networks[customer]]
     address = profiles.address_pool[profiles.addresses[customer]]
@@ -77,31 +89,44 @@ def _context(
 
     foreign = COUNTRIES[(COUNTRIES.index(home_country) + 1 + int(random.integers(0, 2))) % len(COUNTRIES)]
     if kind == OBVIOUS_HIGH_VALUE:
-        amount = round(amount * config.scenarios.obvious_high_value.amount_multiplier)
+        unit_price = round(unit_price * config.scenarios.obvious_high_value.amount_multiplier)
     elif kind == STOLEN_CARD_NEW_DEVICE:
-        amount = round(amount * config.scenarios.stolen_card_new_device.amount_multiplier)
+        unit_price = round(unit_price * config.scenarios.stolen_card_new_device.amount_multiplier)
         device = fingerprint(key, "device", f"stolen-{customer}-{group}")
         network = fingerprint(key, "ip_network", f"10.250.{(customer + group) % 256}.1")
         ip_country = foreign if random.random() < 0.5 else home_country
         new_device = True
     elif kind == ACCOUNT_TAKEOVER:
-        amount = round(amount * config.scenarios.account_takeover.amount_multiplier)
+        unit_price = round(unit_price * config.scenarios.account_takeover.amount_multiplier)
         device = fingerprint(key, "device", f"takeover-{customer}-{group}")
         network = fingerprint(key, "ip_network", f"10.252.{(customer + group) % 256}.1")
         address = fingerprint(key, "address", f"takeover-{customer}-{group}")
         ip_country = foreign
         new_device = True
     elif kind == CARD_TESTING:
-        amount = int(random.integers(50, 501))
+        quantity = 1
+        unit_price = int(random.integers(50, 501))
         device = fingerprint(key, "device", f"card-testing-{offset}-{group}")
         network = fingerprint(key, "ip_network", f"10.251.{(offset + group) % 256}.1")
         method = fingerprint(key, "payment_method", f"tok_card-test-{offset}-{ordinal}_ok")
         new_device = True
-    return _Context(amount, device, network, ip_country, address, home_country, method, new_device)
+    return _Context(
+        category,
+        condition,
+        quantity,
+        unit_price,
+        device,
+        network,
+        ip_country,
+        address,
+        home_country,
+        method,
+        new_device,
+    )
 
 
 def _risk_decision(context: _Context, random: np.random.Generator) -> str | None:
-    if context.amount >= HIGH_VALUE_MINOR_UNITS and random.random() < 0.8:
+    if context.unit_price * context.quantity >= HIGH_VALUE_MINOR_UNITS and random.random() < 0.8:
         return "HIGH_VALUE"
     if context.new_device and context.ip_country != context.shipping_country and random.random() < 0.3:
         return "GEO_MISMATCH"
@@ -127,10 +152,10 @@ def build_history(
     payment_id = str(uuid5(IDENTITY_NAMESPACE, f"{config.dataset_version}:{day}:{ordinal}:payment"))
     started_at = datetime.combine(day, time.min, tzinfo=timezone.utc) + timedelta(seconds=int(schedule.seconds[index]))
     context = _context(config, profiles, schedule, index, offset, ordinal, random)
-    category = CATEGORIES[profiles.merchant_categories[merchant]]
+    category = CATEGORIES[context.category]
     region, postal_code = REGIONS[context.shipping_country]
-    quantity = int(random.integers(1, 3))
-    unit_price = max(1, context.amount // quantity)
+    quantity = context.quantity
+    unit_price = context.unit_price
     events: list[Record] = []
     labels: list[Record] = []
     clock = started_at
@@ -144,7 +169,6 @@ def build_history(
                 "integration_id": integration_id,
                 "schema_version": config.schema_version_on(clock.date()),
                 "correlation_id": payment_id,
-                "causation_id": events[-1]["event_id"] if events else payment_id,
                 "occurred_at": clock,
                 "recorded_at": clock,
                 payload: fields,
@@ -171,12 +195,11 @@ def build_history(
                 {
                     "product_id": f"sku-{category}-{int(random.integers(1, 200)):03d}",
                     "category": category,
-                    "condition": "new",
+                    "condition": CONDITIONS[context.condition],
                     "quantity": quantity,
                     "unit_price": money(unit_price),
                 }
             ],
-            "merchant_category": category,
             "merchant_account_created_at": started_at - timedelta(days=int(profiles.merchant_age_days[merchant])),
             "customer_account_created_at": started_at - timedelta(days=int(profiles.customer_age_days[customer])),
             "shipping": {

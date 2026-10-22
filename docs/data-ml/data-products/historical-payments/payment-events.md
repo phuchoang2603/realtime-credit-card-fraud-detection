@@ -2,7 +2,7 @@
 ## Info
 *Complete synthetic payment lifecycle histories for reproducible pipeline development.*
 - **name:** Historical synthetic payment events
-- **version:** 1.0.0
+- **version:** 3.1.0
 - **status:** active
 - **team:** Fraud data platform
 
@@ -35,7 +35,6 @@ Synthetic data only. Histories are complete across all date partitions. Empty co
 |  recorded_at | timestamp | *Source recording time, at or after occurred_at; not ingestion time.*<br />• **logicalTypeOptions:** {'timezone': True, 'defaultTimezone': 'UTC'}<br />• `required` |
 |  schema_version | integer | *Physical event schema. Version one omits user_agent_family; version two permits it.*<br />• `required` |
 |  correlation_id | string | *Correlation identity shared across one payment history.*<br />• `required` |
-|  causation_id | string | *Cause identity; every event after creation references the preceding authoritative event.*<br />• `required` |
 |  payment_created | object | *Initial immutable checkout snapshot. Exactly one lifecycle payload is present per event.* |
 | &#x2007;&#x21b3; merchant | object | *Integration-scoped merchant references.*<br />• `required` |
 | &#x2007;&#x2007;&#x21b3; merchant_id | string | *Gateway merchant identity.*<br />• `required` |
@@ -51,13 +50,12 @@ Synthetic data only. Histories are complete across all date partitions. Empty co
 | &#x2007;&#x2007;&#x21b3; items | array | *Nonempty checkout line items.*<br />• `required` |
 | &#x2007;&#x2007;&#x2007;&#x21b3; items | object | *No description.*<br />• `required` |
 | &#x2007;&#x2007;&#x2007;&#x2007;&#x21b3; product_id | string | *Product reference.*<br />• `required` |
-| &#x2007;&#x2007;&#x2007;&#x2007;&#x21b3; category | string | *Product category.*<br />• `required` |
-| &#x2007;&#x2007;&#x2007;&#x2007;&#x21b3; condition | string | *Product condition.*<br />• `required` |
+| &#x2007;&#x2007;&#x2007;&#x2007;&#x21b3; category | string | *Refurbished electronics product type, such as phone, laptop or accessory.*<br />• `required` |
+| &#x2007;&#x2007;&#x2007;&#x2007;&#x21b3; condition | string | *Refurbished condition grade: excellent, good or fair.*<br />• `required` |
 | &#x2007;&#x2007;&#x2007;&#x2007;&#x21b3; quantity | integer | *Positive item quantity.*<br />• `required` |
 | &#x2007;&#x2007;&#x2007;&#x2007;&#x21b3; unit_price | object | *Price for one item in checkout currency.*<br />• `required` |
 | &#x2007;&#x2007;&#x2007;&#x2007;&#x2007;&#x21b3; minor_units | integer | *Nonnegative integer amount in currency minor units.*<br />• `required` |
 | &#x2007;&#x2007;&#x2007;&#x2007;&#x2007;&#x21b3; currency | string | *Three-letter uppercase currency code shared by all items.*<br />• `required` |
-| &#x2007;&#x2007;&#x21b3; merchant_category | string | *Merchant category captured at checkout.*<br />• `required` |
 | &#x2007;&#x2007;&#x21b3; merchant_account_created_at | timestamp | *Merchant account creation time.*<br />• **logicalTypeOptions:** {'timezone': True, 'defaultTimezone': 'UTC'}<br />• `required` |
 | &#x2007;&#x2007;&#x21b3; customer_account_created_at | timestamp | *Customer account creation time.*<br />• **logicalTypeOptions:** {'timezone': True, 'defaultTimezone': 'UTC'}<br />• `required` |
 | &#x2007;&#x2007;&#x21b3; shipping | object | *Coarse shipping geography and synthetic address fingerprint.*<br />• `required` |

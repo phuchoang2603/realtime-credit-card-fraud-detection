@@ -34,7 +34,7 @@ class DatasetStatistics:
             self.history_end = occurred if self.history_end is None else max(self.history_end, occurred)
             if (created := event.get("payment_created")) is not None:
                 self.merchants[created["merchant"]["merchant_id"]] += 1
-                self.categories[created["snapshot"]["merchant_category"]] += 1
+                self.categories[created["snapshot"]["items"][0]["category"]] += 1
                 self.identities["customer"].add(created["customer"]["customer_id"])
                 self.identities["address"].add(created["snapshot"]["shipping"]["address_fingerprint"])
             elif (started := event.get("attempt_started")) is not None:

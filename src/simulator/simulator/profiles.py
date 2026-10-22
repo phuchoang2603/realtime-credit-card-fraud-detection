@@ -7,8 +7,12 @@ import numpy as np
 from simulator.config import HistoricalConfig
 from simulator.identity import entity_id, fingerprint
 
-CATEGORIES = ("electronics", "home", "fashion", "grocery", "travel")
-CATEGORY_PRICES = np.array([13000, 7000, 4500, 2200, 25000])
+CATEGORIES = ("phone", "laptop", "accessory", "tablet", "headphones", "smartwatch", "game_console", "camera")
+CATEGORY_PRICES = np.array([35000, 65000, 3000, 30000, 12000, 18000, 28000, 45000])
+CONDITIONS = ("excellent", "good", "fair")
+CONDITION_WEIGHTS = np.array([0.4, 0.4, 0.2])
+CONDITION_PRICE_FACTORS = np.array([1.0, 0.88, 0.75])
+ACCESSORY = CATEGORIES.index("accessory")
 COUNTRIES = ("US", "CA", "GB")
 COUNTRY_WEIGHTS = np.array([0.8, 0.12, 0.08])
 REGIONS = {"US": ("NY", "10001"), "CA": ("ON", "M5V 2T6"), "GB": ("LDN", "EC1A 1BB")}

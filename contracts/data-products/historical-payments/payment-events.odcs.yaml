@@ -2,7 +2,7 @@ apiVersion: v3.1.0
 kind: DataContract
 id: urn:datacontract:fraud:historical-payment-events
 name: Historical synthetic payment events
-version: 1.0.0
+version: 3.1.0
 status: active
 domain: fraud-detection
 description:
@@ -83,11 +83,6 @@ schema:
         physicalType: VARCHAR
         required: true
         description: Correlation identity shared across one payment history.
-      - name: causation_id
-        logicalType: string
-        physicalType: VARCHAR
-        required: true
-        description: Cause identity; every event after creation references the preceding authoritative event.
       - name: payment_created
         logicalType: object
         description: Initial immutable checkout snapshot. Exactly one lifecycle payload is present per event.
@@ -128,15 +123,14 @@ schema:
                   required: true
                   properties:
                     - {name: product_id, logicalType: string, physicalType: VARCHAR, required: true, description: Product reference.}
-                    - {name: category, logicalType: string, physicalType: VARCHAR, required: true, description: Product category.}
-                    - {name: condition, logicalType: string, physicalType: VARCHAR, required: true, description: Product condition.}
+                    - {name: category, logicalType: string, physicalType: VARCHAR, required: true, description: "Refurbished electronics product type, such as phone, laptop or accessory."}
+                    - {name: condition, logicalType: string, physicalType: VARCHAR, required: true, description: "Refurbished condition grade: excellent, good or fair."}
                     - {name: quantity, logicalType: integer, physicalType: INTEGER, required: true, description: Positive item quantity.}
                     - name: unit_price
                       logicalType: object
                       required: true
                       description: Price for one item in checkout currency.
                       properties: *money_fields
-              - {name: merchant_category, logicalType: string, physicalType: VARCHAR, required: true, description: Merchant category captured at checkout.}
               - {name: merchant_account_created_at, logicalType: timestamp, physicalType: TIMESTAMPTZ, logicalTypeOptions: *utc_timestamp, required: true, description: Merchant account creation time.}
               - {name: customer_account_created_at, logicalType: timestamp, physicalType: TIMESTAMPTZ, logicalTypeOptions: *utc_timestamp, required: true, description: Customer account creation time.}
               - name: shipping
@@ -240,7 +234,7 @@ schema:
         query: |
           SELECT count(*) FROM {object}
           WHERE event_id = '' OR payment_id = '' OR integration_id = ''
-            OR correlation_id = '' OR causation_id = ''
+            OR correlation_id = ''
             OR schema_version NOT IN (1, 2) OR aggregate_version < 1
             OR recorded_at < occurred_at
             OR (CAST(payment_created IS NOT NULL AS INTEGER)
@@ -255,7 +249,7 @@ schema:
         mustBe: 0
       - id: payment_lifecycle
         type: sql
-        description: Complete canonical histories have consecutive versions, legal transitions, consistent attempt identities, correlation and causation.
+        description: Complete canonical histories have consecutive versions, legal transitions, consistent attempt identities and correlation. Causation is implied by aggregate_version order.
         query: |
           WITH canonical AS (SELECT DISTINCT * FROM {object}),
           typed AS (
@@ -280,7 +274,6 @@ schema:
               row_number() OVER history AS ordinal,
               count(*) OVER (PARTITION BY integration_id, payment_id) AS transitions,
               lag(kind) OVER history AS previous_kind,
-              lag(event_id) OVER history AS previous_event,
               lag(occurred_at) OVER history AS previous_time,
               lag(correlation_id) OVER history AS previous_correlation,
               lag(risk_decision_recorded.assessment.outcome) OVER history AS previous_outcome,
@@ -294,8 +287,7 @@ schema:
           SELECT count(*) FROM ordered
           WHERE aggregate_version <> ordinal
             OR (ordinal = transitions AND kind NOT IN ('succeeded', 'expired'))
-            OR (ordinal > 1 AND (causation_id <> previous_event
-              OR correlation_id <> previous_correlation OR occurred_at < previous_time))
+            OR (ordinal > 1 AND (correlation_id <> previous_correlation OR occurred_at < previous_time))
             OR (kind NOT IN ('created', 'expired') AND
               (attempt IS NULL OR attempt = '' OR attempt IS DISTINCT FROM active_attempt))
             OR NOT coalesce(CASE kind

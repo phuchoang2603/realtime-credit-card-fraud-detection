@@ -28,17 +28,18 @@ The fraud-labels linkage rule reads `payment_events`, so validate labels in a da
 
 ### Published version
 
-`historical/v4` is the current accepted dataset, generated from [`src/simulator/configs/historical.yaml`](../../src/simulator/configs/historical.yaml) (seed 2603) and validated against both contracts before publication. Its `manifest.json` records the configuration hash, generator revision, contract hashes, per-partition row counts and storage metrics; [`historical-sanity.ipynb`](../../src/simulator/notebooks/historical-sanity.ipynb) holds the executed distribution, skew, cutover, duplicate and layout checks.
+`historical/v7` is the current accepted dataset, generated from [`src/simulator/configs/historical.yaml`](../../src/simulator/configs/historical.yaml) (seed 2603) and validated against both contracts before publication. Its `manifest.json` records the configuration hash, generator revision, contract hashes, per-partition row counts and storage metrics; [`historical-sanity.ipynb`](../../src/simulator/notebooks/historical-sanity.ipynb) holds the executed distribution, skew, cutover, duplicate and layout checks.
 
 | Measure | Value |
 |---|---|
 | History | 2026-07-01 to 2026-09-28 (90 days); schema cutover 2026-08-15 |
-| Payments / unique events / exported event rows | 420,392 / 2,171,358 / 2,215,360 |
+| Catalogue | Refurbished electronics: phone, smartwatch, laptop, accessory, tablet, headphones, game console, camera; condition excellent, good or fair |
+| Payments / unique events / exported event rows | 420,392 / 2,171,314 / 2,215,309 |
 | Duplicate export rate | 1.99% (configured 2%) |
-| Fraud attempts by scenario | stolen card 11,871; account takeover 3,270; card testing 1,225; obvious high value 447 |
-| Labels / chargebacks / friendly-fraud payments | 443,567 / 13,252 / 1,105 |
-| Distinct customers / devices / IP networks / addresses / payment methods | 30,000 / 53,753 / 9,202 / 20,123 / 26,361 |
-| Layout | 91 event files (median 3.1 MiB, 279 MiB total) and 111 label files (median 0.24 MiB), one zstd file per day |
+| Fraud attempts by scenario | stolen card 12,157; account takeover 3,360; card testing 1,225; obvious high value 510 |
+| Labels / chargebacks / friendly-fraud payments | 442,817 / 12,309 / 1,175 |
+| Distinct customers / devices / IP networks / addresses / payment methods | 30,000 / 53,845 / 9,202 / 20,123 / 26,724 |
+| Layout | 91 event files (median 2.5 MiB, 237 MiB total) and 111 label files (median 0.24 MiB), one zstd file per day |
 
 Generate a new version from the devenv shell; the command refuses a version that already has a manifest:
 

@@ -2,7 +2,7 @@ apiVersion: v1.1.0
 kind: DataProduct
 id: urn:dataproduct:fraud:historical-payments
 name: Historical synthetic payments
-version: 2.0.0
+version: 4.1.0
 status: active
 domain: fraud-detection
 type: sourceAligned
@@ -29,7 +29,7 @@ customProperties:
     value: https://github.com/phuchoang2603/payment-gateway-fraud-detection/tree/main/src/simulator
 outputPorts:
   - name: payment-events
-    version: 1.0.0
+    version: 3.1.0
     type: files
     contractId: urn:datacontract:fraud:historical-payment-events
     description: Complete payment lifecycle histories in daily occurred_date partitions of sorted Zstandard Parquet.
@@ -45,7 +45,7 @@ outputPorts:
     description: Simulation truth and delayed chargebacks in daily label_available_date partitions of sorted Zstandard Parquet.
     inputContracts:
       - id: urn:datacontract:fraud:historical-payment-events
-        version: 1.0.0
+        version: 3.1.0
     customProperties:
       - property: path
         value: fraud_labels/label_available_date={YYYY-MM-DD}/
