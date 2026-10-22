@@ -50,7 +50,6 @@
 - [ ] 7.2 Verify that Payments cannot access the notifier/vault databases or logical replication, unauthorized callers cannot resolve vault fixtures, and Redis accepts only Payments after the prod GitOps rollout; record allowed/denied access evidence
 - [ ] 7.3 Update architecture current foundation (no Accounts service, notifier added), payment flows (fail closed, synthetic context, token format, versioned state plus append-only ledger instead of event-sourced streams/projections, Redis-first idempotency), requirements FR-03/FR-08 (browser tokenization, webhooks and Kafka publication in the first slice), NFR-01/NFR-08 and the roadmap's event-sourced recovery novelty wording, gitops runtime/local run instructions and the gateway implementation roadmap with evidence links; distinguish implemented simulator behavior from later ISO 8583, VND/authentication, capture and settlement work; verify links resolve
 - [x] 7.4 Run `openspec validate build-minimum-payment-gateway --strict` and verify it passes
-- [ ] 7.5 Record a nominal 50-attempt/s, 10-minute synthetic load run on the prod Kubernetes cluster after GitOps rollout against the documented p95/error goals, plus separate deadline/lost-response and restart-recovery runs, capturing request rate, p95/p99 latency, failures, pending-outcome age, Redis hit/error rates and Redis memory; include resource/latency settings and sensitive-data exclusion evidence, without presenting this as proof of the monthly availability SLO or PCI DSS compliance
 
 ## 8. Simplify gateway sharing and deployment
 
