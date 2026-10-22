@@ -16,7 +16,7 @@ context: |
   runtime helpers only for real reuse within the same language; contracts/ is
   the existing cross-language shared boundary.
   Keep protobuf definitions under root contracts/ and generated Python bindings
-  under src/payment-gateway/fraud-service/gen/ outside app/; make gen/ importable without
+  under src/fraud-service/gen/ outside app/; make gen/ importable without
   coupling domain code to generated modules.
   Prefer supported modern APIs and idiomatic code; use Context7 for current public
   library, SDK and framework guidance. Prefer the repository's Nix devenv.

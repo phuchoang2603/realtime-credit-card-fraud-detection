@@ -22,7 +22,7 @@ jobs:
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}
-      context: src/payment-gateway/fraud-service
+      context: src/fraud-service
       dockerfile: infra/docker/fraud-service.Dockerfile
       publish: ${{ github.event_name != 'pull_request' }}
   edge:

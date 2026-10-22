@@ -57,4 +57,4 @@
 - [x] 8.1 Reduce redundant contract fixtures and mappings; retain serialization parity and direct domain lifecycle coverage
 - [x] 8.2 Consolidate protobuf, reusable testcontainers/TLS and runtime/security helpers into one shared Go module; validate independent Go/Docker/CI builds
 - [x] 8.3 Merge the four gateway charts and eight gateway children into one application chart/child; compare base/prod resource identities, secrets, policies, routes, migrations and roles
-- [x] 8.4 Group gateway services, shared and the local Go workspace under `src/payment-gateway` and update generation, fixture paths, Docker, CI and affected references
+- [x] 8.4 Group Go gateway services, shared and the local Go workspace under `src/payment-gateway`, keep Python fraud serving at `src/fraud-service`, and update generation, fixture paths, Docker, CI and affected references

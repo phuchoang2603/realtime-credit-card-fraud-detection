@@ -53,6 +53,6 @@ The versioned protobufs in `contracts/` are the shared wire contracts. Extract t
 
 ## Images and reference material
 
-The edge image is built from its own module with `GOWORK=off` using the reusable [`infra/docker/go-service.Dockerfile`](../../infra/docker/go-service.Dockerfile); the fraud image keeps its `src/payment-gateway/fraud-service` context. Seven explicit image jobs share one workflow (see [CONTRIBUTING](../../CONTRIBUTING.md)).
+The edge image is built from its own module with `GOWORK=off` using the reusable [`infra/docker/go-service.Dockerfile`](../../infra/docker/go-service.Dockerfile); the fraud image keeps its `src/fraud-service` context. Seven explicit image jobs share one workflow (see [CONTRIBUTING](../../CONTRIBUTING.md)).
 
 In the marketplace, `services/orders/cmd/orders/main.go` demonstrates a composition root, `shared/runtime/http.go` bounded HTTP shutdown, `shared/err/grpcerr/map.go` transport error mapping and `docs/development/code-generation.md` workspace/module conventions. This repository adopts those patterns selectively and keeps gateway domain ownership separate.

@@ -74,7 +74,7 @@
       ruff-format = {
         enable = true;
         excludes = [
-          "src/payment-gateway/fraud-service/gen/**"
+          "src/fraud-service/gen/**"
         ];
       };
       gofumpt = {
