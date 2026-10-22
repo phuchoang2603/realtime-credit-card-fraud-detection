@@ -26,6 +26,7 @@ type service struct {
 var (
 	postgresService service
 	valkeyService   service
+	valkeyContainer testcontainers.Container
 )
 
 func resolve(t testing.TB, svc *service, start func(context.Context) (string, error)) string {
@@ -70,6 +71,7 @@ func RedisAddr(t testing.TB) string {
 	return resolve(t, &valkeyService, func(ctx context.Context) (string, error) {
 		container, err := testcontainers.Run(ctx, valkeyImage,
 			testcontainers.WithExposedPorts("6379/tcp"),
+			testcontainers.WithCmd("valkey-server", "--save", "", "--appendonly", "no"),
 			testcontainers.WithWaitStrategy(
 				wait.ForLog("Ready to accept connections"),
 				wait.ForListeningPort("6379/tcp"),
@@ -78,6 +80,29 @@ func RedisAddr(t testing.TB) string {
 		if err != nil {
 			return "", err
 		}
+		valkeyContainer = container
 		return container.PortEndpoint(ctx, "6379/tcp", "")
 	})
+}
+
+func RestartRedis(t testing.TB) string {
+	t.Helper()
+	RedisAddr(t)
+	ctx, cancel := context.WithTimeout(context.Background(), startTimeout)
+	defer cancel()
+	if err := valkeyContainer.Stop(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := valkeyContainer.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := wait.ForListeningPort("6379/tcp").WaitUntilReady(ctx, valkeyContainer); err != nil {
+		t.Fatal(err)
+	}
+	address, err := valkeyContainer.PortEndpoint(ctx, "6379/tcp", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	valkeyService.value = address
+	return address
 }

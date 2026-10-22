@@ -23,7 +23,7 @@ func Event(value *domain.Event) *paymentsv1.PaymentEvent {
 	case domain.SucceedPayment:
 		event.Payload = &paymentsv1.PaymentEvent_PaymentSucceeded{PaymentSucceeded: &paymentsv1.PaymentSucceeded{AttemptId: cmd.AttemptID, ProcessorReference: cmd.ProcessorReference}}
 	case domain.ExpirePayment:
-		event.Payload = &paymentsv1.PaymentEvent_PaymentExpired{PaymentExpired: &paymentsv1.PaymentExpired{}}
+		event.Payload = &paymentsv1.PaymentEvent_PaymentExpired{PaymentExpired: &paymentsv1.PaymentExpired{Present: true}}
 	}
 	return event
 }

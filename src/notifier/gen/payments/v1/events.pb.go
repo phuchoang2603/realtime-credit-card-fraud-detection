@@ -695,6 +695,7 @@ func (x *PaymentSucceeded) GetProcessorReference() string {
 // Not legal while a processor outcome remains unresolved.
 type PaymentExpired struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Present       bool                   `protobuf:"varint,1,opt,name=present,json=_present,proto3" json:"present,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -727,6 +728,13 @@ func (x *PaymentExpired) ProtoReflect() protoreflect.Message {
 // Deprecated: Use PaymentExpired.ProtoReflect.Descriptor instead.
 func (*PaymentExpired) Descriptor() ([]byte, []int) {
 	return file_payments_v1_events_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *PaymentExpired) GetPresent() bool {
+	if x != nil {
+		return x.Present
+	}
+	return false
 }
 
 var File_payments_v1_events_proto protoreflect.FileDescriptor
@@ -785,8 +793,9 @@ const file_payments_v1_events_proto_rawDesc = "" +
 	"\x10PaymentSucceeded\x12\x1d\n" +
 	"\n" +
 	"attempt_id\x18\x01 \x01(\tR\tattemptId\x12/\n" +
-	"\x13processor_reference\x18\x02 \x01(\tR\x12processorReference\"\x10\n" +
-	"\x0ePaymentExpired*f\n" +
+	"\x13processor_reference\x18\x02 \x01(\tR\x12processorReference\"+\n" +
+	"\x0ePaymentExpired\x12\x19\n" +
+	"\apresent\x18\x01 \x01(\bR\b_present*f\n" +
 	"\rDeclineSource\x12\x1e\n" +
 	"\x1aDECLINE_SOURCE_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13DECLINE_SOURCE_RISK\x10\x01\x12\x1c\n" +

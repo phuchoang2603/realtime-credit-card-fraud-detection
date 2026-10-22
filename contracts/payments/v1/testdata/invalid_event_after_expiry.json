@@ -59,7 +59,7 @@
       "recordedAt": "2026-01-01T10:00:02Z",
       "schemaVersion": 2,
       "correlationId": "7dbef46b-bfe4-5d7a-b812-72081cb3b223",
-      "paymentExpired": {}
+      "paymentExpired": {"_present": true}
     },
     {
       "eventId": "1cf6a034-03b4-5c7d-9592-2e42ab4ba519",
@@ -70,7 +70,7 @@
       "recordedAt": "2026-01-01T10:00:03Z",
       "schemaVersion": 2,
       "correlationId": "7dbef46b-bfe4-5d7a-b812-72081cb3b223",
-      "paymentExpired": {}
+      "paymentExpired": {"_present": true}
     }
   ]
 }

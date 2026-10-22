@@ -109,3 +109,25 @@ func TestRedisCountersTrackHitsMissesAndErrors(t *testing.T) {
 		t.Fatalf("error counter = %v", errorsSeen)
 	}
 }
+
+func TestRestartedRedisFallsBackToPostgresWithoutAnotherProcessorEffect(t *testing.T) {
+	stack := newStack(t, true)
+	payment := mustCreate(t, stack, "key-1", "order-1")
+	first := mustStart(t, stack, payment, "attempt-1", "vault-token")
+	events := stack.DB.CountEvents(t)
+
+	address := testsupport.RestartRedis(t)
+	restarted := stack.Restart(t, testsupport.StackOptions{Config: shortConfig(), WithRedis: true, RedisAddr: address})
+	if len(restarted.RedisEntries(t)) != 0 {
+		t.Fatal("Redis retained entries despite persistence being disabled")
+	}
+	if again := mustCreate(t, restarted, "key-1", "order-1"); again.GetPaymentId() != payment.GetPaymentId() || again.GetCheckoutToken() != payment.GetCheckoutToken() {
+		t.Fatalf("create after Redis restart = %v", again)
+	}
+	if again := mustStart(t, restarted, payment, "attempt-1", "vault-token"); again.String() != first.String() {
+		t.Fatalf("attempt after Redis restart = %v, want %v", again, first)
+	}
+	if stack.Processor.TotalSaleCalls() != 1 || restarted.Processor.TotalSaleCalls() != 0 || stack.DB.CountEvents(t) != events {
+		t.Fatal("Redis restart caused another processor effect or ledger event")
+	}
+}

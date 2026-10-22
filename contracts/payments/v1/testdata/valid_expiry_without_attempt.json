@@ -58,7 +58,7 @@
       "recordedAt": "2026-01-01T10:00:02Z",
       "schemaVersion": 2,
       "correlationId": "5c1799f1-c29a-545c-aa8a-1e0524393eea",
-      "paymentExpired": {}
+      "paymentExpired": {"_present": true}
     }
   ]
 }

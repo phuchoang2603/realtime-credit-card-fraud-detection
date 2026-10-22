@@ -131,7 +131,7 @@
       "recordedAt": "2026-01-01T10:00:06Z",
       "schemaVersion": 2,
       "correlationId": "3a05db03-8767-59a6-a809-adf88025bcdd",
-      "paymentExpired": {}
+      "paymentExpired": {"_present": true}
     }
   ]
 }

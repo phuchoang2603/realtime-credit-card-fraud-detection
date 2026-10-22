@@ -51,4 +51,4 @@ message AttemptDeclined {
 // Combined authorization and capture (sale).
 message PaymentSucceeded { string attempt_id = 1; string processor_reference = 2; }
 // Not legal while a processor outcome remains unresolved.
-message PaymentExpired {}
+message PaymentExpired { bool present = 1 [json_name = "_present"]; }

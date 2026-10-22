@@ -53,7 +53,7 @@ func TestBuildBodyCarriesOnlyOutcomeFields(t *testing.T) {
 
 func TestOutcomeMapping(t *testing.T) {
 	declined := &paymentsv1.PaymentEvent{Payload: &paymentsv1.PaymentEvent_AttemptDeclined{AttemptDeclined: &paymentsv1.AttemptDeclined{AttemptId: "a", Reason: "INSUFFICIENT_FUNDS"}}}
-	expired := &paymentsv1.PaymentEvent{Payload: &paymentsv1.PaymentEvent_PaymentExpired{PaymentExpired: &paymentsv1.PaymentExpired{}}}
+	expired := &paymentsv1.PaymentEvent{Payload: &paymentsv1.PaymentEvent_PaymentExpired{PaymentExpired: &paymentsv1.PaymentExpired{Present: true}}}
 	started := &paymentsv1.PaymentEvent{Payload: &paymentsv1.PaymentEvent_AttemptStarted{AttemptStarted: &paymentsv1.AttemptStarted{AttemptId: "a"}}}
 	tests := []struct {
 		name  string

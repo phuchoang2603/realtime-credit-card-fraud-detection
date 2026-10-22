@@ -114,5 +114,7 @@ class PaymentSucceeded(_message.Message):
     def __init__(self, attempt_id: _Optional[str] = ..., processor_reference: _Optional[str] = ...) -> None: ...
 
 class PaymentExpired(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
+    __slots__ = ("present",)
+    PRESENT_FIELD_NUMBER: _ClassVar[int]
+    present: bool
+    def __init__(self, present: _Optional[bool] = ...) -> None: ...

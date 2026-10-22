@@ -53,6 +53,6 @@ func Succeeded(t *testing.T, eventID, paymentID, integrationID, attemptID string
 func Expired(t *testing.T, eventID, paymentID, integrationID string) []byte {
 	return marshal(t, &paymentsv1.PaymentEvent{
 		EventId: eventID, PaymentId: paymentID, AggregateVersion: 3, IntegrationId: integrationID,
-		Payload: &paymentsv1.PaymentEvent_PaymentExpired{PaymentExpired: &paymentsv1.PaymentExpired{}},
+		Payload: &paymentsv1.PaymentEvent_PaymentExpired{PaymentExpired: &paymentsv1.PaymentExpired{Present: true}},
 	})
 }

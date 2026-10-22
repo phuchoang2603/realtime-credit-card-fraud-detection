@@ -190,7 +190,7 @@
       "recordedAt": "2026-01-01T10:00:09Z",
       "schemaVersion": 2,
       "correlationId": "2cd6039e-d4c6-5fb4-b751-f4c8d6ed8c99",
-      "paymentExpired": {}
+      "paymentExpired": {"_present": true}
     }
   ]
 }

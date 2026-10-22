@@ -130,7 +130,7 @@
       "recordedAt": "2026-01-01T10:00:06Z",
       "schemaVersion": 2,
       "correlationId": "f6d538df-d559-5aec-97ad-f60b81bdef2c",
-      "paymentExpired": {}
+      "paymentExpired": {"_present": true}
     }
   ]
 }
