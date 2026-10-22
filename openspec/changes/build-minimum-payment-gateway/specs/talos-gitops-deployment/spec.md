@@ -2,22 +2,27 @@
 
 ### Requirement: Gateway workload deployment
 
-The deployment SHALL target Accounts, Payments, vault simulator, processor simulator, Redis and Edge in `payment-gateway` through the configured prod root, each as its own Argo CD child application with ClusterIP services only. It SHALL NOT restore a dev app-of-apps root. A CloudNativePG cluster owned by this repository SHALL provide separate databases and owner roles for Accounts, Payments, vault and processor. No service's application credentials SHALL grant access to another service's database or logical replication. Application encryption keys, caller credentials and transport trust material SHALL come from namespace-scoped External Secrets, not from the repository or an assumed cross-namespace SecretStore. Network policy SHALL default-deny vault/database/Redis access except the required callers. Redis SHALL use a pinned upstream image, bounded memory, TTL-based disposable entries and Payments-only authenticated access; it SHALL NOT contain authoritative payment state. TLS endpoints SHALL use health checks that support their configured transport.
+The deployment SHALL target Edge, Payments, notifier, vault simulator, processor simulator, Redis and Kafka in `payment-gateway` through the configured prod root, each as its own Argo CD child application with ClusterIP services. Edge SHALL additionally have one Gateway API HTTPRoute on the cluster ingress gateway exposing only the hosted checkout paths `/checkout/*`. It SHALL NOT restore a dev app-of-apps root. A CloudNativePG cluster owned by this repository SHALL provide separate databases and owner roles for Payments, notifier, vault and processor. Payments SHALL run migrations as its owner role and serve requests with a separate runtime role that has only `SELECT` and `INSERT` on the payment event ledger. No service's application credentials SHALL grant access to another service's database or logical replication. Application encryption keys, caller credentials and transport trust material SHALL come from namespace-scoped External Secrets, not from the repository or an assumed cross-namespace SecretStore. Network policy SHALL default-deny vault/database/Redis access except the required callers, and SHALL allow Edge only from the ingress gateway and the namespaces of configured integrations. Redis SHALL be a standalone `Redis` resource of the platform's Redis operator (no sidecar), with bounded memory, `noeviction`, TTL-based idempotency records, a password from External Secrets and Payments-only access; Postgres remains the authoritative idempotency store. Integration keys and webhook secrets SHALL come from External Secrets. TLS endpoints SHALL use health checks that support their configured transport. A repository-owned Kafka cluster, managed by the platform's Strimzi operator, SHALL run in `payment-gateway` with automatic topic creation disabled and `payments.events.v1` declared, and Kafka Connect SHALL publish only the Payments event table through dedicated CDC credentials granted by a Role scoped to that one Secret, excluding application credentials, private operation requests and vault data. Network policy SHALL admit Kafka clients only from the gateway namespace, and SHALL allow the notifier egress only to configured webhook destinations. Deleting the Kafka application SHALL NOT delete the Strimzi operator or its CRDs.
 
 #### Scenario: Render gateway target
 
 - **WHEN** the configured prod root is rendered
-- **THEN** each workload and the database cluster have prod-qualified identities, no dev root is created, and no ingress or public route is created
+- **THEN** each workload, the database cluster, Kafka, Connect, the connector and the topic have prod-qualified identities, no dev root is created, and the only public route is the Edge HTTPRoute for `/checkout/*`
 
 #### Scenario: Cross-database access
 
-- **WHEN** Payments' database role attempts to read the Accounts database
+- **WHEN** Payments' database role attempts to read the notifier database
 - **THEN** access is denied
 
 #### Scenario: Vault database isolation
 
 - **WHEN** Edge, Payments or processor credentials attempt to access the vault database directly
 - **THEN** access is denied and only authenticated permitted vault API calls can obtain their scoped response
+
+#### Scenario: Connector secret access
+
+- **WHEN** the Connect service account requests a Secret other than its dedicated CDC Secret
+- **THEN** access is denied
 
 ## MODIFIED Requirements
 
@@ -37,5 +42,5 @@ pushes SHALL publish SHA/latest images to GHCR.
 #### Scenario: Merged service changes
 
 - **WHEN** changes reach main
-- **THEN** the release workflow publishes independently built images for fraud, edge, Accounts, Payments, vault simulator and processor simulator
+- **THEN** the release workflow publishes independently built images for fraud, edge, Payments, notifier, vault simulator, processor simulator and the Debezium Connect image
 - **AND** publication does not depend on manifest version comparison scripts

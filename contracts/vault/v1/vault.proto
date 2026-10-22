@@ -1,0 +1,25 @@
+syntax = "proto3";
+package vault.v1;
+
+// Synthetic vault: allow-listed test cards only; never a cardholder-data environment.
+// Callers are separated by authenticated identity: Edge may tokenize and describe,
+// only the processor may resolve.
+service VaultService {
+  rpc TokenizeCard(TokenizeCardRequest) returns (TokenizeCardResponse);
+  rpc DescribeMethod(DescribeMethodRequest) returns (MethodMetadata);
+  rpc ResolveForProcessing(ResolveRequest) returns (ProcessingFixture);
+}
+message TokenizeCardRequest { string integration_id = 1; string card_number = 2; }
+message TokenizeCardResponse { string token = 1; MethodMetadata metadata = 2; }
+message DescribeMethodRequest { string integration_id = 1; string token = 2; }
+// Safe to pass to Payments and fraud: no card identity or behavior.
+message MethodMetadata { string type = 1; string fingerprint = 2; }
+message ResolveRequest { string integration_id = 1; string token = 2; }
+enum Behavior {
+  BEHAVIOR_UNSPECIFIED = 0;
+  BEHAVIOR_APPROVE = 1;
+  BEHAVIOR_INSUFFICIENT_FUNDS = 2;
+  BEHAVIOR_ISSUER_DECLINE = 3;
+  BEHAVIOR_INVALID = 4;
+}
+message ProcessingFixture { string card_reference = 1; Behavior behavior = 2; }

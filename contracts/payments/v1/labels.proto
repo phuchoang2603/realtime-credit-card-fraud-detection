@@ -1,6 +1,8 @@
 syntax = "proto3";
-package labels.v1;
+package payments.v1;
 import "google/protobuf/timestamp.proto";
+
+// Delivered separately from PaymentEvent; never a decision input.
 enum LabelSource {
   LABEL_SOURCE_UNSPECIFIED = 0;
   LABEL_SOURCE_CHARGEBACK = 1;

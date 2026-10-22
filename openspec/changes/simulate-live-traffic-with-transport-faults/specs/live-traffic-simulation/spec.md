@@ -20,7 +20,7 @@ The live simulator SHALL take a historical dataset version and rebuild that data
 
 ### Requirement: Clean gateway commands only
 
-The simulator SHALL create payment traffic only through the public checkout API of a synthetic integration: merchant provisioning, payment creation and attempt submission with simulated client context and vault-issued opaque tokens. During setup it MAY call only the vault's authenticated, integration-scoped tokenization API to obtain tokens for fictional fixtures; it SHALL NOT resolve processing fixtures or call Accounts, Payments, Fraud or processor internal APIs. Token values SHALL NOT be seeded, logged, published or placed in dataset manifests. Each attempt SHALL carry a unique `Idempotency-Key`; transport or 503/504 retries SHALL reuse the same key, token and request content. The simulator SHALL NOT write events or inject delivery faults. Arrivals SHALL follow the configured rate, and purchase and scenario choices SHALL be seeded.
+The simulator SHALL create payment traffic only through the checkout API of a synthetic integration: test-card tokenization, payment creation with the full snapshot, and attempt submission with simulated client context and the returned opaque tokens. It SHALL NOT call the vault, Payments, Fraud or processor internal APIs directly. Token values SHALL NOT be seeded, logged, published or placed in dataset manifests. Each payment creation and attempt SHALL carry a unique `Idempotency-Key`; transport or 503/504 retries SHALL reuse the same key, token and request content. The simulator SHALL NOT write events or inject delivery faults. Arrivals SHALL follow the configured rate, and purchase and scenario choices SHALL be seeded.
 
 #### Scenario: Edge timeout
 
@@ -29,7 +29,7 @@ The simulator SHALL create payment traffic only through the public checkout API 
 
 #### Scenario: Opaque tokens preserve dataset continuation
 
-- **WHEN** the vault issues a new opaque token for a historical card fixture
+- **WHEN** the simulator tokenizes a historical card's test card number and receives a new opaque token
 - **THEN** its live method fingerprint equals the historical fingerprint, without exposing token behavior to Fraud
 
 ### Requirement: Live labels

@@ -1,0 +1,58 @@
+syntax = "proto3";
+package payments.v1;
+import "google/protobuf/timestamp.proto";
+import "payments/v1/types.proto";
+
+// Edge -> Payments. Edge has authenticated the integration and computed fingerprints.
+service PaymentService {
+  rpc CreatePayment(CreatePaymentRequest) returns (Payment);
+  rpc StartAttempt(StartAttemptRequest) returns (AttemptResult);
+  rpc GetPayment(GetPaymentRequest) returns (Payment);
+}
+message CreatePaymentRequest {
+  string integration_id = 1;
+  string idempotency_key = 2;
+  string external_seller_id = 3;
+  string external_buyer_id = 4;
+  CheckoutSnapshot snapshot = 5;
+  string return_url = 6;
+}
+message StartAttemptRequest {
+  string integration_id = 1;
+  string session_id = 2;
+  string idempotency_key = 3;
+  // Opaque vault token; Payments never sees card numbers.
+  string payment_method_token = 4;
+  AttemptSignals signals = 5;
+}
+message GetPaymentRequest { string integration_id = 1; string payment_id = 2; }
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_OPEN = 1;
+  PAYMENT_STATUS_SUCCEEDED = 2;
+  PAYMENT_STATUS_EXPIRED = 3;
+}
+enum AttemptStatus {
+  ATTEMPT_STATUS_UNSPECIFIED = 0;
+  ATTEMPT_STATUS_PENDING = 1;
+  ATTEMPT_STATUS_SUCCEEDED = 2;
+  ATTEMPT_STATUS_DECLINED = 3;
+}
+message AttemptResult {
+  string attempt_id = 1;
+  AttemptStatus status = 2;
+  string decline_reason = 3;
+}
+message Payment {
+  string payment_id = 1;
+  string session_id = 2;
+  string checkout_token = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  PaymentStatus status = 5;
+  uint64 version = 6;
+  MerchantRef merchant = 7;
+  CustomerRef customer = 8;
+  CheckoutSnapshot snapshot = 9;
+  string return_url = 10;
+  repeated AttemptResult attempts = 11;
+}

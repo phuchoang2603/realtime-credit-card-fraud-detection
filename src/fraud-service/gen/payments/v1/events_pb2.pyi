@@ -2,35 +2,25 @@ import datetime
 
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from payments.v1 import types_pb2 as _types_pb2
-from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from collections.abc import Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
-
-class RiskOutcome(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    RISK_OUTCOME_UNSPECIFIED: _ClassVar[RiskOutcome]
-    RISK_OUTCOME_APPROVE: _ClassVar[RiskOutcome]
-    RISK_OUTCOME_DECLINE: _ClassVar[RiskOutcome]
 
 class DeclineSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     DECLINE_SOURCE_UNSPECIFIED: _ClassVar[DeclineSource]
     DECLINE_SOURCE_RISK: _ClassVar[DeclineSource]
     DECLINE_SOURCE_PROCESSOR: _ClassVar[DeclineSource]
-RISK_OUTCOME_UNSPECIFIED: RiskOutcome
-RISK_OUTCOME_APPROVE: RiskOutcome
-RISK_OUTCOME_DECLINE: RiskOutcome
 DECLINE_SOURCE_UNSPECIFIED: DeclineSource
 DECLINE_SOURCE_RISK: DeclineSource
 DECLINE_SOURCE_PROCESSOR: DeclineSource
 
 class PaymentEvent(_message.Message):
-    __slots__ = ("event_id", "payment_id", "aggregate_version", "integration_id", "occurred_at", "recorded_at", "schema_version", "correlation_id", "causation_id", "payment_created", "attempt_started", "risk_decision_recorded", "processor_operation_requested", "processor_outcome_unknown", "attempt_declined", "payment_succeeded", "payment_expired")
+    __slots__ = ("event_id", "payment_id", "aggregate_version", "integration_id", "occurred_at", "recorded_at", "schema_version", "correlation_id", "payment_created", "attempt_started", "risk_decision_recorded", "processor_operation_requested", "processor_outcome_unknown", "attempt_declined", "payment_succeeded", "payment_expired")
     EVENT_ID_FIELD_NUMBER: _ClassVar[int]
     PAYMENT_ID_FIELD_NUMBER: _ClassVar[int]
     AGGREGATE_VERSION_FIELD_NUMBER: _ClassVar[int]
@@ -39,7 +29,6 @@ class PaymentEvent(_message.Message):
     RECORDED_AT_FIELD_NUMBER: _ClassVar[int]
     SCHEMA_VERSION_FIELD_NUMBER: _ClassVar[int]
     CORRELATION_ID_FIELD_NUMBER: _ClassVar[int]
-    CAUSATION_ID_FIELD_NUMBER: _ClassVar[int]
     PAYMENT_CREATED_FIELD_NUMBER: _ClassVar[int]
     ATTEMPT_STARTED_FIELD_NUMBER: _ClassVar[int]
     RISK_DECISION_RECORDED_FIELD_NUMBER: _ClassVar[int]
@@ -56,7 +45,6 @@ class PaymentEvent(_message.Message):
     recorded_at: _timestamp_pb2.Timestamp
     schema_version: int
     correlation_id: str
-    causation_id: str
     payment_created: PaymentCreated
     attempt_started: AttemptStarted
     risk_decision_recorded: RiskDecisionRecorded
@@ -65,7 +53,7 @@ class PaymentEvent(_message.Message):
     attempt_declined: AttemptDeclined
     payment_succeeded: PaymentSucceeded
     payment_expired: PaymentExpired
-    def __init__(self, event_id: _Optional[str] = ..., payment_id: _Optional[str] = ..., aggregate_version: _Optional[int] = ..., integration_id: _Optional[str] = ..., occurred_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., recorded_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., schema_version: _Optional[int] = ..., correlation_id: _Optional[str] = ..., causation_id: _Optional[str] = ..., payment_created: _Optional[_Union[PaymentCreated, _Mapping]] = ..., attempt_started: _Optional[_Union[AttemptStarted, _Mapping]] = ..., risk_decision_recorded: _Optional[_Union[RiskDecisionRecorded, _Mapping]] = ..., processor_operation_requested: _Optional[_Union[ProcessorOperationRequested, _Mapping]] = ..., processor_outcome_unknown: _Optional[_Union[ProcessorOutcomeUnknown, _Mapping]] = ..., attempt_declined: _Optional[_Union[AttemptDeclined, _Mapping]] = ..., payment_succeeded: _Optional[_Union[PaymentSucceeded, _Mapping]] = ..., payment_expired: _Optional[_Union[PaymentExpired, _Mapping]] = ...) -> None: ...
+    def __init__(self, event_id: _Optional[str] = ..., payment_id: _Optional[str] = ..., aggregate_version: _Optional[int] = ..., integration_id: _Optional[str] = ..., occurred_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., recorded_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., schema_version: _Optional[int] = ..., correlation_id: _Optional[str] = ..., payment_created: _Optional[_Union[PaymentCreated, _Mapping]] = ..., attempt_started: _Optional[_Union[AttemptStarted, _Mapping]] = ..., risk_decision_recorded: _Optional[_Union[RiskDecisionRecorded, _Mapping]] = ..., processor_operation_requested: _Optional[_Union[ProcessorOperationRequested, _Mapping]] = ..., processor_outcome_unknown: _Optional[_Union[ProcessorOutcomeUnknown, _Mapping]] = ..., attempt_declined: _Optional[_Union[AttemptDeclined, _Mapping]] = ..., payment_succeeded: _Optional[_Union[PaymentSucceeded, _Mapping]] = ..., payment_expired: _Optional[_Union[PaymentExpired, _Mapping]] = ...) -> None: ...
 
 class PaymentCreated(_message.Message):
     __slots__ = ("merchant", "customer", "snapshot")
@@ -85,29 +73,13 @@ class AttemptStarted(_message.Message):
     signals: _types_pb2.AttemptSignals
     def __init__(self, attempt_id: _Optional[str] = ..., signals: _Optional[_Union[_types_pb2.AttemptSignals, _Mapping]] = ...) -> None: ...
 
-class RiskAssessment(_message.Message):
-    __slots__ = ("outcome", "reason_codes", "policy_version", "model_version", "feature_set_version", "risk_score")
-    OUTCOME_FIELD_NUMBER: _ClassVar[int]
-    REASON_CODES_FIELD_NUMBER: _ClassVar[int]
-    POLICY_VERSION_FIELD_NUMBER: _ClassVar[int]
-    MODEL_VERSION_FIELD_NUMBER: _ClassVar[int]
-    FEATURE_SET_VERSION_FIELD_NUMBER: _ClassVar[int]
-    RISK_SCORE_FIELD_NUMBER: _ClassVar[int]
-    outcome: RiskOutcome
-    reason_codes: _containers.RepeatedScalarFieldContainer[str]
-    policy_version: str
-    model_version: str
-    feature_set_version: str
-    risk_score: float
-    def __init__(self, outcome: _Optional[_Union[RiskOutcome, str]] = ..., reason_codes: _Optional[_Iterable[str]] = ..., policy_version: _Optional[str] = ..., model_version: _Optional[str] = ..., feature_set_version: _Optional[str] = ..., risk_score: _Optional[float] = ...) -> None: ...
-
 class RiskDecisionRecorded(_message.Message):
     __slots__ = ("attempt_id", "assessment")
     ATTEMPT_ID_FIELD_NUMBER: _ClassVar[int]
     ASSESSMENT_FIELD_NUMBER: _ClassVar[int]
     attempt_id: str
-    assessment: RiskAssessment
-    def __init__(self, attempt_id: _Optional[str] = ..., assessment: _Optional[_Union[RiskAssessment, _Mapping]] = ...) -> None: ...
+    assessment: _types_pb2.RiskAssessment
+    def __init__(self, attempt_id: _Optional[str] = ..., assessment: _Optional[_Union[_types_pb2.RiskAssessment, _Mapping]] = ...) -> None: ...
 
 class ProcessorOperationRequested(_message.Message):
     __slots__ = ("attempt_id", "operation_key")

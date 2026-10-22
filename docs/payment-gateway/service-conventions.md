@@ -6,9 +6,10 @@ Each service is an independently buildable and deployable unit that owns its run
 
 ```text
 contracts/
-  payments/v1/                   # payment types and lifecycle events
-  fraud/v2/                      # internal decision RPC
-  labels/v1/                     # delayed fraud labels
+  payments/v1/                   # payment types, lifecycle events, labels, PaymentService
+  fraud/v1/                      # internal decision RPC
+  vault/v1/                      # synthetic vault
+  processor/v1/                  # synthetic processor
 src/
   edge/                          # Go module; cmd/edge is the composition root
     cmd/edge/main.go
@@ -19,9 +20,8 @@ src/
     app/domain/                  # validated decision values and pure policy rules
     app/transport/               # gRPC adapter, request mapping and correlation
     app/telemetry/               # logging, metrics and tracing setup
-    gen/fraud/v2/                # generated decision bindings
+    gen/fraud/v1/                # generated decision bindings
     gen/payments/v1/             # generated shared payment types
-    gen/labels/v1/               # generated label types
     tests/
 shared/                          # only technical helpers or wire contracts (none yet)
 ```

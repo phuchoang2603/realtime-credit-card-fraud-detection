@@ -1,6 +1,6 @@
 ## Purpose
 
-Publish every committed payment event from the authoritative Payments event store to Kafka, in commit order and without ever changing stored history.
+Publish every committed payment event from the Payments append-only event ledger to Kafka, in commit order and without ever changing stored history, for the notifier and streaming jobs.
 
 ## ADDED Requirements
 
@@ -35,3 +35,12 @@ Payment commands SHALL NOT depend on broker or publisher availability. While eit
 
 - **WHEN** an attempt is submitted while Kafka is down
 - **THEN** the attempt completes normally and its events are published after Kafka recovers
+
+### Requirement: Internal topic consumers
+
+`payments.events.v1` SHALL be consumed only by gateway components (the notifier and streaming jobs); integrations SHALL learn outcomes through webhooks or the status query, not by reading the topic. Each consumer SHALL use its own consumer group and deduplicate by `event_id`. Events SHALL carry no tokens, raw card data or personal data beyond the gateway's fingerprints.
+
+#### Scenario: Consumer down during outcome
+
+- **WHEN** a consumer is stopped while a payment succeeds and restarts within topic retention
+- **THEN** it receives the event from its committed offset, and the payment was committed throughout

@@ -10,7 +10,8 @@ from pydantic import ValidationError
 from app.domain.policy import evaluate
 from app.runtime import RuntimeState
 from app.transport.mapping import decision_input_from_proto
-from fraud.v2 import fraud_pb2, fraud_pb2_grpc
+from fraud.v1 import fraud_pb2, fraud_pb2_grpc
+from payments.v1 import types_pb2
 
 
 class FraudService(fraud_pb2_grpc.FraudServiceServicer):
@@ -31,12 +32,12 @@ class FraudService(fraud_pb2_grpc.FraudServiceServicer):
         evaluated_at = Timestamp()
         evaluated_at.FromDatetime(datetime.now(UTC))
         return fraud_pb2.DecideResponse(
-            outcome=(
-                fraud_pb2.DECISION_OUTCOME_DECLINE
-                if result.outcome == "DECLINE"
-                else fraud_pb2.DECISION_OUTCOME_APPROVE
+            assessment=types_pb2.RiskAssessment(
+                outcome=(
+                    types_pb2.RISK_OUTCOME_DECLINE if result.outcome == "DECLINE" else types_pb2.RISK_OUTCOME_APPROVE
+                ),
+                reason_codes=result.reason_codes,
+                policy_version=result.policy_version,
             ),
-            reason_codes=result.reason_codes,
             evaluated_at=evaluated_at,
-            policy_version=result.policy_version,
         )

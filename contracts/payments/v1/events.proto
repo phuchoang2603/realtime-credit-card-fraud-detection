@@ -3,8 +3,8 @@ package payments.v1;
 import "google/protobuf/timestamp.proto";
 import "payments/v1/types.proto";
 
-// Versions start at 1 and increase by one per payment. event_id deduplicates
-// deliveries. PaymentCreated starts a history; success or expiry ends it.
+// Versions start at 1 and increase by one per payment; causation is version order.
+// event_id deduplicates deliveries. PaymentCreated starts a history; success or expiry ends it.
 message PaymentEvent {
   string event_id = 1;
   string payment_id = 2;
@@ -14,16 +14,15 @@ message PaymentEvent {
   google.protobuf.Timestamp recorded_at = 6;
   uint32 schema_version = 7;
   string correlation_id = 8;
-  string causation_id = 9;
   oneof payload {
-    PaymentCreated payment_created = 10;
-    AttemptStarted attempt_started = 11;
-    RiskDecisionRecorded risk_decision_recorded = 12;
-    ProcessorOperationRequested processor_operation_requested = 13;
-    ProcessorOutcomeUnknown processor_outcome_unknown = 14;
-    AttemptDeclined attempt_declined = 15;
-    PaymentSucceeded payment_succeeded = 16;
-    PaymentExpired payment_expired = 17;
+    PaymentCreated payment_created = 9;
+    AttemptStarted attempt_started = 10;
+    RiskDecisionRecorded risk_decision_recorded = 11;
+    ProcessorOperationRequested processor_operation_requested = 12;
+    ProcessorOutcomeUnknown processor_outcome_unknown = 13;
+    AttemptDeclined attempt_declined = 14;
+    PaymentSucceeded payment_succeeded = 15;
+    PaymentExpired payment_expired = 16;
   }
 }
 message PaymentCreated {
@@ -33,19 +32,6 @@ message PaymentCreated {
 }
 // Only while OPEN with no active attempt; another attempt follows a decline.
 message AttemptStarted { string attempt_id = 1; AttemptSignals signals = 2; }
-enum RiskOutcome {
-  RISK_OUTCOME_UNSPECIFIED = 0;
-  RISK_OUTCOME_APPROVE = 1;
-  RISK_OUTCOME_DECLINE = 2;
-}
-message RiskAssessment {
-  RiskOutcome outcome = 1;
-  repeated string reason_codes = 2;
-  string policy_version = 3;
-  optional string model_version = 4;
-  optional string feature_set_version = 5;
-  optional double risk_score = 6;
-}
 // Risk decline -> AttemptDeclined(RISK); approval -> processor request ->
 // success, AttemptDeclined(PROCESSOR), or unknown outcome.
 message RiskDecisionRecorded { string attempt_id = 1; RiskAssessment assessment = 2; }

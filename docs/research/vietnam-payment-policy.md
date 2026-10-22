@@ -69,7 +69,7 @@ The [processor simulator](../../openspec/changes/build-minimum-payment-gateway/d
 | Disputes and investigation | Preserve evidence and versioned policy citations. Add a separate lifecycle when implemented; do not overload processor timeout recovery or rewrite payment history. |
 | Analyst knowledge | A later read-only investigation agent retrieves scoped, cited policy and case evidence. It cannot approve payments, grant refunds or change deployed rules from retrieved prose. |
 
-The current `fraud.v2` contract has only `APPROVE` and `DECLINE`; it has no challenge workflow. Authentication-required, pending, expiry and cancellation behavior would need an explicit provider/checkout contract and lifecycle design. This research does not add those states to runtime or silently reinterpret existing events.
+The current `fraud.v1` contract has only `APPROVE` and `DECLINE`; it has no challenge workflow. Authentication-required, pending, expiry and cancellation behavior would need an explicit provider/checkout contract and lifecycle design. This research does not add those states to runtime or silently reinterpret existing events.
 
 ## Knowledge corpus and next research
 

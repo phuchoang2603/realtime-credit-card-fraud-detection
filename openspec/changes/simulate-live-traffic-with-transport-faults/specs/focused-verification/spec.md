@@ -2,7 +2,7 @@
 
 ### Requirement: Streaming transport tests
 
-Simulator tests SHALL cover deterministic fault selection, unchanged pass-through when all faults are disabled, no loss across an injector restart with held records against a CI Kafka broker, refusal to continue a dataset whose profile digest does not match, and stable method fingerprints after vault token reissuance. Outbox publication SHALL be verified in controlled synthetic evidence rather than tests of connector configuration. Evidence SHALL demonstrate that token values, vault data and private encrypted operation requests do not appear on Kafka. Tests SHALL NOT assert exact wall-clock timings.
+Simulator tests SHALL cover deterministic fault selection, unchanged pass-through when all faults are disabled, no loss across an injector restart with held records against a CI Kafka broker, refusal to continue a dataset whose profile digest does not match, and stable method fingerprints after token reissuance. Evidence SHALL demonstrate that token values and card numbers do not appear on the faulty or labels topics or in simulator logs. Tests SHALL NOT assert exact wall-clock timings.
 
 #### Scenario: Injector restart in CI
 

@@ -2,19 +2,14 @@
 
 ### Requirement: Streaming workload deployment
 
-The deployment SHALL provide a Kafka cluster through the configured prod root, owned by this repository and managed by the platform's Strimzi operator, without restoring a dev root. It SHALL disable automatic topic creation and declare the topics `payments.events.v1`, `payments.events.v1.faulty` and `fraud.labels.v1` with configured partitions and retention. Kafka Connect SHALL publish only the Payments event table through dedicated CDC credentials, granted through a Role scoped to that one Secret; application credentials, private operation requests and vault data SHALL be excluded. Live simulator and fault injector SHALL use one image as separate single-replica workloads, disabled by default and explicitly enabled for controlled synthetic runs. Only the live workload SHALL receive integration-scoped vault-tokenization credentials and authenticated encrypted vault access; integration/caller credentials SHALL come from External Secrets. The fault injector SHALL NOT receive vault access. Connect/simulator images SHALL reuse the image workflow, without publication on PRs and with publication on main pushes. Synchronizing or deleting these applications SHALL NOT create, adopt or delete the Strimzi operator.
+The gateway's Kafka application SHALL additionally declare `payments.events.v1.faulty` and `fraud.labels.v1` with configured partitions and retention, without restoring a dev root. Live simulator and fault injector SHALL use one image as separate single-replica workloads, disabled by default and explicitly enabled for controlled synthetic runs. Only the live workload SHALL receive the synthetic integration's API key, from External Secrets, and network access to Edge; neither workload SHALL reach the vault. The fault injector SHALL NOT write to `payments.events.v1`. The simulator image SHALL reuse the image workflow, without publication on PRs and with publication on main pushes.
 
 #### Scenario: Render streaming target
 
 - **WHEN** the configured prod target is rendered with simulation disabled and then explicitly enabled
-- **THEN** Kafka, Connect, the connector and topics remain configured, simulator workloads appear only when enabled, and no dev root, ingress or public route is created
+- **THEN** the three topics remain configured, simulator workloads appear only when enabled, and no dev root, ingress or public route is created
 
-#### Scenario: Connector secret access
+#### Scenario: Fault injector isolation
 
-- **WHEN** the Connect service account requests a Secret other than its dedicated CDC Secret
-- **THEN** access is denied
-
-#### Scenario: Remove the Kafka application
-
-- **WHEN** the repository's Kafka application is deleted
-- **THEN** the Strimzi operator and its CRDs remain under the platform owner's control
+- **WHEN** the fault injector workload is rendered
+- **THEN** it has no gateway credentials or vault access, and its producer targets only the faulty topic

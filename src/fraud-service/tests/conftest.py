@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
 
-from fraud.v2 import fraud_pb2
+from fraud.v1 import fraud_pb2
 from payments.v1 import types_pb2
 
 
@@ -34,7 +34,6 @@ def valid_request():
                     unit_price=types_pb2.Money(minor_units=15_000, currency="USD"),
                 )
             ],
-            merchant_category="electronics",
             merchant_account_created_at=timestamp(attempted_at - timedelta(days=30)),
             customer_account_created_at=timestamp(attempted_at - timedelta(days=30)),
             shipping=types_pb2.ShippingLocation(
