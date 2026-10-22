@@ -8,6 +8,9 @@ service PaymentService {
   rpc CreatePayment(CreatePaymentRequest) returns (Payment);
   rpc StartAttempt(StartAttemptRequest) returns (AttemptResult);
   rpc GetPayment(GetPaymentRequest) returns (Payment);
+  // Resolves a session from its checkout token; the returned integration_id scopes
+  // later vault and attempt calls. The token is not echoed back.
+  rpc GetCheckoutSession(GetCheckoutSessionRequest) returns (Payment);
 }
 message CreatePaymentRequest {
   string integration_id = 1;
@@ -24,8 +27,10 @@ message StartAttemptRequest {
   // Opaque vault token; Payments never sees card numbers.
   string payment_method_token = 4;
   AttemptSignals signals = 5;
+  string checkout_token = 6;
 }
 message GetPaymentRequest { string integration_id = 1; string payment_id = 2; }
+message GetCheckoutSessionRequest { string session_id = 1; string checkout_token = 2; }
 enum PaymentStatus {
   PAYMENT_STATUS_UNSPECIFIED = 0;
   PAYMENT_STATUS_OPEN = 1;
@@ -55,4 +60,5 @@ message Payment {
   CheckoutSnapshot snapshot = 9;
   string return_url = 10;
   repeated AttemptResult attempts = 11;
+  string integration_id = 12;
 }

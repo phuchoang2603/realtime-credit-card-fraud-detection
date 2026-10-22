@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PaymentService_CreatePayment_FullMethodName = "/payments.v1.PaymentService/CreatePayment"
-	PaymentService_StartAttempt_FullMethodName  = "/payments.v1.PaymentService/StartAttempt"
-	PaymentService_GetPayment_FullMethodName    = "/payments.v1.PaymentService/GetPayment"
+	PaymentService_CreatePayment_FullMethodName      = "/payments.v1.PaymentService/CreatePayment"
+	PaymentService_StartAttempt_FullMethodName       = "/payments.v1.PaymentService/StartAttempt"
+	PaymentService_GetPayment_FullMethodName         = "/payments.v1.PaymentService/GetPayment"
+	PaymentService_GetCheckoutSession_FullMethodName = "/payments.v1.PaymentService/GetCheckoutSession"
 )
 
 // PaymentServiceClient is the client API for PaymentService service.
@@ -33,6 +34,9 @@ type PaymentServiceClient interface {
 	CreatePayment(ctx context.Context, in *CreatePaymentRequest, opts ...grpc.CallOption) (*Payment, error)
 	StartAttempt(ctx context.Context, in *StartAttemptRequest, opts ...grpc.CallOption) (*AttemptResult, error)
 	GetPayment(ctx context.Context, in *GetPaymentRequest, opts ...grpc.CallOption) (*Payment, error)
+	// Resolves a session from its checkout token; the returned integration_id scopes
+	// later vault and attempt calls. The token is not echoed back.
+	GetCheckoutSession(ctx context.Context, in *GetCheckoutSessionRequest, opts ...grpc.CallOption) (*Payment, error)
 }
 
 type paymentServiceClient struct {
@@ -73,6 +77,16 @@ func (c *paymentServiceClient) GetPayment(ctx context.Context, in *GetPaymentReq
 	return out, nil
 }
 
+func (c *paymentServiceClient) GetCheckoutSession(ctx context.Context, in *GetCheckoutSessionRequest, opts ...grpc.CallOption) (*Payment, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Payment)
+	err := c.cc.Invoke(ctx, PaymentService_GetCheckoutSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PaymentServiceServer is the server API for PaymentService service.
 // All implementations must embed UnimplementedPaymentServiceServer
 // for forward compatibility.
@@ -82,6 +96,9 @@ type PaymentServiceServer interface {
 	CreatePayment(context.Context, *CreatePaymentRequest) (*Payment, error)
 	StartAttempt(context.Context, *StartAttemptRequest) (*AttemptResult, error)
 	GetPayment(context.Context, *GetPaymentRequest) (*Payment, error)
+	// Resolves a session from its checkout token; the returned integration_id scopes
+	// later vault and attempt calls. The token is not echoed back.
+	GetCheckoutSession(context.Context, *GetCheckoutSessionRequest) (*Payment, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
@@ -100,6 +117,9 @@ func (UnimplementedPaymentServiceServer) StartAttempt(context.Context, *StartAtt
 }
 func (UnimplementedPaymentServiceServer) GetPayment(context.Context, *GetPaymentRequest) (*Payment, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPayment not implemented")
+}
+func (UnimplementedPaymentServiceServer) GetCheckoutSession(context.Context, *GetCheckoutSessionRequest) (*Payment, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCheckoutSession not implemented")
 }
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 func (UnimplementedPaymentServiceServer) testEmbeddedByValue()                        {}
@@ -176,6 +196,24 @@ func _PaymentService_GetPayment_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PaymentService_GetCheckoutSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCheckoutSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).GetCheckoutSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_GetCheckoutSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).GetCheckoutSession(ctx, req.(*GetCheckoutSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PaymentService_ServiceDesc is the grpc.ServiceDesc for PaymentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -194,6 +232,10 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPayment",
 			Handler:    _PaymentService_GetPayment_Handler,
+		},
+		{
+			MethodName: "GetCheckoutSession",
+			Handler:    _PaymentService_GetCheckoutSession_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

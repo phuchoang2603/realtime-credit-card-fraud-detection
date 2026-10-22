@@ -50,18 +50,20 @@ class CreatePaymentRequest(_message.Message):
     def __init__(self, integration_id: _Optional[str] = ..., idempotency_key: _Optional[str] = ..., external_seller_id: _Optional[str] = ..., external_buyer_id: _Optional[str] = ..., snapshot: _Optional[_Union[_types_pb2.CheckoutSnapshot, _Mapping]] = ..., return_url: _Optional[str] = ...) -> None: ...
 
 class StartAttemptRequest(_message.Message):
-    __slots__ = ("integration_id", "session_id", "idempotency_key", "payment_method_token", "signals")
+    __slots__ = ("integration_id", "session_id", "idempotency_key", "payment_method_token", "signals", "checkout_token")
     INTEGRATION_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
     PAYMENT_METHOD_TOKEN_FIELD_NUMBER: _ClassVar[int]
     SIGNALS_FIELD_NUMBER: _ClassVar[int]
+    CHECKOUT_TOKEN_FIELD_NUMBER: _ClassVar[int]
     integration_id: str
     session_id: str
     idempotency_key: str
     payment_method_token: str
     signals: _types_pb2.AttemptSignals
-    def __init__(self, integration_id: _Optional[str] = ..., session_id: _Optional[str] = ..., idempotency_key: _Optional[str] = ..., payment_method_token: _Optional[str] = ..., signals: _Optional[_Union[_types_pb2.AttemptSignals, _Mapping]] = ...) -> None: ...
+    checkout_token: str
+    def __init__(self, integration_id: _Optional[str] = ..., session_id: _Optional[str] = ..., idempotency_key: _Optional[str] = ..., payment_method_token: _Optional[str] = ..., signals: _Optional[_Union[_types_pb2.AttemptSignals, _Mapping]] = ..., checkout_token: _Optional[str] = ...) -> None: ...
 
 class GetPaymentRequest(_message.Message):
     __slots__ = ("integration_id", "payment_id")
@@ -70,6 +72,14 @@ class GetPaymentRequest(_message.Message):
     integration_id: str
     payment_id: str
     def __init__(self, integration_id: _Optional[str] = ..., payment_id: _Optional[str] = ...) -> None: ...
+
+class GetCheckoutSessionRequest(_message.Message):
+    __slots__ = ("session_id", "checkout_token")
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    CHECKOUT_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    session_id: str
+    checkout_token: str
+    def __init__(self, session_id: _Optional[str] = ..., checkout_token: _Optional[str] = ...) -> None: ...
 
 class AttemptResult(_message.Message):
     __slots__ = ("attempt_id", "status", "decline_reason")
@@ -82,7 +92,7 @@ class AttemptResult(_message.Message):
     def __init__(self, attempt_id: _Optional[str] = ..., status: _Optional[_Union[AttemptStatus, str]] = ..., decline_reason: _Optional[str] = ...) -> None: ...
 
 class Payment(_message.Message):
-    __slots__ = ("payment_id", "session_id", "checkout_token", "expires_at", "status", "version", "merchant", "customer", "snapshot", "return_url", "attempts")
+    __slots__ = ("payment_id", "session_id", "checkout_token", "expires_at", "status", "version", "merchant", "customer", "snapshot", "return_url", "attempts", "integration_id")
     PAYMENT_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     CHECKOUT_TOKEN_FIELD_NUMBER: _ClassVar[int]
@@ -94,6 +104,7 @@ class Payment(_message.Message):
     SNAPSHOT_FIELD_NUMBER: _ClassVar[int]
     RETURN_URL_FIELD_NUMBER: _ClassVar[int]
     ATTEMPTS_FIELD_NUMBER: _ClassVar[int]
+    INTEGRATION_ID_FIELD_NUMBER: _ClassVar[int]
     payment_id: str
     session_id: str
     checkout_token: str
@@ -105,4 +116,5 @@ class Payment(_message.Message):
     snapshot: _types_pb2.CheckoutSnapshot
     return_url: str
     attempts: _containers.RepeatedCompositeFieldContainer[AttemptResult]
-    def __init__(self, payment_id: _Optional[str] = ..., session_id: _Optional[str] = ..., checkout_token: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., status: _Optional[_Union[PaymentStatus, str]] = ..., version: _Optional[int] = ..., merchant: _Optional[_Union[_types_pb2.MerchantRef, _Mapping]] = ..., customer: _Optional[_Union[_types_pb2.CustomerRef, _Mapping]] = ..., snapshot: _Optional[_Union[_types_pb2.CheckoutSnapshot, _Mapping]] = ..., return_url: _Optional[str] = ..., attempts: _Optional[_Iterable[_Union[AttemptResult, _Mapping]]] = ...) -> None: ...
+    integration_id: str
+    def __init__(self, payment_id: _Optional[str] = ..., session_id: _Optional[str] = ..., checkout_token: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., status: _Optional[_Union[PaymentStatus, str]] = ..., version: _Optional[int] = ..., merchant: _Optional[_Union[_types_pb2.MerchantRef, _Mapping]] = ..., customer: _Optional[_Union[_types_pb2.CustomerRef, _Mapping]] = ..., snapshot: _Optional[_Union[_types_pb2.CheckoutSnapshot, _Mapping]] = ..., return_url: _Optional[str] = ..., attempts: _Optional[_Iterable[_Union[AttemptResult, _Mapping]]] = ..., integration_id: _Optional[str] = ...) -> None: ...

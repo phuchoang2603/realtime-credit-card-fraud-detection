@@ -218,6 +218,7 @@ type StartAttemptRequest struct {
 	// Opaque vault token; Payments never sees card numbers.
 	PaymentMethodToken string          `protobuf:"bytes,4,opt,name=payment_method_token,json=paymentMethodToken,proto3" json:"payment_method_token,omitempty"`
 	Signals            *AttemptSignals `protobuf:"bytes,5,opt,name=signals,proto3" json:"signals,omitempty"`
+	CheckoutToken      string          `protobuf:"bytes,6,opt,name=checkout_token,json=checkoutToken,proto3" json:"checkout_token,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -287,6 +288,13 @@ func (x *StartAttemptRequest) GetSignals() *AttemptSignals {
 	return nil
 }
 
+func (x *StartAttemptRequest) GetCheckoutToken() string {
+	if x != nil {
+		return x.CheckoutToken
+	}
+	return ""
+}
+
 type GetPaymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	IntegrationId string                 `protobuf:"bytes,1,opt,name=integration_id,json=integrationId,proto3" json:"integration_id,omitempty"`
@@ -339,6 +347,58 @@ func (x *GetPaymentRequest) GetPaymentId() string {
 	return ""
 }
 
+type GetCheckoutSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	CheckoutToken string                 `protobuf:"bytes,2,opt,name=checkout_token,json=checkoutToken,proto3" json:"checkout_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCheckoutSessionRequest) Reset() {
+	*x = GetCheckoutSessionRequest{}
+	mi := &file_payments_v1_payments_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCheckoutSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCheckoutSessionRequest) ProtoMessage() {}
+
+func (x *GetCheckoutSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_payments_v1_payments_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCheckoutSessionRequest.ProtoReflect.Descriptor instead.
+func (*GetCheckoutSessionRequest) Descriptor() ([]byte, []int) {
+	return file_payments_v1_payments_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetCheckoutSessionRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *GetCheckoutSessionRequest) GetCheckoutToken() string {
+	if x != nil {
+		return x.CheckoutToken
+	}
+	return ""
+}
+
 type AttemptResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AttemptId     string                 `protobuf:"bytes,1,opt,name=attempt_id,json=attemptId,proto3" json:"attempt_id,omitempty"`
@@ -350,7 +410,7 @@ type AttemptResult struct {
 
 func (x *AttemptResult) Reset() {
 	*x = AttemptResult{}
-	mi := &file_payments_v1_payments_proto_msgTypes[3]
+	mi := &file_payments_v1_payments_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -362,7 +422,7 @@ func (x *AttemptResult) String() string {
 func (*AttemptResult) ProtoMessage() {}
 
 func (x *AttemptResult) ProtoReflect() protoreflect.Message {
-	mi := &file_payments_v1_payments_proto_msgTypes[3]
+	mi := &file_payments_v1_payments_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -375,7 +435,7 @@ func (x *AttemptResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AttemptResult.ProtoReflect.Descriptor instead.
 func (*AttemptResult) Descriptor() ([]byte, []int) {
-	return file_payments_v1_payments_proto_rawDescGZIP(), []int{3}
+	return file_payments_v1_payments_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AttemptResult) GetAttemptId() string {
@@ -412,13 +472,14 @@ type Payment struct {
 	Snapshot      *CheckoutSnapshot      `protobuf:"bytes,9,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
 	ReturnUrl     string                 `protobuf:"bytes,10,opt,name=return_url,json=returnUrl,proto3" json:"return_url,omitempty"`
 	Attempts      []*AttemptResult       `protobuf:"bytes,11,rep,name=attempts,proto3" json:"attempts,omitempty"`
+	IntegrationId string                 `protobuf:"bytes,12,opt,name=integration_id,json=integrationId,proto3" json:"integration_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Payment) Reset() {
 	*x = Payment{}
-	mi := &file_payments_v1_payments_proto_msgTypes[4]
+	mi := &file_payments_v1_payments_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -430,7 +491,7 @@ func (x *Payment) String() string {
 func (*Payment) ProtoMessage() {}
 
 func (x *Payment) ProtoReflect() protoreflect.Message {
-	mi := &file_payments_v1_payments_proto_msgTypes[4]
+	mi := &file_payments_v1_payments_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -443,7 +504,7 @@ func (x *Payment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Payment.ProtoReflect.Descriptor instead.
 func (*Payment) Descriptor() ([]byte, []int) {
-	return file_payments_v1_payments_proto_rawDescGZIP(), []int{4}
+	return file_payments_v1_payments_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Payment) GetPaymentId() string {
@@ -523,6 +584,13 @@ func (x *Payment) GetAttempts() []*AttemptResult {
 	return nil
 }
 
+func (x *Payment) GetIntegrationId() string {
+	if x != nil {
+		return x.IntegrationId
+	}
+	return ""
+}
+
 var File_payments_v1_payments_proto protoreflect.FileDescriptor
 
 const file_payments_v1_payments_proto_rawDesc = "" +
@@ -535,23 +603,28 @@ const file_payments_v1_payments_proto_rawDesc = "" +
 	"\x11external_buyer_id\x18\x04 \x01(\tR\x0fexternalBuyerId\x129\n" +
 	"\bsnapshot\x18\x05 \x01(\v2\x1d.payments.v1.CheckoutSnapshotR\bsnapshot\x12\x1d\n" +
 	"\n" +
-	"return_url\x18\x06 \x01(\tR\treturnUrl\"\xed\x01\n" +
+	"return_url\x18\x06 \x01(\tR\treturnUrl\"\x94\x02\n" +
 	"\x13StartAttemptRequest\x12%\n" +
 	"\x0eintegration_id\x18\x01 \x01(\tR\rintegrationId\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\x12'\n" +
 	"\x0fidempotency_key\x18\x03 \x01(\tR\x0eidempotencyKey\x120\n" +
 	"\x14payment_method_token\x18\x04 \x01(\tR\x12paymentMethodToken\x125\n" +
-	"\asignals\x18\x05 \x01(\v2\x1b.payments.v1.AttemptSignalsR\asignals\"Y\n" +
+	"\asignals\x18\x05 \x01(\v2\x1b.payments.v1.AttemptSignalsR\asignals\x12%\n" +
+	"\x0echeckout_token\x18\x06 \x01(\tR\rcheckoutToken\"Y\n" +
 	"\x11GetPaymentRequest\x12%\n" +
 	"\x0eintegration_id\x18\x01 \x01(\tR\rintegrationId\x12\x1d\n" +
 	"\n" +
-	"payment_id\x18\x02 \x01(\tR\tpaymentId\"\x89\x01\n" +
+	"payment_id\x18\x02 \x01(\tR\tpaymentId\"a\n" +
+	"\x19GetCheckoutSessionRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12%\n" +
+	"\x0echeckout_token\x18\x02 \x01(\tR\rcheckoutToken\"\x89\x01\n" +
 	"\rAttemptResult\x12\x1d\n" +
 	"\n" +
 	"attempt_id\x18\x01 \x01(\tR\tattemptId\x122\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x1a.payments.v1.AttemptStatusR\x06status\x12%\n" +
-	"\x0edecline_reason\x18\x03 \x01(\tR\rdeclineReason\"\xf5\x03\n" +
+	"\x0edecline_reason\x18\x03 \x01(\tR\rdeclineReason\"\x9c\x04\n" +
 	"\aPayment\x12\x1d\n" +
 	"\n" +
 	"payment_id\x18\x01 \x01(\tR\tpaymentId\x12\x1d\n" +
@@ -568,7 +641,8 @@ const file_payments_v1_payments_proto_rawDesc = "" +
 	"\n" +
 	"return_url\x18\n" +
 	" \x01(\tR\treturnUrl\x126\n" +
-	"\battempts\x18\v \x03(\v2\x1a.payments.v1.AttemptResultR\battempts*\x82\x01\n" +
+	"\battempts\x18\v \x03(\v2\x1a.payments.v1.AttemptResultR\battempts\x12%\n" +
+	"\x0eintegration_id\x18\f \x01(\tR\rintegrationId*\x82\x01\n" +
 	"\rPaymentStatus\x12\x1e\n" +
 	"\x1aPAYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13PAYMENT_STATUS_OPEN\x10\x01\x12\x1c\n" +
@@ -578,12 +652,13 @@ const file_payments_v1_payments_proto_rawDesc = "" +
 	"\x1aATTEMPT_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16ATTEMPT_STATUS_PENDING\x10\x01\x12\x1c\n" +
 	"\x18ATTEMPT_STATUS_SUCCEEDED\x10\x02\x12\x1b\n" +
-	"\x17ATTEMPT_STATUS_DECLINED\x10\x032\xec\x01\n" +
+	"\x17ATTEMPT_STATUS_DECLINED\x10\x032\xc0\x02\n" +
 	"\x0ePaymentService\x12H\n" +
 	"\rCreatePayment\x12!.payments.v1.CreatePaymentRequest\x1a\x14.payments.v1.Payment\x12L\n" +
 	"\fStartAttempt\x12 .payments.v1.StartAttemptRequest\x1a\x1a.payments.v1.AttemptResult\x12B\n" +
 	"\n" +
-	"GetPayment\x12\x1e.payments.v1.GetPaymentRequest\x1a\x14.payments.v1.Paymentb\x06proto3"
+	"GetPayment\x12\x1e.payments.v1.GetPaymentRequest\x1a\x14.payments.v1.Payment\x12R\n" +
+	"\x12GetCheckoutSession\x12&.payments.v1.GetCheckoutSessionRequest\x1a\x14.payments.v1.Paymentb\x06proto3"
 
 var (
 	file_payments_v1_payments_proto_rawDescOnce sync.Once
@@ -598,39 +673,42 @@ func file_payments_v1_payments_proto_rawDescGZIP() []byte {
 }
 
 var file_payments_v1_payments_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_payments_v1_payments_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_payments_v1_payments_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_payments_v1_payments_proto_goTypes = []any{
-	(PaymentStatus)(0),            // 0: payments.v1.PaymentStatus
-	(AttemptStatus)(0),            // 1: payments.v1.AttemptStatus
-	(*CreatePaymentRequest)(nil),  // 2: payments.v1.CreatePaymentRequest
-	(*StartAttemptRequest)(nil),   // 3: payments.v1.StartAttemptRequest
-	(*GetPaymentRequest)(nil),     // 4: payments.v1.GetPaymentRequest
-	(*AttemptResult)(nil),         // 5: payments.v1.AttemptResult
-	(*Payment)(nil),               // 6: payments.v1.Payment
-	(*CheckoutSnapshot)(nil),      // 7: payments.v1.CheckoutSnapshot
-	(*AttemptSignals)(nil),        // 8: payments.v1.AttemptSignals
-	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
-	(*MerchantRef)(nil),           // 10: payments.v1.MerchantRef
-	(*CustomerRef)(nil),           // 11: payments.v1.CustomerRef
+	(PaymentStatus)(0),                // 0: payments.v1.PaymentStatus
+	(AttemptStatus)(0),                // 1: payments.v1.AttemptStatus
+	(*CreatePaymentRequest)(nil),      // 2: payments.v1.CreatePaymentRequest
+	(*StartAttemptRequest)(nil),       // 3: payments.v1.StartAttemptRequest
+	(*GetPaymentRequest)(nil),         // 4: payments.v1.GetPaymentRequest
+	(*GetCheckoutSessionRequest)(nil), // 5: payments.v1.GetCheckoutSessionRequest
+	(*AttemptResult)(nil),             // 6: payments.v1.AttemptResult
+	(*Payment)(nil),                   // 7: payments.v1.Payment
+	(*CheckoutSnapshot)(nil),          // 8: payments.v1.CheckoutSnapshot
+	(*AttemptSignals)(nil),            // 9: payments.v1.AttemptSignals
+	(*timestamppb.Timestamp)(nil),     // 10: google.protobuf.Timestamp
+	(*MerchantRef)(nil),               // 11: payments.v1.MerchantRef
+	(*CustomerRef)(nil),               // 12: payments.v1.CustomerRef
 }
 var file_payments_v1_payments_proto_depIdxs = []int32{
-	7,  // 0: payments.v1.CreatePaymentRequest.snapshot:type_name -> payments.v1.CheckoutSnapshot
-	8,  // 1: payments.v1.StartAttemptRequest.signals:type_name -> payments.v1.AttemptSignals
+	8,  // 0: payments.v1.CreatePaymentRequest.snapshot:type_name -> payments.v1.CheckoutSnapshot
+	9,  // 1: payments.v1.StartAttemptRequest.signals:type_name -> payments.v1.AttemptSignals
 	1,  // 2: payments.v1.AttemptResult.status:type_name -> payments.v1.AttemptStatus
-	9,  // 3: payments.v1.Payment.expires_at:type_name -> google.protobuf.Timestamp
+	10, // 3: payments.v1.Payment.expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: payments.v1.Payment.status:type_name -> payments.v1.PaymentStatus
-	10, // 5: payments.v1.Payment.merchant:type_name -> payments.v1.MerchantRef
-	11, // 6: payments.v1.Payment.customer:type_name -> payments.v1.CustomerRef
-	7,  // 7: payments.v1.Payment.snapshot:type_name -> payments.v1.CheckoutSnapshot
-	5,  // 8: payments.v1.Payment.attempts:type_name -> payments.v1.AttemptResult
+	11, // 5: payments.v1.Payment.merchant:type_name -> payments.v1.MerchantRef
+	12, // 6: payments.v1.Payment.customer:type_name -> payments.v1.CustomerRef
+	8,  // 7: payments.v1.Payment.snapshot:type_name -> payments.v1.CheckoutSnapshot
+	6,  // 8: payments.v1.Payment.attempts:type_name -> payments.v1.AttemptResult
 	2,  // 9: payments.v1.PaymentService.CreatePayment:input_type -> payments.v1.CreatePaymentRequest
 	3,  // 10: payments.v1.PaymentService.StartAttempt:input_type -> payments.v1.StartAttemptRequest
 	4,  // 11: payments.v1.PaymentService.GetPayment:input_type -> payments.v1.GetPaymentRequest
-	6,  // 12: payments.v1.PaymentService.CreatePayment:output_type -> payments.v1.Payment
-	5,  // 13: payments.v1.PaymentService.StartAttempt:output_type -> payments.v1.AttemptResult
-	6,  // 14: payments.v1.PaymentService.GetPayment:output_type -> payments.v1.Payment
-	12, // [12:15] is the sub-list for method output_type
-	9,  // [9:12] is the sub-list for method input_type
+	5,  // 12: payments.v1.PaymentService.GetCheckoutSession:input_type -> payments.v1.GetCheckoutSessionRequest
+	7,  // 13: payments.v1.PaymentService.CreatePayment:output_type -> payments.v1.Payment
+	6,  // 14: payments.v1.PaymentService.StartAttempt:output_type -> payments.v1.AttemptResult
+	7,  // 15: payments.v1.PaymentService.GetPayment:output_type -> payments.v1.Payment
+	7,  // 16: payments.v1.PaymentService.GetCheckoutSession:output_type -> payments.v1.Payment
+	13, // [13:17] is the sub-list for method output_type
+	9,  // [9:13] is the sub-list for method input_type
 	9,  // [9:9] is the sub-list for extension type_name
 	9,  // [9:9] is the sub-list for extension extendee
 	0,  // [0:9] is the sub-list for field type_name
@@ -648,7 +726,7 @@ func file_payments_v1_payments_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_payments_v1_payments_proto_rawDesc), len(file_payments_v1_payments_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

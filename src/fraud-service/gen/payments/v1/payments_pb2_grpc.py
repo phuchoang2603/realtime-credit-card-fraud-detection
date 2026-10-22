@@ -30,6 +30,11 @@ class PaymentServiceStub:
                 request_serializer=payments_dot_v1_dot_payments__pb2.GetPaymentRequest.SerializeToString,
                 response_deserializer=payments_dot_v1_dot_payments__pb2.Payment.FromString,
                 _registered_method=True)
+        self.GetCheckoutSession = channel.unary_unary(
+                '/payments.v1.PaymentService/GetCheckoutSession',
+                request_serializer=payments_dot_v1_dot_payments__pb2.GetCheckoutSessionRequest.SerializeToString,
+                response_deserializer=payments_dot_v1_dot_payments__pb2.Payment.FromString,
+                _registered_method=True)
 
 
 class PaymentServiceServicer:
@@ -54,6 +59,14 @@ class PaymentServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetCheckoutSession(self, request, context):
+        """Resolves a session from its checkout token; the returned integration_id scopes
+        later vault and attempt calls. The token is not echoed back.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_PaymentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -70,6 +83,11 @@ def add_PaymentServiceServicer_to_server(servicer, server):
             'GetPayment': grpc.unary_unary_rpc_method_handler(
                     servicer.GetPayment,
                     request_deserializer=payments_dot_v1_dot_payments__pb2.GetPaymentRequest.FromString,
+                    response_serializer=payments_dot_v1_dot_payments__pb2.Payment.SerializeToString,
+            ),
+            'GetCheckoutSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetCheckoutSession,
+                    request_deserializer=payments_dot_v1_dot_payments__pb2.GetCheckoutSessionRequest.FromString,
                     response_serializer=payments_dot_v1_dot_payments__pb2.Payment.SerializeToString,
             ),
     }
@@ -154,6 +172,33 @@ class PaymentService:
             target,
             '/payments.v1.PaymentService/GetPayment',
             payments_dot_v1_dot_payments__pb2.GetPaymentRequest.SerializeToString,
+            payments_dot_v1_dot_payments__pb2.Payment.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetCheckoutSession(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/payments.v1.PaymentService/GetCheckoutSession',
+            payments_dot_v1_dot_payments__pb2.GetCheckoutSessionRequest.SerializeToString,
             payments_dot_v1_dot_payments__pb2.Payment.FromString,
             options,
             channel_credentials,
