@@ -46,65 +46,20 @@ jobs:
   go:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        module: [edge, notifier, payments, processor-simulator, vault-simulator]
     env:
       GOWORK: "off"
-      TEST_POSTGRES_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
-      TEST_REDIS_ADDR: localhost:6379
-      TEST_KAFKA_BROKERS: localhost:9092
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: valkey/valkey:8
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "valkey-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      kafka:
-        image: apache/kafka:4.3.1
-        ports:
-          - 9092:9092
-        env:
-          KAFKA_NODE_ID: 1
-          KAFKA_PROCESS_ROLES: broker,controller
-          KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-go@v6.5.0
         with:
-          go-version-file: src/${{ matrix.module }}/go.mod
-          cache-dependency-path: src/${{ matrix.module }}/go.sum
+          go-version-file: src/edge/go.mod
+          cache-dependency-path: src/*/go.sum
       - uses: golangci/golangci-lint-action@v9.3.0
         with:
           version: v2.13.2
-          working-directory: src/${{ matrix.module }}
-      - name: Test
-        working-directory: src/${{ matrix.module }}
-        run: go test -race -count=1 ./...
+          install-only: true
+      - name: Lint and test every Go module
+        run: bash scripts/ci-checks.sh go
 
   helm:
     runs-on: ubuntu-latest

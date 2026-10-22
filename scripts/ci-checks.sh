@@ -53,6 +53,15 @@ DATACONTRACT_CLI=1.2.7
 DATAPRODUCT_CLI=0.3.2
 
 case "${1:-}" in
+  go)
+    while IFS= read -r -d '' manifest; do
+      (
+        cd "$(dirname "$manifest")"
+        GOWORK=off golangci-lint run ./...
+        GOWORK=off go test -p 1 -race -count=1 ./...
+      )
+    done < <(find src -type f -name go.mod -not -path '*/vendor/*' -print0 | sort -z)
+    ;;
   contracts)
     TMPDIR_CHECKS="$(mktemp -d)"
     trap 'rm -rf "$TMPDIR_CHECKS"' EXIT
@@ -70,7 +79,7 @@ case "${1:-}" in
     done < <(find infra -type f -name Chart.yaml -print0)
     ;;
   *)
-    printf 'Usage: %s {contracts|python|helm}\n' "$0" >&2
+    printf 'Usage: %s {contracts|python|go|helm}\n' "$0" >&2
     exit 2
     ;;
 esac
