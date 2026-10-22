@@ -1,0 +1,84 @@
+global:
+  imageRegistry: ghcr.io/phuchoang2603/payment-gateway-fraud-detection
+  imageTag: latest
+
+kafka:
+  clusterName: payment-gateway-kafka
+  version: 4.3.1
+  metadataVersion: 4.3-IV0
+  replicas: 1
+  replicationFactor: 1
+  minInsyncReplicas: 1
+  clientNamespace: payment-gateway
+  storage:
+    size: 5Gi
+  jvmOptions:
+    "-Xms": 512m
+    "-Xmx": 512m
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+entityOperator:
+  topicOperator:
+    jvmOptions:
+      "-Xms": 256m
+      "-Xmx": 256m
+    resources:
+      requests:
+        cpu: 50m
+        memory: 384Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+connect:
+  clusterName: payment-gateway-connect
+  image: connect-debezium
+  imageTag: ""
+  jvmOptions:
+    "-Xms": 512m
+    "-Xmx": 512m
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      memory: 1Gi
+  livenessProbe:
+    initialDelaySeconds: 180
+    timeoutSeconds: 5
+    periodSeconds: 10
+    failureThreshold: 6
+  readinessProbe:
+    initialDelaySeconds: 120
+    timeoutSeconds: 5
+    periodSeconds: 10
+    failureThreshold: 12
+
+entities:
+  payments:
+    topics:
+      - name: payments.events.v1
+        partitions: 3
+        retention: 604800000
+    connector:
+      name: payments-events
+      sourceSecretName: payments-cdc
+      databaseHost: payment-gateway-pg-rw.payment-gateway.svc.cluster.local
+      databaseName: payments
+      databasePort: 5432
+      slotName: debezium_payments_slot
+      topicPrefix: payments
+      table: public.payment_events
+      publicationAutocreateMode: filtered
+      router:
+        eventId: event_id
+        key: payment_id
+        payload: payload
+        routeByField: event_type
+        topic: payments.events.v1
