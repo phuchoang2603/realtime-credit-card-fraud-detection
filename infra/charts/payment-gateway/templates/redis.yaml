@@ -30,8 +30,6 @@ spec:
       {{- toYaml .Values.redis.resources | nindent 6 }}
   redisConfig:
     additionalRedisConfig: {{ .Values.redis.name }}-config
-  redisExporter:
-    enabled: false
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
