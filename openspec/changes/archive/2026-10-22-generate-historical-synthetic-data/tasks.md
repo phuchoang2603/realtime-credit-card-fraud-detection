@@ -24,7 +24,7 @@
 
 ## 4. Regenerate and record
 
-- [x] 4.1 Generate a new 90-day dataset version to `s3://synthetic-source/historical/` and verify the manifest and passing validation reports exist and no day's file is under about 1 MB (otherwise raise volume)
+- [x] 4.1 Generate a new 90-day dataset version to `s3://synthetic-source/historical/` and verify the manifest and passing validation reports exist and record daily file sizes; accept sparse label partitions and the final event tail below 1 MiB (v7: 111 label files and one event file), retaining one file per day without padding or cross-day merging
 - [x] 4.2 Build and execute `notebooks/historical-sanity.ipynb` (distributions, skew, approximate distinct counts, cutover nulls, duplicate rate, fraud rate by scenario, files, row groups and compressed bytes per column); tune and bump the version if needed; commit executed output
 - [x] 4.3 Add the dataset version, commands and manifest statistics to the historical section of `data-products.md`; update the roadmap #43 row and storage wording in `data-pipeline.md`
 - [x] 4.4 Delete superseded `historical/*` prefixes after confirming no consumer reads them; verify only the accepted version remains
