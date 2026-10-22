@@ -82,6 +82,9 @@ def _duplicates(events: tuple[Record, ...], rate: float, random: np.random.Gener
 
 def _compact(table: Table, staging: Path, export: Path, layout: StorageLayout, spill: Path) -> dict:
     files = row_groups = size = 0
+    source = staging / table.name
+    if not source.exists():
+        return {"files": 0, "row_groups": 0, "bytes": 0, "sort_columns": list(table.sort_columns)}
     with duckdb.connect(
         config={
             "memory_limit": f"{layout.sort_memory_limit_mb}MiB",
@@ -89,7 +92,7 @@ def _compact(table: Table, staging: Path, export: Path, layout: StorageLayout, s
             "threads": 1,
         }
     ) as connection:
-        for directory in sorted((staging / table.name).iterdir()):
+        for directory in sorted(source.iterdir()):
             sources = sorted(str(path) for path in directory.glob("*.parquet"))
             output = export / table.name / directory.name
             output.parent.mkdir(parents=True, exist_ok=True)
@@ -120,7 +123,7 @@ def _validate(export: Path, temporary: Path) -> dict:
             paths = [str(empty), *sorted(str(path) for path in (export / table.name).rglob("*.parquet"))]
             connection.read_parquet(paths, union_by_name=True, hive_partitioning=False).create_view(table.name)
     reports = export / "validation"
-    reports.mkdir()
+    reports.mkdir(parents=True)
     results = {}
     failures = []
     for table in (EVENTS, LABELS):

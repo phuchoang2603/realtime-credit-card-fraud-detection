@@ -207,3 +207,21 @@ def test_row_groups_respect_the_configured_size(tmp_path):
     assert len(groups) > len(paths)
     assert max(group.num_rows for group in groups) <= 2048
     assert manifest["storage"]["payment_events"]["row_groups"] == len(groups)
+
+
+def test_empty_schedule_publishes_an_empty_valid_dataset(tmp_path):
+    config = small_config(
+        **{
+            "behavior.purchases_per_customer_day": 0.0001,
+            "counts.customers": 1,
+            "scenarios.obvious_high_value.rate": 0,
+            "scenarios.stolen_card_new_device.rate": 0,
+            "scenarios.account_takeover.rate": 0,
+            "scenarios.card_testing.rate": 0,
+        }
+    )
+    manifest = storage.generate(config, fs.LocalFileSystem(), str(tmp_path))
+    assert manifest["observed"]["payments"] == 0
+    assert manifest["validation"] == {"payment-events": "passed", "fraud-labels": "passed"}
+    assert manifest["storage"]["payment_events"]["files"] == 0
+    assert (tmp_path / "historical" / "smoke" / "manifest.json").exists()
