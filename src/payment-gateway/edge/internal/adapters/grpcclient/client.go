@@ -2,15 +2,10 @@ package grpcclient
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/requestid"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 )
@@ -29,34 +24,9 @@ func Interceptor(timeout time.Duration) grpc.UnaryClientInterceptor {
 	}
 }
 
-type bearer struct{ token string }
-
-func (b bearer) GetRequestMetadata(context.Context, ...string) (map[string]string, error) {
-	return map[string]string{"authorization": "Bearer " + b.token}, nil
-}
-
-func (bearer) RequireTransportSecurity() bool { return true }
-
-func BearerCredentials(token string) credentials.PerRPCCredentials { return bearer{token: token} }
-
-func TLSFromCAFile(path string) (credentials.TransportCredentials, error) {
-	pem, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read CA file: %w", err)
-	}
-	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM(pem) {
-		return nil, fmt.Errorf("CA file %s holds no certificates", path)
-	}
-	return credentials.NewTLS(&tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}), nil
-}
-
-func Dial(target string, timeout time.Duration, transport credentials.TransportCredentials, extra ...grpc.DialOption) (*grpc.ClientConn, error) {
-	if transport == nil {
-		transport = insecure.NewCredentials()
-	}
+func Dial(target string, timeout time.Duration, extra ...grpc.DialOption) (*grpc.ClientConn, error) {
 	options := append([]grpc.DialOption{
-		grpc.WithTransportCredentials(transport),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(Interceptor(timeout)),
 	}, extra...)
 	return grpc.NewClient(target, options...)

@@ -1,10 +1,8 @@
 package config
 
 import (
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"net"
@@ -12,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	sharedruntime "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/runtime"
 )
 
 type Config struct {
@@ -30,9 +26,6 @@ type Config struct {
 
 	FraudAddr     string
 	ProcessorAddr string
-
-	TLSCertFile string
-	TLSKeyFile  string
 
 	EncryptionKey    []byte
 	CheckoutTokenKey []byte
@@ -106,8 +99,6 @@ func FromLookup(lookup func(string) string, readFile func(string) ([]byte, error
 		RedisTimeout:       r.duration("PAYMENTS_REDIS_TIMEOUT", 50*time.Millisecond),
 		FraudAddr:          r.text("PAYMENTS_FRAUD_ADDR", ""),
 		ProcessorAddr:      r.text("PAYMENTS_PROCESSOR_ADDR", ""),
-		TLSCertFile:        r.text("PAYMENTS_TLS_CERT_FILE", ""),
-		TLSKeyFile:         r.text("PAYMENTS_TLS_KEY_FILE", ""),
 		IdempotencyTTL:     r.duration("PAYMENTS_IDEMPOTENCY_TTL", 24*time.Hour),
 		PaymentExpiry:      r.duration("PAYMENTS_PAYMENT_EXPIRY", 15*time.Minute),
 		AttemptBudget:      r.duration("PAYMENTS_ATTEMPT_BUDGET", 5*time.Second),
@@ -167,7 +158,6 @@ func (c Config) Validate() error {
 		portNumber, convErr := strconv.Atoi(port)
 		require(err == nil && convErr == nil && portNumber >= 0 && portNumber <= 65535, name+" must be host:port")
 	}
-	require((c.TLSCertFile == "") == (c.TLSKeyFile == ""), "PAYMENTS_TLS_CERT_FILE and PAYMENTS_TLS_KEY_FILE must be set together")
 	require(c.DatabaseURL != "", "PAYMENTS_DATABASE_URL is required")
 	require(c.FraudAddr != "", "PAYMENTS_FRAUD_ADDR is required")
 	require(c.ProcessorAddr != "", "PAYMENTS_PROCESSOR_ADDR is required")
@@ -181,65 +171,4 @@ func (c Config) Validate() error {
 		require(value > 0, name+" must be greater than zero")
 	}
 	return errors.Join(problems...)
-}
-
-type Healthcheck = sharedruntime.Healthcheck
-
-func HealthcheckFromLookup(lookup func(string) string) (Healthcheck, error) {
-	addr := lookup("PAYMENTS_GRPC_ADDR")
-	if addr == "" {
-		addr = ":8000"
-	}
-	_, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return Healthcheck{}, fmt.Errorf("PAYMENTS_GRPC_ADDR must be host:port: %w", err)
-	}
-	check := Healthcheck{
-		Address:    net.JoinHostPort("127.0.0.1", port),
-		CAFile:     lookup("PAYMENTS_HEALTHCHECK_CA_FILE"),
-		ServerName: lookup("PAYMENTS_HEALTHCHECK_SERVER_NAME"),
-		Timeout:    2 * time.Second,
-	}
-	certFile := lookup("PAYMENTS_TLS_CERT_FILE")
-	if check.CAFile == "" {
-		check.CAFile = certFile
-	}
-	if check.CAFile != "" && check.ServerName == "" {
-		name, err := firstDNSName(certFile)
-		if err != nil {
-			return Healthcheck{}, fmt.Errorf("derive PAYMENTS_HEALTHCHECK_SERVER_NAME: %w", err)
-		}
-		check.ServerName = name
-	}
-	if value := lookup("PAYMENTS_HEALTHCHECK_TIMEOUT"); value != "" {
-		timeout, err := time.ParseDuration(value)
-		if err != nil || timeout <= 0 {
-			return Healthcheck{}, errors.New("PAYMENTS_HEALTHCHECK_TIMEOUT must be a positive duration")
-		}
-		check.Timeout = timeout
-	}
-	check.AllowPlaintext = check.CAFile == ""
-	return check, nil
-}
-
-func firstDNSName(certFile string) (string, error) {
-	if certFile == "" {
-		return "", errors.New("PAYMENTS_TLS_CERT_FILE is not set")
-	}
-	raw, err := os.ReadFile(certFile)
-	if err != nil {
-		return "", err
-	}
-	block, _ := pem.Decode(raw)
-	if block == nil {
-		return "", fmt.Errorf("no PEM certificate in %s", certFile)
-	}
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return "", err
-	}
-	if len(cert.DNSNames) == 0 {
-		return "", errors.New("server certificate has no DNS SAN")
-	}
-	return cert.DNSNames[0], nil
 }

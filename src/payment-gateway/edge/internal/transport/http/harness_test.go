@@ -398,7 +398,7 @@ func dialBuf(t *testing.T, listener *bufconn.Listener, timeout time.Duration) *g
 	if timeout == 0 {
 		timeout = 5 * time.Second
 	}
-	conn, err := grpcclient.Dial("passthrough:///bufnet", timeout, nil,
+	conn, err := grpcclient.Dial("passthrough:///bufnet", timeout,
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return listener.Dial() }))
 	if err != nil {
 		t.Fatalf("dial: %v", err)

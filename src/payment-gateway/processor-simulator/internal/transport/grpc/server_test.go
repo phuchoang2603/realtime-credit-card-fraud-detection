@@ -14,10 +14,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/adapters/postgres"
@@ -29,13 +27,11 @@ import (
 	processorv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/processor/v1"
 	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1"
 	testpostgres "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/postgres"
-	testtls "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/tls"
 )
 
 const (
 	integration      = "01234567-89ab-4cde-8fab-0123456789ab"
 	otherIntegration = "11111111-89ab-4cde-8fab-0123456789ab"
-	processorSecret  = "processor-secret"
 	tokenApprove     = "vt_approve_token_000000001"
 	tokenNSF         = "vt_nsf_token_00000000000002"
 	tokenIssuer      = "vt_issuer_token_000000000003"
@@ -43,7 +39,7 @@ const (
 )
 
 type fakeVault struct {
-	vaultv1.UnimplementedVaultServiceServer
+	vaultv1.UnimplementedProcessingServiceServer
 	calls    atomic.Int64
 	fixtures map[string]vaultv1.Behavior
 	server   *grpc.Server
@@ -51,9 +47,6 @@ type fakeVault struct {
 
 func (f *fakeVault) ResolveForProcessing(ctx context.Context, req *vaultv1.ResolveRequest) (*vaultv1.ProcessingFixture, error) {
 	f.calls.Add(1)
-	if values := metadata.ValueFromIncomingContext(ctx, "authorization"); len(values) != 1 || values[0] != "Bearer "+processorSecret {
-		return nil, status.Error(codes.Unauthenticated, "bad credential")
-	}
 	behavior, ok := f.fixtures[req.GetIntegrationId()+"/"+req.GetToken()]
 	if !ok {
 		return nil, status.Error(codes.NotFound, "token not found")
@@ -63,19 +56,14 @@ func (f *fakeVault) ResolveForProcessing(ctx context.Context, req *vaultv1.Resol
 
 func startFakeVault(t *testing.T) (*fakeVault, config.Vault) {
 	t.Helper()
-	cert := testtls.NewSelfSignedCertificate(t, "processor-simulator-test")
-	creds, err := credentials.NewServerTLSFromFile(cert.CertFile, cert.KeyFile)
-	if err != nil {
-		t.Fatal(err)
-	}
 	fake := &fakeVault{fixtures: map[string]vaultv1.Behavior{
 		integration + "/" + tokenApprove: vaultv1.Behavior_BEHAVIOR_APPROVE,
 		integration + "/" + tokenNSF:     vaultv1.Behavior_BEHAVIOR_INSUFFICIENT_FUNDS,
 		integration + "/" + tokenIssuer:  vaultv1.Behavior_BEHAVIOR_ISSUER_DECLINE,
 		integration + "/" + tokenInvalid: vaultv1.Behavior_BEHAVIOR_INVALID,
 	}}
-	fake.server = grpc.NewServer(grpc.Creds(creds))
-	vaultv1.RegisterVaultServiceServer(fake.server, fake)
+	fake.server = grpc.NewServer()
+	vaultv1.RegisterProcessingServiceServer(fake.server, fake)
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -83,11 +71,8 @@ func startFakeVault(t *testing.T) (*fakeVault, config.Vault) {
 	go func() { _ = fake.server.Serve(listener) }()
 	t.Cleanup(fake.server.Stop)
 	return fake, config.Vault{
-		Address:    listener.Addr().String(),
-		CAFile:     cert.CertFile,
-		ServerName: "localhost",
-		Credential: processorSecret,
-		Timeout:    time.Second,
+		Address: listener.Addr().String(),
+		Timeout: time.Second,
 	}
 }
 

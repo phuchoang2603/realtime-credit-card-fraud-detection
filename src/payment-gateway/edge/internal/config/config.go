@@ -25,11 +25,8 @@ const (
 //	EDGE_SHUTDOWN_TIMEOUT             bounded graceful shutdown, default 10s
 //	EDGE_INTEGRATIONS_FILE            JSON array of integrations (required)
 //	EDGE_PAYMENTS_ADDR                Payments gRPC target (required)
-//	EDGE_PAYMENTS_CA_FILE             optional CA bundle; enables TLS to Payments
 //	EDGE_PAYMENTS_TIMEOUT             deadline for every Payments call, default 6s
-//	EDGE_VAULT_ADDRESS / VAULT_ADDRESS vault gRPC target (required)
-//	EDGE_VAULT_CA_FILE                CA bundle verifying the vault certificate (required)
-//	EDGE_VAULT_CREDENTIAL(_FILE)      bearer credential for the "edge" vault identity (required)
+//	EDGE_VAULT_ADDRESS / VAULT_ADDRESS vault VaultService gRPC target (required)
 //	EDGE_VAULT_TIMEOUT                deadline for every vault call, default 2s
 //	EDGE_PUBLIC_BASE_URL              public origin of the hosted page, e.g. https://pay.example.com (required)
 //	EDGE_TRUSTED_PROXY_HEADER         header carrying the client address, default X-Forwarded-For
@@ -43,11 +40,8 @@ type Config struct {
 	ShutdownTimeout         time.Duration
 	IntegrationsFile        string
 	PaymentsAddr            string
-	PaymentsCAFile          string
 	PaymentsTimeout         time.Duration
 	VaultAddr               string
-	VaultCAFile             string
-	VaultCredential         string
 	VaultTimeout            time.Duration
 	PublicBaseURL           string
 	TrustedProxyHeader      string
@@ -81,10 +75,8 @@ func FromLookup(lookup func(string) string) (Config, error) {
 	setString(&cfg.Address, "EDGE_HTTP_ADDR")
 	setString(&cfg.IntegrationsFile, "EDGE_INTEGRATIONS_FILE")
 	setString(&cfg.PaymentsAddr, "EDGE_PAYMENTS_ADDR")
-	setString(&cfg.PaymentsCAFile, "EDGE_PAYMENTS_CA_FILE")
 	setString(&cfg.VaultAddr, "VAULT_ADDRESS")
 	setString(&cfg.VaultAddr, "EDGE_VAULT_ADDRESS")
-	setString(&cfg.VaultCAFile, "EDGE_VAULT_CA_FILE")
 	setString(&cfg.PublicBaseURL, "EDGE_PUBLIC_BASE_URL")
 	setString(&cfg.TrustedProxyHeader, "EDGE_TRUSTED_PROXY_HEADER")
 	setString(&cfg.SyntheticFingerprintKey, "EDGE_SYNTHETIC_FINGERPRINT_KEY")
@@ -117,7 +109,6 @@ func FromLookup(lookup func(string) string) (Config, error) {
 		cfg.CookieSecure = secure
 	}
 	for name, target := range map[string]*string{
-		"EDGE_VAULT_CREDENTIAL":    &cfg.VaultCredential,
 		"EDGE_FINGERPRINT_KEY":     &cfg.FingerprintKey,
 		"EDGE_CHECKOUT_COOKIE_KEY": &cfg.CheckoutCookieKey,
 	} {
@@ -164,8 +155,6 @@ func (c Config) Validate() error {
 		{"EDGE_INTEGRATIONS_FILE", c.IntegrationsFile},
 		{"EDGE_PAYMENTS_ADDR", c.PaymentsAddr},
 		{"EDGE_VAULT_ADDRESS", c.VaultAddr},
-		{"EDGE_VAULT_CA_FILE", c.VaultCAFile},
-		{"EDGE_VAULT_CREDENTIAL", c.VaultCredential},
 		{"EDGE_PUBLIC_BASE_URL", c.PublicBaseURL},
 		{"EDGE_TRUSTED_PROXY_HEADER", c.TrustedProxyHeader},
 		{"EDGE_FINGERPRINT_KEY", c.FingerprintKey},

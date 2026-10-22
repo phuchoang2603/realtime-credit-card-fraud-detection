@@ -7,8 +7,9 @@ from vault.v1 import vault_pb2 as vault_dot_v1_dot_vault__pb2
 
 class VaultServiceStub:
     """Synthetic vault: allow-listed test cards only; never a cardholder-data environment.
-    Callers are separated by authenticated identity: Edge may tokenize and describe,
-    only the processor may resolve.
+    The two services listen on separate ports so the mesh authorizes each caller by
+    workload identity and port: Edge reaches VaultService, only the processor reaches
+    ProcessingService.
     """
 
     def __init__(self, channel):
@@ -27,17 +28,13 @@ class VaultServiceStub:
                 request_serializer=vault_dot_v1_dot_vault__pb2.DescribeMethodRequest.SerializeToString,
                 response_deserializer=vault_dot_v1_dot_vault__pb2.MethodMetadata.FromString,
                 _registered_method=True)
-        self.ResolveForProcessing = channel.unary_unary(
-                '/vault.v1.VaultService/ResolveForProcessing',
-                request_serializer=vault_dot_v1_dot_vault__pb2.ResolveRequest.SerializeToString,
-                response_deserializer=vault_dot_v1_dot_vault__pb2.ProcessingFixture.FromString,
-                _registered_method=True)
 
 
 class VaultServiceServicer:
     """Synthetic vault: allow-listed test cards only; never a cardholder-data environment.
-    Callers are separated by authenticated identity: Edge may tokenize and describe,
-    only the processor may resolve.
+    The two services listen on separate ports so the mesh authorizes each caller by
+    workload identity and port: Edge reaches VaultService, only the processor reaches
+    ProcessingService.
     """
 
     def TokenizeCard(self, request, context):
@@ -47,12 +44,6 @@ class VaultServiceServicer:
         raise NotImplementedError('Method not implemented!')
 
     def DescribeMethod(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def ResolveForProcessing(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -71,11 +62,6 @@ def add_VaultServiceServicer_to_server(servicer, server):
                     request_deserializer=vault_dot_v1_dot_vault__pb2.DescribeMethodRequest.FromString,
                     response_serializer=vault_dot_v1_dot_vault__pb2.MethodMetadata.SerializeToString,
             ),
-            'ResolveForProcessing': grpc.unary_unary_rpc_method_handler(
-                    servicer.ResolveForProcessing,
-                    request_deserializer=vault_dot_v1_dot_vault__pb2.ResolveRequest.FromString,
-                    response_serializer=vault_dot_v1_dot_vault__pb2.ProcessingFixture.SerializeToString,
-            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'vault.v1.VaultService', rpc_method_handlers)
@@ -86,8 +72,9 @@ def add_VaultServiceServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class VaultService:
     """Synthetic vault: allow-listed test cards only; never a cardholder-data environment.
-    Callers are separated by authenticated identity: Edge may tokenize and describe,
-    only the processor may resolve.
+    The two services listen on separate ports so the mesh authorizes each caller by
+    workload identity and port: Edge reaches VaultService, only the processor reaches
+    ProcessingService.
     """
 
     @staticmethod
@@ -144,6 +131,51 @@ class VaultService:
             metadata,
             _registered_method=True)
 
+
+class ProcessingServiceStub:
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.ResolveForProcessing = channel.unary_unary(
+                '/vault.v1.ProcessingService/ResolveForProcessing',
+                request_serializer=vault_dot_v1_dot_vault__pb2.ResolveRequest.SerializeToString,
+                response_deserializer=vault_dot_v1_dot_vault__pb2.ProcessingFixture.FromString,
+                _registered_method=True)
+
+
+class ProcessingServiceServicer:
+    """Missing associated documentation comment in .proto file."""
+
+    def ResolveForProcessing(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_ProcessingServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'ResolveForProcessing': grpc.unary_unary_rpc_method_handler(
+                    servicer.ResolveForProcessing,
+                    request_deserializer=vault_dot_v1_dot_vault__pb2.ResolveRequest.FromString,
+                    response_serializer=vault_dot_v1_dot_vault__pb2.ProcessingFixture.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'vault.v1.ProcessingService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('vault.v1.ProcessingService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class ProcessingService:
+    """Missing associated documentation comment in .proto file."""
+
     @staticmethod
     def ResolveForProcessing(request,
             target,
@@ -158,7 +190,7 @@ class VaultService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/vault.v1.VaultService/ResolveForProcessing',
+            '/vault.v1.ProcessingService/ResolveForProcessing',
             vault_dot_v1_dot_vault__pb2.ResolveRequest.SerializeToString,
             vault_dot_v1_dot_vault__pb2.ProcessingFixture.FromString,
             options,

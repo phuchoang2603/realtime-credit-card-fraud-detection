@@ -4,11 +4,14 @@ package vault.v1;
 option go_package = "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1;vaultv1";
 
 // Synthetic vault: allow-listed test cards only; never a cardholder-data environment.
-// Callers are separated by authenticated identity: Edge may tokenize and describe,
-// only the processor may resolve.
+// The two services listen on separate ports so the mesh authorizes each caller by
+// workload identity and port: Edge reaches VaultService, only the processor reaches
+// ProcessingService.
 service VaultService {
   rpc TokenizeCard(TokenizeCardRequest) returns (TokenizeCardResponse);
   rpc DescribeMethod(DescribeMethodRequest) returns (MethodMetadata);
+}
+service ProcessingService {
   rpc ResolveForProcessing(ResolveRequest) returns (ProcessingFixture);
 }
 message TokenizeCardRequest { string integration_id = 1; string card_number = 2; }

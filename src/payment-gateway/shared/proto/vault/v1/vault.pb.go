@@ -418,10 +418,11 @@ const file_vault_v1_vault_proto_rawDesc = "" +
 	"\x10BEHAVIOR_APPROVE\x10\x01\x12\x1f\n" +
 	"\x1bBEHAVIOR_INSUFFICIENT_FUNDS\x10\x02\x12\x1b\n" +
 	"\x17BEHAVIOR_ISSUER_DECLINE\x10\x03\x12\x14\n" +
-	"\x10BEHAVIOR_INVALID\x10\x042\xf9\x01\n" +
+	"\x10BEHAVIOR_INVALID\x10\x042\xaa\x01\n" +
 	"\fVaultService\x12M\n" +
 	"\fTokenizeCard\x12\x1d.vault.v1.TokenizeCardRequest\x1a\x1e.vault.v1.TokenizeCardResponse\x12K\n" +
-	"\x0eDescribeMethod\x12\x1f.vault.v1.DescribeMethodRequest\x1a\x18.vault.v1.MethodMetadata\x12M\n" +
+	"\x0eDescribeMethod\x12\x1f.vault.v1.DescribeMethodRequest\x1a\x18.vault.v1.MethodMetadata2b\n" +
+	"\x11ProcessingService\x12M\n" +
 	"\x14ResolveForProcessing\x12\x18.vault.v1.ResolveRequest\x1a\x1b.vault.v1.ProcessingFixtureBXZVgithub.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1;vaultv1b\x06proto3"
 
 var (
@@ -452,10 +453,10 @@ var file_vault_v1_vault_proto_depIdxs = []int32{
 	0, // 1: vault.v1.ProcessingFixture.behavior:type_name -> vault.v1.Behavior
 	1, // 2: vault.v1.VaultService.TokenizeCard:input_type -> vault.v1.TokenizeCardRequest
 	3, // 3: vault.v1.VaultService.DescribeMethod:input_type -> vault.v1.DescribeMethodRequest
-	5, // 4: vault.v1.VaultService.ResolveForProcessing:input_type -> vault.v1.ResolveRequest
+	5, // 4: vault.v1.ProcessingService.ResolveForProcessing:input_type -> vault.v1.ResolveRequest
 	2, // 5: vault.v1.VaultService.TokenizeCard:output_type -> vault.v1.TokenizeCardResponse
 	4, // 6: vault.v1.VaultService.DescribeMethod:output_type -> vault.v1.MethodMetadata
-	6, // 7: vault.v1.VaultService.ResolveForProcessing:output_type -> vault.v1.ProcessingFixture
+	6, // 7: vault.v1.ProcessingService.ResolveForProcessing:output_type -> vault.v1.ProcessingFixture
 	5, // [5:8] is the sub-list for method output_type
 	2, // [2:5] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -476,7 +477,7 @@ func file_vault_v1_vault_proto_init() {
 			NumEnums:      1,
 			NumMessages:   6,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_vault_v1_vault_proto_goTypes,
 		DependencyIndexes: file_vault_v1_vault_proto_depIdxs,

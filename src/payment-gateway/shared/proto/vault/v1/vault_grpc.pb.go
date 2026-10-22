@@ -19,9 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	VaultService_TokenizeCard_FullMethodName         = "/vault.v1.VaultService/TokenizeCard"
-	VaultService_DescribeMethod_FullMethodName       = "/vault.v1.VaultService/DescribeMethod"
-	VaultService_ResolveForProcessing_FullMethodName = "/vault.v1.VaultService/ResolveForProcessing"
+	VaultService_TokenizeCard_FullMethodName   = "/vault.v1.VaultService/TokenizeCard"
+	VaultService_DescribeMethod_FullMethodName = "/vault.v1.VaultService/DescribeMethod"
 )
 
 // VaultServiceClient is the client API for VaultService service.
@@ -29,12 +28,12 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // Synthetic vault: allow-listed test cards only; never a cardholder-data environment.
-// Callers are separated by authenticated identity: Edge may tokenize and describe,
-// only the processor may resolve.
+// The two services listen on separate ports so the mesh authorizes each caller by
+// workload identity and port: Edge reaches VaultService, only the processor reaches
+// ProcessingService.
 type VaultServiceClient interface {
 	TokenizeCard(ctx context.Context, in *TokenizeCardRequest, opts ...grpc.CallOption) (*TokenizeCardResponse, error)
 	DescribeMethod(ctx context.Context, in *DescribeMethodRequest, opts ...grpc.CallOption) (*MethodMetadata, error)
-	ResolveForProcessing(ctx context.Context, in *ResolveRequest, opts ...grpc.CallOption) (*ProcessingFixture, error)
 }
 
 type vaultServiceClient struct {
@@ -65,27 +64,17 @@ func (c *vaultServiceClient) DescribeMethod(ctx context.Context, in *DescribeMet
 	return out, nil
 }
 
-func (c *vaultServiceClient) ResolveForProcessing(ctx context.Context, in *ResolveRequest, opts ...grpc.CallOption) (*ProcessingFixture, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ProcessingFixture)
-	err := c.cc.Invoke(ctx, VaultService_ResolveForProcessing_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // VaultServiceServer is the server API for VaultService service.
 // All implementations must embed UnimplementedVaultServiceServer
 // for forward compatibility.
 //
 // Synthetic vault: allow-listed test cards only; never a cardholder-data environment.
-// Callers are separated by authenticated identity: Edge may tokenize and describe,
-// only the processor may resolve.
+// The two services listen on separate ports so the mesh authorizes each caller by
+// workload identity and port: Edge reaches VaultService, only the processor reaches
+// ProcessingService.
 type VaultServiceServer interface {
 	TokenizeCard(context.Context, *TokenizeCardRequest) (*TokenizeCardResponse, error)
 	DescribeMethod(context.Context, *DescribeMethodRequest) (*MethodMetadata, error)
-	ResolveForProcessing(context.Context, *ResolveRequest) (*ProcessingFixture, error)
 	mustEmbedUnimplementedVaultServiceServer()
 }
 
@@ -101,9 +90,6 @@ func (UnimplementedVaultServiceServer) TokenizeCard(context.Context, *TokenizeCa
 }
 func (UnimplementedVaultServiceServer) DescribeMethod(context.Context, *DescribeMethodRequest) (*MethodMetadata, error) {
 	return nil, status.Error(codes.Unimplemented, "method DescribeMethod not implemented")
-}
-func (UnimplementedVaultServiceServer) ResolveForProcessing(context.Context, *ResolveRequest) (*ProcessingFixture, error) {
-	return nil, status.Error(codes.Unimplemented, "method ResolveForProcessing not implemented")
 }
 func (UnimplementedVaultServiceServer) mustEmbedUnimplementedVaultServiceServer() {}
 func (UnimplementedVaultServiceServer) testEmbeddedByValue()                      {}
@@ -162,24 +148,6 @@ func _VaultService_DescribeMethod_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _VaultService_ResolveForProcessing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResolveRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(VaultServiceServer).ResolveForProcessing(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: VaultService_ResolveForProcessing_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VaultServiceServer).ResolveForProcessing(ctx, req.(*ResolveRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // VaultService_ServiceDesc is the grpc.ServiceDesc for VaultService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -195,9 +163,107 @@ var VaultService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "DescribeMethod",
 			Handler:    _VaultService_DescribeMethod_Handler,
 		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "vault/v1/vault.proto",
+}
+
+const (
+	ProcessingService_ResolveForProcessing_FullMethodName = "/vault.v1.ProcessingService/ResolveForProcessing"
+)
+
+// ProcessingServiceClient is the client API for ProcessingService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ProcessingServiceClient interface {
+	ResolveForProcessing(ctx context.Context, in *ResolveRequest, opts ...grpc.CallOption) (*ProcessingFixture, error)
+}
+
+type processingServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewProcessingServiceClient(cc grpc.ClientConnInterface) ProcessingServiceClient {
+	return &processingServiceClient{cc}
+}
+
+func (c *processingServiceClient) ResolveForProcessing(ctx context.Context, in *ResolveRequest, opts ...grpc.CallOption) (*ProcessingFixture, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProcessingFixture)
+	err := c.cc.Invoke(ctx, ProcessingService_ResolveForProcessing_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ProcessingServiceServer is the server API for ProcessingService service.
+// All implementations must embed UnimplementedProcessingServiceServer
+// for forward compatibility.
+type ProcessingServiceServer interface {
+	ResolveForProcessing(context.Context, *ResolveRequest) (*ProcessingFixture, error)
+	mustEmbedUnimplementedProcessingServiceServer()
+}
+
+// UnimplementedProcessingServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedProcessingServiceServer struct{}
+
+func (UnimplementedProcessingServiceServer) ResolveForProcessing(context.Context, *ResolveRequest) (*ProcessingFixture, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveForProcessing not implemented")
+}
+func (UnimplementedProcessingServiceServer) mustEmbedUnimplementedProcessingServiceServer() {}
+func (UnimplementedProcessingServiceServer) testEmbeddedByValue()                           {}
+
+// UnsafeProcessingServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ProcessingServiceServer will
+// result in compilation errors.
+type UnsafeProcessingServiceServer interface {
+	mustEmbedUnimplementedProcessingServiceServer()
+}
+
+func RegisterProcessingServiceServer(s grpc.ServiceRegistrar, srv ProcessingServiceServer) {
+	// If the following call panics, it indicates UnimplementedProcessingServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ProcessingService_ServiceDesc, srv)
+}
+
+func _ProcessingService_ResolveForProcessing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProcessingServiceServer).ResolveForProcessing(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProcessingService_ResolveForProcessing_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProcessingServiceServer).ResolveForProcessing(ctx, req.(*ResolveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// ProcessingService_ServiceDesc is the grpc.ServiceDesc for ProcessingService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ProcessingService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "vault.v1.ProcessingService",
+	HandlerType: (*ProcessingServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "ResolveForProcessing",
-			Handler:    _VaultService_ResolveForProcessing_Handler,
+			Handler:    _ProcessingService_ResolveForProcessing_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

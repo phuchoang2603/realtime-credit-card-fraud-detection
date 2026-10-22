@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -17,7 +16,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -42,14 +40,13 @@ const (
 )
 
 type App struct {
-	config    config.Config
-	pool      *pgxpool.Pool
-	metrics   *metrics.Metrics
-	cache     *redis.Cache
-	conns     []*grpc.ClientConn
-	service   *application.Service
-	workers   *workers.Workers
-	tlsConfig *tls.Config
+	config  config.Config
+	pool    *pgxpool.Pool
+	metrics *metrics.Metrics
+	cache   *redis.Cache
+	conns   []*grpc.ClientConn
+	service *application.Service
+	workers *workers.Workers
 }
 
 func New(ctx context.Context, cfg config.Config) (*App, error) {
@@ -61,14 +58,6 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("create database pool: %w", err)
 	}
 	app := &App{config: cfg, pool: pool, metrics: metrics.New()}
-	if cfg.TLSCertFile != "" {
-		certificate, err := tls.LoadX509KeyPair(cfg.TLSCertFile, cfg.TLSKeyFile)
-		if err != nil {
-			pool.Close()
-			return nil, fmt.Errorf("load gRPC server certificate: %w", err)
-		}
-		app.tlsConfig = &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS13}
-	}
 	app.metrics.Registry.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 
 	sealer, err := secretbox.New(cfg.EncryptionKey)
@@ -135,14 +124,10 @@ func (a *App) Serve(ctx context.Context, grpcListener, metricsListener net.Liste
 	healthServer.SetServingStatus(transport.LivenessService, healthpb.HealthCheckResponse_SERVING)
 	healthServer.SetServingStatus(transport.ReadinessService, healthpb.HealthCheckResponse_NOT_SERVING)
 
-	serverOptions := []grpc.ServerOption{
+	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(transport.CorrelationInterceptor()),
-	}
-	if a.tlsConfig != nil {
-		serverOptions = append(serverOptions, grpc.Creds(credentials.NewTLS(a.tlsConfig)))
-	}
-	grpcServer := grpc.NewServer(serverOptions...)
+	)
 	paymentsv1.RegisterPaymentServiceServer(grpcServer, transport.NewServer(a.service))
 	healthpb.RegisterHealthServer(grpcServer, healthServer)
 

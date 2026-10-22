@@ -1,8 +1,6 @@
 package config
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -12,15 +10,9 @@ func lookupFrom(values map[string]string) func(string) string {
 }
 
 func validValues(t *testing.T) map[string]string {
-	credential := filepath.Join(t.TempDir(), "credential")
-	if err := os.WriteFile(credential, []byte("secret\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
 	return map[string]string{
 		"PROCESSOR_DATABASE_URL": "postgres://x",
 		"VAULT_ADDRESS":          "vault:8000",
-		"VAULT_CA_FILE":          "/tls/ca.crt",
-		"VAULT_CREDENTIAL_FILE":  credential,
 	}
 }
 
@@ -34,7 +26,7 @@ func TestFromLookupDefaultsAndFaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.GRPCAddr != ":8000" || cfg.MetricsAddr != ":8010" || cfg.MigrateDatabaseURL != "postgres://x" || cfg.Vault.Credential != "secret" {
+	if cfg.GRPCAddr != ":8000" || cfg.MetricsAddr != ":8010" || cfg.MigrateDatabaseURL != "postgres://x" {
 		t.Fatalf("unexpected config %+v", cfg)
 	}
 	if cfg.Seed != 42 || cfg.LatencyMin != 20*time.Millisecond || cfg.LatencyMax != 80*time.Millisecond || cfg.TimeoutRate != 0.05 {
@@ -44,12 +36,10 @@ func TestFromLookupDefaultsAndFaults(t *testing.T) {
 
 func TestFromLookupRejectsInvalid(t *testing.T) {
 	tests := map[string]func(map[string]string){
-		"missing database":   func(v map[string]string) { delete(v, "PROCESSOR_DATABASE_URL") },
-		"missing vault":      func(v map[string]string) { delete(v, "VAULT_ADDRESS") },
-		"missing credential": func(v map[string]string) { delete(v, "VAULT_CREDENTIAL_FILE") },
-		"missing ca":         func(v map[string]string) { delete(v, "VAULT_CA_FILE") },
-		"rate above one":     func(v map[string]string) { v["PROCESSOR_TIMEOUT_RATE"] = "1.5" },
-		"rate not a number":  func(v map[string]string) { v["PROCESSOR_TIMEOUT_RATE"] = "NaN" },
+		"missing database":  func(v map[string]string) { delete(v, "PROCESSOR_DATABASE_URL") },
+		"missing vault":     func(v map[string]string) { delete(v, "VAULT_ADDRESS") },
+		"rate above one":    func(v map[string]string) { v["PROCESSOR_TIMEOUT_RATE"] = "1.5" },
+		"rate not a number": func(v map[string]string) { v["PROCESSOR_TIMEOUT_RATE"] = "NaN" },
 		"latency inverted": func(v map[string]string) {
 			v["PROCESSOR_LATENCY_MIN"] = "2s"
 			v["PROCESSOR_LATENCY_MAX"] = "1s"

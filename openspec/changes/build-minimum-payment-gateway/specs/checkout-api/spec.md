@@ -99,7 +99,7 @@ Attempt requests SHALL accept only opaque, integration-scoped tokens issued by t
 
 ### Requirement: Isolated synthetic vault
 
-A separately deployed vault simulator SHALL own its database, migrations and credentials. Its Edge-only tokenization SHALL accept only allow-listed test card numbers, each mapped to a fictional card identity and a processing behavior (`ok`, `nsf`, `issuer` or `invalid`) within the caller's integration scope; issue opaque random tokens and persist token digests with authenticated-encrypted fixture payloads using a vault-only key. The allow-list SHALL include enough cards per behavior for the live simulator's fictional card population. It SHALL NOT accept other card numbers, store card numbers, or log card numbers or token values. Its metadata API SHALL return only safe method type/fingerprint to the authenticated Edge identity, while only the authenticated processor identity SHALL resolve processing fixtures. Other services SHALL NOT access its tables. The vault SHALL derive fingerprints from card identity using the shared synthetic key and identity vectors, independently of token value and behavior.
+A separately deployed vault simulator SHALL own its database, migrations and credentials. Its Edge-only tokenization SHALL accept only allow-listed test card numbers, each mapped to a fictional card identity and a processing behavior (`ok`, `nsf`, `issuer` or `invalid`) within the caller's integration scope; issue opaque random tokens and persist token digests with authenticated-encrypted fixture payloads using a vault-only key. The allow-list SHALL include enough cards per behavior for the live simulator's fictional card population. It SHALL NOT accept other card numbers, store card numbers, or log card numbers or token values. Its metadata API SHALL return only safe method type/fingerprint on a listener reachable only by the Edge workload identity, while processing fixtures SHALL be resolved only on a separate listener reachable only by the processor workload identity, enforced by mesh authorization. Other services SHALL NOT access its tables. The vault SHALL derive fingerprints from card identity using the shared synthetic key and identity vectors, independently of token value and behavior.
 
 #### Scenario: Stable fingerprint after token reissue
 
@@ -108,7 +108,7 @@ A separately deployed vault simulator SHALL own its database, migrations and cre
 
 #### Scenario: Unauthorized resolution
 
-- **WHEN** Edge, Payments or an unauthenticated caller invokes processing-fixture resolution
+- **WHEN** Edge, Payments or an unmeshed caller invokes processing-fixture resolution
 - **THEN** access is denied without exposing token mappings or fixture contents
 
 #### Scenario: Foreign integration token

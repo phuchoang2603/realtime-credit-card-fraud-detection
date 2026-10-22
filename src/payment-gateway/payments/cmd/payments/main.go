@@ -11,7 +11,6 @@ import (
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/postgres"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/app"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/config"
-	healthcheck "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/runtime"
 )
 
 func main() {
@@ -19,9 +18,6 @@ func main() {
 	command := "serve"
 	if len(os.Args) > 1 {
 		command = os.Args[1]
-	}
-	if command == "healthcheck" {
-		os.Exit(healthcheckCommand())
 	}
 	cfg, err := config.FromEnv()
 	if err != nil {
@@ -71,21 +67,4 @@ func serve(ctx context.Context, cfg config.Config) error {
 	}
 	slog.Info("starting payments service", "grpc", cfg.GRPCAddr, "metrics", cfg.MetricsAddr)
 	return application.Serve(ctx, grpcListener, metricsListener)
-}
-
-func healthcheckCommand() int {
-	if len(os.Args) != 3 || (os.Args[2] != "liveness" && os.Args[2] != "readiness") {
-		slog.Error("usage: payments healthcheck <liveness|readiness>")
-		return 2
-	}
-	cfg, err := config.HealthcheckFromLookup(os.Getenv)
-	if err != nil {
-		slog.Error("invalid healthcheck configuration", "error", err)
-		return 1
-	}
-	if err := healthcheck.Check(context.Background(), cfg, os.Args[2]); err != nil {
-		slog.Error("healthcheck failed", "service", os.Args[2], "error", err)
-		return 1
-	}
-	return 0
 }

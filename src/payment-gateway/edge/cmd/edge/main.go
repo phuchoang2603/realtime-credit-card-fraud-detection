@@ -14,8 +14,6 @@ import (
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/config"
 	httptransport "github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/transport/http"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 func main() {
@@ -36,24 +34,13 @@ func run() error {
 		return err
 	}
 
-	var paymentsTransport credentials.TransportCredentials
-	if cfg.PaymentsCAFile != "" {
-		if paymentsTransport, err = grpcclient.TLSFromCAFile(cfg.PaymentsCAFile); err != nil {
-			return err
-		}
-	}
-	paymentsConn, err := grpcclient.Dial(cfg.PaymentsAddr, cfg.PaymentsTimeout, paymentsTransport)
+	paymentsConn, err := grpcclient.Dial(cfg.PaymentsAddr, cfg.PaymentsTimeout)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = paymentsConn.Close() }()
 
-	vaultTransport, err := grpcclient.TLSFromCAFile(cfg.VaultCAFile)
-	if err != nil {
-		return err
-	}
-	vaultConn, err := grpcclient.Dial(cfg.VaultAddr, cfg.VaultTimeout, vaultTransport,
-		grpc.WithPerRPCCredentials(grpcclient.BearerCredentials(cfg.VaultCredential)))
+	vaultConn, err := grpcclient.Dial(cfg.VaultAddr, cfg.VaultTimeout)
 	if err != nil {
 		return err
 	}

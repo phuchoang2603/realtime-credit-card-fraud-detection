@@ -64,8 +64,6 @@ func TestSecretsAreReadFromFiles(t *testing.T) {
 
 func TestInvalidConfigurationIsRejected(t *testing.T) {
 	tests := map[string]func(map[string]string){
-		"tls cert without key":  func(e map[string]string) { e["PAYMENTS_TLS_CERT_FILE"] = "/tls.crt" },
-		"tls key without cert":  func(e map[string]string) { e["PAYMENTS_TLS_KEY_FILE"] = "/tls.key" },
 		"short encryption key":  func(e map[string]string) { e["PAYMENTS_ENCRYPTION_KEY"] = "c2hvcnQ=" },
 		"short checkout key":    func(e map[string]string) { e["PAYMENTS_CHECKOUT_TOKEN_KEY"] = "short" },
 		"missing database":      func(e map[string]string) { delete(e, "PAYMENTS_DATABASE_URL") },
@@ -90,15 +88,6 @@ func TestInvalidConfigurationIsRejected(t *testing.T) {
 				t.Fatal("invalid configuration accepted")
 			}
 		})
-	}
-}
-
-func TestTLSIsOptionalWhenBothFilesAreSetOrNeitherIs(t *testing.T) {
-	env := validEnv()
-	env["PAYMENTS_TLS_CERT_FILE"], env["PAYMENTS_TLS_KEY_FILE"] = "/tls.crt", "/tls.key"
-	cfg, err := load(t, env)
-	if err != nil || cfg.Validate() != nil || cfg.TLSCertFile != "/tls.crt" {
-		t.Fatalf("both set: %+v, %v", cfg, err)
 	}
 }
 

@@ -25,8 +25,7 @@ const (
 //	PROCESSOR_DATABASE_URL, PROCESSOR_MIGRATE_DATABASE_URL (owner role, falls back to PROCESSOR_DATABASE_URL)
 //	PROCESSOR_SEED (uint64), PROCESSOR_LATENCY_MIN, PROCESSOR_LATENCY_MAX (durations),
 //	PROCESSOR_TIMEOUT_RATE (0..1), PROCESSOR_TIMEOUT_HOLD (longest an injected timeout withholds the response)
-//	VAULT_ADDRESS (host:port), VAULT_CA_FILE, VAULT_SERVER_NAME (optional TLS name override),
-//	VAULT_CREDENTIAL (processor bearer credential), VAULT_TIMEOUT (per resolve call, default 2s)
+//	VAULT_ADDRESS (host:port of the vault ProcessingService listener), VAULT_TIMEOUT (per resolve call, default 2s)
 type Config struct {
 	GRPCAddr           string
 	MetricsAddr        string
@@ -43,11 +42,8 @@ type Config struct {
 }
 
 type Vault struct {
-	Address    string
-	CAFile     string
-	ServerName string
-	Credential string
-	Timeout    time.Duration
+	Address string
+	Timeout time.Duration
 }
 
 func FromEnv() (Config, error) {
@@ -62,10 +58,8 @@ func FromLookup(lookup func(string) string) (Config, error) {
 		ReadinessInterval: defaultReadinessInterval,
 		TimeoutHold:       defaultTimeoutHold,
 		Vault: Vault{
-			Address:    lookup("VAULT_ADDRESS"),
-			CAFile:     lookup("VAULT_CA_FILE"),
-			ServerName: lookup("VAULT_SERVER_NAME"),
-			Timeout:    defaultVaultTimeout,
+			Address: lookup("VAULT_ADDRESS"),
+			Timeout: defaultVaultTimeout,
 		},
 	}
 	if value := lookup("PROCESSOR_GRPC_ADDR"); value != "" {
@@ -118,9 +112,6 @@ func FromLookup(lookup func(string) string) (Config, error) {
 	if cfg.MigrateDatabaseURL == "" {
 		cfg.MigrateDatabaseURL = cfg.DatabaseURL
 	}
-	if cfg.Vault.Credential, err = secret(lookup, "VAULT_CREDENTIAL"); err != nil {
-		return Config{}, err
-	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
 	}
@@ -155,12 +146,6 @@ func (c Config) Validate() error {
 	}
 	if err := validateAddr("VAULT_ADDRESS", c.Vault.Address); err != nil {
 		return err
-	}
-	if c.Vault.CAFile == "" {
-		return fmt.Errorf("VAULT_CA_FILE is required")
-	}
-	if c.Vault.Credential == "" {
-		return fmt.Errorf("VAULT_CREDENTIAL or VAULT_CREDENTIAL_FILE is required")
 	}
 	return nil
 }

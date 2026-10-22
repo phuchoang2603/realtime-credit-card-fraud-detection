@@ -32,7 +32,23 @@ spec:
     matchLabels:
       {{- include "payment-gateway.selector" $name | nindent 6 }}
   action: ALLOW
-  {{- if or $svc.mesh.callers $svc.mesh.callerNamespaces }}
+  {{- if $svc.mesh.rules }}
+  rules:
+    {{- range $svc.mesh.rules }}
+    - from:
+        - source:
+            principals:
+              {{- range .callers }}
+              - {{ printf "cluster.local/ns/%s/sa/%s" $.Release.Namespace . | quote }}
+              {{- end }}
+      to:
+        - operation:
+            ports:
+              {{- range .ports }}
+              - {{ . | quote }}
+              {{- end }}
+    {{- end }}
+  {{- else if or $svc.mesh.callers $svc.mesh.callerNamespaces }}
   rules:
     - from:
         {{- range $svc.mesh.callers }}

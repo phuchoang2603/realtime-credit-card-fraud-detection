@@ -4,13 +4,9 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/hex"
 	"log/slog"
-	"maps"
 	"net"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -20,15 +16,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 
 	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1"
-	healthcheck "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/runtime"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/shared/security/secretbox"
 	testpostgres "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/postgres"
-	testtls "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/tls"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/adapters/postgres"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/config"
@@ -36,12 +30,7 @@ import (
 	grpctransport "github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/transport/grpc"
 )
 
-const (
-	fingerprintKey = "synthetic-fingerprint-v1"
-	edgeSecret     = "edge-secret"
-	processorSec   = "processor-secret"
-	paymentsSecret = "payments-secret"
-)
+const fingerprintKey = "synthetic-fingerprint-v1"
 
 var (
 	integrationA = uuid.MustParse("01234567-89ab-4cde-8fab-0123456789ab")
@@ -67,41 +56,18 @@ func (b *syncBuffer) String() string {
 
 type harness struct {
 	databaseURL string
-	certFile    string
-	grpcAddr    string
 	logs        *syncBuffer
-	client      func(secret string) vaultv1.VaultServiceClient
-	conn        func(secret string) *grpc.ClientConn
-}
-
-type bearer string
-
-func (b bearer) GetRequestMetadata(context.Context, ...string) (map[string]string, error) {
-	if b == "" {
-		return nil, nil
-	}
-	return map[string]string{"authorization": "Bearer " + string(b)}, nil
-}
-
-func (bearer) RequireTransportSecurity() bool { return true }
-
-func credentialDigest(secret string) [32]byte {
-	return sha256.Sum256([]byte(secret))
+	vault       vaultv1.VaultServiceClient
+	processing  vaultv1.ProcessingServiceClient
+	vaultConn   *grpc.ClientConn
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
-	return newHarnessWithMigrations(t, true)
-}
-
-func newHarnessWithMigrations(t *testing.T, migrate bool) *harness {
-	t.Helper()
 	databaseURL := testpostgres.SetupPostgres(t)
 	ctx := context.Background()
-	if migrate {
-		if err := postgres.Migrate(ctx, databaseURL); err != nil {
-			t.Fatal(err)
-		}
+	if err := postgres.Migrate(ctx, databaseURL); err != nil {
+		t.Fatal(err)
 	}
 	store, err := postgres.NewStore(ctx, databaseURL)
 	if err != nil {
@@ -118,60 +84,38 @@ func newHarnessWithMigrations(t *testing.T, migrate bool) *harness {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cert := testtls.NewSelfSignedCertificate(t, "vault-simulator-test")
-	cfg := config.Config{
-		ShutdownTimeout: 2 * time.Second,
-		TLSCertFile:     cert.CertFile,
-		TLSKeyFile:      cert.KeyFile,
-		Callers: []config.Caller{
-			{Name: "edge", CredentialSHA256: credentialDigest(edgeSecret), Permissions: map[string]bool{"tokenize": true, "describe": true}},
-			{Name: "processor", CredentialSHA256: credentialDigest(processorSec), Permissions: map[string]bool{"resolve": true}},
-			{Name: "payments", CredentialSHA256: credentialDigest(paymentsSecret), Permissions: map[string]bool{}},
-		},
+	server := grpctransport.NewServer(config.Config{ShutdownTimeout: 2 * time.Second}, application.NewService(store, sealer, []byte(fingerprintKey)), store)
+	listen := func() net.Listener {
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return listener
 	}
-	server, err := grpctransport.NewServer(cfg, application.NewService(store, sealer, []byte(fingerprintKey)), store)
-	if err != nil {
-		t.Fatal(err)
-	}
-	grpcListener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	metricsListener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
+	vaultListener, processingListener, metricsListener := listen(), listen(), listen()
 	runCtx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- server.Run(runCtx, grpcListener, metricsListener) }()
+	go func() { done <- server.Run(runCtx, vaultListener, processingListener, metricsListener) }()
 	t.Cleanup(func() {
 		cancel()
 		<-done
 	})
 
-	pem, err := os.ReadFile(cert.CertFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pool := x509.NewCertPool()
-	pool.AppendCertsFromPEM(pem)
-	creds := credentials.NewTLS(&tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS13})
-	connect := func(secret string) *grpc.ClientConn {
-		conn, err := grpc.NewClient(grpcListener.Addr().String(),
-			grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(bearer(secret)))
+	connect := func(addr string) *grpc.ClientConn {
+		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			t.Fatal(err)
 		}
 		t.Cleanup(func() { _ = conn.Close() })
 		return conn
 	}
+	vaultConn := connect(vaultListener.Addr().String())
 	return &harness{
 		databaseURL: databaseURL,
-		certFile:    cert.CertFile,
-		grpcAddr:    grpcListener.Addr().String(),
 		logs:        logs,
-		conn:        connect,
-		client:      func(secret string) vaultv1.VaultServiceClient { return vaultv1.NewVaultServiceClient(connect(secret)) },
+		vault:       vaultv1.NewVaultServiceClient(vaultConn),
+		processing:  vaultv1.NewProcessingServiceClient(connect(processingListener.Addr().String())),
+		vaultConn:   vaultConn,
 	}
 }
 
@@ -192,7 +136,7 @@ func expectedFingerprint(cardRef string) string {
 
 func TestTokenizeIssuesOpaqueTokensWithStableFingerprint(t *testing.T) {
 	h := newHarness(t)
-	edge := h.client(edgeSecret)
+	edge := h.vault
 	cards := []struct {
 		number, ref string
 		behavior    vaultv1.Behavior
@@ -202,7 +146,7 @@ func TestTokenizeIssuesOpaqueTokensWithStableFingerprint(t *testing.T) {
 		{"4000000000000002", "card-0003", vaultv1.Behavior_BEHAVIOR_ISSUER_DECLINE},
 		{"4000000000000069", "card-0004", vaultv1.Behavior_BEHAVIOR_INVALID},
 	}
-	processor := h.client(processorSec)
+	processor := h.processing
 	for _, card := range cards {
 		first, err := tokenize(t, edge, integrationA, card.number)
 		if err != nil {
@@ -247,7 +191,7 @@ func TestTokenizeIssuesOpaqueTokensWithStableFingerprint(t *testing.T) {
 
 func TestTokenizeRejectsNumbersOutsideAllowList(t *testing.T) {
 	h := newHarness(t)
-	edge := h.client(edgeSecret)
+	edge := h.vault
 	for _, number := range []string{"4111111111111111", "5555555555554444", "4242424242424243", "", "4242 4242 4242 4242", "4111000000000000000"} {
 		_, err := tokenize(t, edge, integrationA, number)
 		if status.Code(err) != codes.InvalidArgument {
@@ -278,8 +222,8 @@ func TestTokenizeRejectsNumbersOutsideAllowList(t *testing.T) {
 
 func TestForeignIntegrationTokenIsNotFound(t *testing.T) {
 	h := newHarness(t)
-	edge := h.client(edgeSecret)
-	processor := h.client(processorSec)
+	edge := h.vault
+	processor := h.processing
 	issued, err := tokenize(t, edge, integrationA, "4242424242424242")
 	if err != nil {
 		t.Fatal(err)
@@ -302,7 +246,7 @@ func TestForeignIntegrationTokenIsNotFound(t *testing.T) {
 
 func TestInactiveTokenIsNotFound(t *testing.T) {
 	h := newHarness(t)
-	edge := h.client(edgeSecret)
+	edge := h.vault
 	issued, err := tokenize(t, edge, integrationA, "4242424242424242")
 	if err != nil {
 		t.Fatal(err)
@@ -323,67 +267,10 @@ func TestInactiveTokenIsNotFound(t *testing.T) {
 	}
 }
 
-func TestUnauthorizedCallsAreDenied(t *testing.T) {
-	h := newHarness(t)
-	issued, err := tokenize(t, h.client(edgeSecret), integrationA, "4242424242424242")
-	if err != nil {
-		t.Fatal(err)
-	}
-	token := issued.GetToken()
-	calls := map[string]func(ctx context.Context, c vaultv1.VaultServiceClient) error{
-		"tokenize": func(ctx context.Context, c vaultv1.VaultServiceClient) error {
-			_, err := c.TokenizeCard(ctx, &vaultv1.TokenizeCardRequest{IntegrationId: integrationA.String(), CardNumber: "4242424242424242"})
-			return err
-		},
-		"describe": func(ctx context.Context, c vaultv1.VaultServiceClient) error {
-			_, err := c.DescribeMethod(ctx, &vaultv1.DescribeMethodRequest{IntegrationId: integrationA.String(), Token: token})
-			return err
-		},
-		"resolve": func(ctx context.Context, c vaultv1.VaultServiceClient) error {
-			_, err := c.ResolveForProcessing(ctx, &vaultv1.ResolveRequest{IntegrationId: integrationA.String(), Token: token})
-			return err
-		},
-	}
-	tests := []struct {
-		caller  string
-		secret  string
-		allowed string
-		other   codes.Code
-	}{
-		{"edge", edgeSecret, "tokenize,describe", codes.PermissionDenied},
-		{"processor", processorSec, "resolve", codes.PermissionDenied},
-		{"payments", paymentsSecret, "", codes.PermissionDenied},
-		{"unknown credential", "wrong-secret", "", codes.Unauthenticated},
-		{"no credential", "", "", codes.Unauthenticated},
-	}
-	for _, test := range tests {
-		client := h.client(test.secret)
-		for name, call := range calls {
-			t.Run(test.caller+"/"+name, func(t *testing.T) {
-				ctx, cancel := rpcContext()
-				defer cancel()
-				err := call(ctx, client)
-				if strings.Contains(test.allowed, name) {
-					if err != nil {
-						t.Fatalf("expected success, got %v", err)
-					}
-					return
-				}
-				if status.Code(err) != test.other {
-					t.Fatalf("got %v, want %v", err, test.other)
-				}
-				if strings.Contains(status.Convert(err).Message(), "card-") {
-					t.Fatalf("denial leaks fixture details: %v", err)
-				}
-			})
-		}
-	}
-}
-
 func TestNoPlaintextFixtureOrCardNumberInStorageOrLogs(t *testing.T) {
 	h := newHarness(t)
-	edge := h.client(edgeSecret)
-	processor := h.client(processorSec)
+	edge := h.vault
+	processor := h.processing
 	number := "4000000000009995"
 	issued, err := tokenize(t, edge, integrationA, number)
 	if err != nil {
@@ -429,7 +316,7 @@ func TestNoPlaintextFixtureOrCardNumberInStorageOrLogs(t *testing.T) {
 			t.Fatalf("storage contains %q", forbidden)
 		}
 	}
-	for _, forbidden := range []string{number, "4111111111111111", issued.GetToken(), strings.TrimPrefix(issued.GetToken(), "vt_"), "card-0002", edgeSecret, processorSec} {
+	for _, forbidden := range []string{number, "4111111111111111", issued.GetToken(), strings.TrimPrefix(issued.GetToken(), "vt_"), "card-0002"} {
 		if strings.Contains(h.logs.String(), forbidden) {
 			t.Fatalf("logs contain %q", forbidden)
 		}
@@ -439,9 +326,9 @@ func TestNoPlaintextFixtureOrCardNumberInStorageOrLogs(t *testing.T) {
 	}
 }
 
-func TestHealthServicesAreServedWithoutCredentials(t *testing.T) {
+func TestHealthServicesAreServed(t *testing.T) {
 	h := newHarness(t)
-	health := healthpb.NewHealthClient(h.conn(""))
+	health := healthpb.NewHealthClient(h.vaultConn)
 	for _, name := range []string{grpctransport.LivenessService, grpctransport.ReadinessService} {
 		deadline := time.Now().Add(10 * time.Second)
 		for {
@@ -481,74 +368,13 @@ func TestReadinessRequiresMigratedDatabase(t *testing.T) {
 	}
 }
 
-func TestHealthcheckCommandExitSemantics(t *testing.T) {
-	ready := newHarness(t)
-	unready := newHarnessWithMigrations(t, false)
-
-	lookupFor := func(h *harness, extra map[string]string) func(string) string {
-		values := map[string]string{"VAULT_GRPC_ADDR": h.grpcAddr, "VAULT_TLS_CERT_FILE": h.certFile}
-		maps.Copy(values, extra)
-		return func(name string) string { return values[name] }
+func TestResolveIsNotServedOnTheVaultPort(t *testing.T) {
+	h := newHarness(t)
+	ctx, cancel := rpcContext()
+	defer cancel()
+	err := h.vaultConn.Invoke(ctx, vaultv1.ProcessingService_ResolveForProcessing_FullMethodName,
+		&vaultv1.ResolveRequest{IntegrationId: integrationA.String(), Token: "vt_x"}, &vaultv1.ProcessingFixture{})
+	if status.Code(err) != codes.Unimplemented {
+		t.Fatalf("resolve on vault port: %v", err)
 	}
-	waitFor := func(h *harness, service string, want healthpb.HealthCheckResponse_ServingStatus) {
-		t.Helper()
-		health := healthpb.NewHealthClient(h.conn(""))
-		deadline := time.Now().Add(10 * time.Second)
-		for {
-			ctx, cancel := rpcContext()
-			response, err := health.Check(ctx, &healthpb.HealthCheckRequest{Service: service})
-			cancel()
-			if err == nil && response.GetStatus() == want {
-				return
-			}
-			if time.Now().After(deadline) {
-				t.Fatalf("%s never %s", service, want)
-			}
-			time.Sleep(50 * time.Millisecond)
-		}
-	}
-	waitFor(ready, grpctransport.ReadinessService, healthpb.HealthCheckResponse_SERVING)
-	waitFor(unready, grpctransport.LivenessService, healthpb.HealthCheckResponse_SERVING)
-	waitFor(unready, grpctransport.ReadinessService, healthpb.HealthCheckResponse_NOT_SERVING)
-
-	otherCert := testtls.NewSelfSignedCertificate(t, "vault-simulator-test")
-	tests := []struct {
-		name    string
-		harness *harness
-		service string
-		extra   map[string]string
-		wantErr bool
-	}{
-		{"liveness serving", ready, "liveness", nil, false},
-		{"readiness serving", ready, "readiness", nil, false},
-		{"explicit CA and server name", ready, "readiness", map[string]string{"VAULT_HEALTHCHECK_CA_FILE": ready.certFile, "VAULT_HEALTHCHECK_SERVER_NAME": "localhost"}, false},
-		{"CA from VAULT_TLS_CA_FILE", ready, "readiness", map[string]string{"VAULT_TLS_CA_FILE": ready.certFile}, false},
-		{"liveness serving while not ready", unready, "liveness", nil, false},
-		{"readiness not serving", unready, "readiness", nil, true},
-		{"unknown service", ready, "other", nil, true},
-		{"untrusted CA", ready, "liveness", map[string]string{"VAULT_HEALTHCHECK_CA_FILE": otherCert.CertFile}, true},
-		{"wrong server name", ready, "liveness", map[string]string{"VAULT_HEALTHCHECK_SERVER_NAME": "vault.invalid"}, true},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			cfg, err := config.HealthcheckFromLookup(lookupFor(test.harness, test.extra))
-			if err != nil {
-				t.Fatal(err)
-			}
-			err = healthcheck.Check(context.Background(), cfg, test.service)
-			if (err != nil) != test.wantErr {
-				t.Fatalf("got err=%v, wantErr=%v", err, test.wantErr)
-			}
-		})
-	}
-
-	t.Run("nothing listening", func(t *testing.T) {
-		cfg, err := config.HealthcheckFromLookup(lookupFor(ready, map[string]string{"VAULT_GRPC_ADDR": "127.0.0.1:1", "VAULT_HEALTHCHECK_TIMEOUT": "500ms"}))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := healthcheck.Check(context.Background(), cfg, "liveness"); err == nil {
-			t.Fatal("expected failure")
-		}
-	})
 }

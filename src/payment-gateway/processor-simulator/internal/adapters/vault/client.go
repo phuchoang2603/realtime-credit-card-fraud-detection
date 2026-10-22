@@ -2,16 +2,12 @@ package vault
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/application"
@@ -20,41 +16,18 @@ import (
 	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1"
 )
 
-type bearer string
-
-func (b bearer) GetRequestMetadata(context.Context, ...string) (map[string]string, error) {
-	return map[string]string{"authorization": "Bearer " + string(b)}, nil
-}
-
-func (bearer) RequireTransportSecurity() bool { return true }
-
 type Client struct {
 	conn    *grpc.ClientConn
-	client  vaultv1.VaultServiceClient
+	client  vaultv1.ProcessingServiceClient
 	timeout time.Duration
 }
 
 func NewClient(cfg config.Vault) (*Client, error) {
-	pem, err := os.ReadFile(cfg.CAFile)
-	if err != nil {
-		return nil, fmt.Errorf("read VAULT_CA_FILE: %w", err)
-	}
-	roots := x509.NewCertPool()
-	if !roots.AppendCertsFromPEM(pem) {
-		return nil, errors.New("VAULT_CA_FILE contains no certificates")
-	}
-	conn, err := grpc.NewClient(cfg.Address,
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
-			RootCAs:    roots,
-			ServerName: cfg.ServerName,
-			MinVersion: tls.VersionTLS13,
-		})),
-		grpc.WithPerRPCCredentials(bearer(cfg.Credential)),
-	)
+	conn, err := grpc.NewClient(cfg.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
-	return &Client{conn: conn, client: vaultv1.NewVaultServiceClient(conn), timeout: cfg.Timeout}, nil
+	return &Client{conn: conn, client: vaultv1.NewProcessingServiceClient(conn), timeout: cfg.Timeout}, nil
 }
 
 func (c *Client) Close() error {

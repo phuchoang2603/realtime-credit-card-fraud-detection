@@ -2,12 +2,11 @@ package grpctransport
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,7 +15,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
@@ -47,62 +45,54 @@ type Server struct {
 	vaultv1.UnimplementedVaultServiceServer
 	vault           Vault
 	readiness       Readiness
-	authenticator   *Authenticator
-	tlsConfig       *tls.Config
 	shutdownTimeout time.Duration
 	health          *health.Server
 	registry        *prometheus.Registry
 	requests        *prometheus.CounterVec
-	denials         *prometheus.CounterVec
 }
 
-func NewServer(cfg config.Config, vault Vault, readiness Readiness) (*Server, error) {
-	certificate, err := tls.LoadX509KeyPair(cfg.TLSCertFile, cfg.TLSKeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("load vault TLS key pair: %w", err)
-	}
+type processingServer struct {
+	vaultv1.UnimplementedProcessingServiceServer
+	server *Server
+}
+
+func NewServer(cfg config.Config, vault Vault, readiness Readiness) *Server {
 	server := &Server{
-		vault:         vault,
-		readiness:     readiness,
-		authenticator: NewAuthenticator(cfg.Callers),
-		tlsConfig: &tls.Config{
-			Certificates: []tls.Certificate{certificate},
-			MinVersion:   tls.VersionTLS13,
-		},
+		vault:           vault,
+		readiness:       readiness,
 		shutdownTimeout: cfg.ShutdownTimeout,
 		health:          health.NewServer(),
 		registry:        prometheus.NewRegistry(),
 		requests: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "vault_requests_total", Help: "Vault gRPC requests by method and status code.",
 		}, []string{"method", "code"}),
-		denials: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "vault_authorization_failures_total", Help: "Vault calls rejected by authentication or permission checks.",
-		}, []string{"method", "reason"}),
 	}
-	server.registry.MustRegister(server.requests, server.denials)
+	server.registry.MustRegister(server.requests)
 	server.health.SetServingStatus(LivenessService, healthpb.HealthCheckResponse_SERVING)
 	server.health.SetServingStatus(ReadinessService, healthpb.HealthCheckResponse_NOT_SERVING)
-	return server, nil
+	return server
 }
 
-func (s *Server) Run(ctx context.Context, grpcListener, metricsListener net.Listener) error {
-	grpcServer := grpc.NewServer(
-		grpc.Creds(credentials.NewTLS(s.tlsConfig)),
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
-		grpc.ChainUnaryInterceptor(
-			s.observe,
-			s.authenticator.Unary(func(method, reason string) { s.denials.WithLabelValues(method, reason).Inc() }),
-		),
-	)
-	vaultv1.RegisterVaultServiceServer(grpcServer, s)
-	healthpb.RegisterHealthServer(grpcServer, s.health)
+func (s *Server) Run(ctx context.Context, vaultListener, processingListener, metricsListener net.Listener) error {
+	newGRPC := func() *grpc.Server {
+		return grpc.NewServer(
+			grpc.StatsHandler(otelgrpc.NewServerHandler()),
+			grpc.ChainUnaryInterceptor(s.observe),
+		)
+	}
+	vaultServer := newGRPC()
+	vaultv1.RegisterVaultServiceServer(vaultServer, s)
+	healthpb.RegisterHealthServer(vaultServer, s.health)
+	processingGRPC := newGRPC()
+	vaultv1.RegisterProcessingServiceServer(processingGRPC, processingServer{server: s})
 
 	metrics := http.NewServeMux()
 	metrics.Handle("/metrics", promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{}))
 	metricsServer := &http.Server{Handler: metrics, ReadHeaderTimeout: 5 * time.Second}
 
-	errs := make(chan error, 2)
-	go func() { errs <- grpcServer.Serve(grpcListener) }()
+	errs := make(chan error, 3)
+	go func() { errs <- vaultServer.Serve(vaultListener) }()
+	go func() { errs <- processingGRPC.Serve(processingListener) }()
 	go func() {
 		if err := metricsServer.Serve(metricsListener); !errors.Is(err, http.ErrServerClosed) {
 			errs <- err
@@ -126,13 +116,22 @@ func (s *Server) Run(ctx context.Context, grpcListener, metricsListener net.List
 	defer cancel()
 	stopped := make(chan struct{})
 	go func() {
-		grpcServer.GracefulStop()
+		var group sync.WaitGroup
+		for _, server := range []*grpc.Server{vaultServer, processingGRPC} {
+			group.Add(1)
+			go func() {
+				defer group.Done()
+				server.GracefulStop()
+			}()
+		}
+		group.Wait()
 		close(stopped)
 	}()
 	select {
 	case <-stopped:
 	case <-shutdownCtx.Done():
-		grpcServer.Stop()
+		vaultServer.Stop()
+		processingGRPC.Stop()
 	}
 	if err := metricsServer.Shutdown(shutdownCtx); err != nil {
 		_ = metricsServer.Close()
@@ -173,7 +172,6 @@ func (s *Server) observe(ctx context.Context, req any, info *grpc.UnaryServerInf
 	slog.InfoContext(ctx, "vault request",
 		"method", info.FullMethod,
 		"code", code.String(),
-		"caller", CallerName(ctx),
 		"duration_ms", time.Since(start).Milliseconds(),
 	)
 	return resp, err
@@ -203,12 +201,12 @@ func (s *Server) DescribeMethod(ctx context.Context, req *vaultv1.DescribeMethod
 	return methodMetadata(method), nil
 }
 
-func (s *Server) ResolveForProcessing(ctx context.Context, req *vaultv1.ResolveRequest) (*vaultv1.ProcessingFixture, error) {
+func (p processingServer) ResolveForProcessing(ctx context.Context, req *vaultv1.ResolveRequest) (*vaultv1.ProcessingFixture, error) {
 	integrationID, err := parseIntegration(req.GetIntegrationId())
 	if err != nil {
 		return nil, err
 	}
-	fixture, err := s.vault.Resolve(ctx, integrationID, req.GetToken())
+	fixture, err := p.server.vault.Resolve(ctx, integrationID, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
 	}

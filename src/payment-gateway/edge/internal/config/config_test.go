@@ -23,8 +23,6 @@ func baseEnv(t *testing.T) map[string]string {
 		"EDGE_INTEGRATIONS_FILE":         write("integrations.json", "[]"),
 		"EDGE_PAYMENTS_ADDR":             "payments:8000",
 		"EDGE_VAULT_ADDRESS":             "vault:8000",
-		"EDGE_VAULT_CA_FILE":             write("ca.pem", "ca"),
-		"EDGE_VAULT_CREDENTIAL_FILE":     write("credential", "vault-secret\n"),
 		"EDGE_PUBLIC_BASE_URL":           "https://pay.example.com/",
 		"EDGE_FINGERPRINT_KEY_FILE":      write("fingerprint", "real-key\n"),
 		"EDGE_CHECKOUT_COOKIE_KEY":       "cookie-key",
@@ -47,7 +45,7 @@ func TestDefaultsAndSecretFiles(t *testing.T) {
 	if cfg.SyntheticFingerprintKey != "synthetic-fingerprint-v1" {
 		t.Fatalf("synthetic key = %q", cfg.SyntheticFingerprintKey)
 	}
-	if cfg.VaultCredential != "vault-secret" || cfg.FingerprintKey != "real-key" || cfg.CheckoutCookieKey != "cookie-key" {
+	if cfg.FingerprintKey != "real-key" || cfg.CheckoutCookieKey != "cookie-key" {
 		t.Fatalf("secrets were not loaded and trimmed: %+v", cfg)
 	}
 	if cfg.PaymentsTimeout != 6*time.Second || cfg.VaultTimeout != 2*time.Second {
@@ -77,8 +75,6 @@ func TestInvalidConfigurationIsRejected(t *testing.T) {
 	tests := map[string]func(map[string]string){
 		"missing integrations":  func(e map[string]string) { delete(e, "EDGE_INTEGRATIONS_FILE") },
 		"missing payments":      func(e map[string]string) { delete(e, "EDGE_PAYMENTS_ADDR") },
-		"missing vault CA":      func(e map[string]string) { delete(e, "EDGE_VAULT_CA_FILE") },
-		"missing credential":    func(e map[string]string) { delete(e, "EDGE_VAULT_CREDENTIAL_FILE") },
 		"missing fingerprint":   func(e map[string]string) { delete(e, "EDGE_FINGERPRINT_KEY_FILE") },
 		"missing cookie key":    func(e map[string]string) { delete(e, "EDGE_CHECKOUT_COOKIE_KEY") },
 		"unreadable secret":     func(e map[string]string) { e["EDGE_FINGERPRINT_KEY_FILE"] = "/nonexistent/key" },

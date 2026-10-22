@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
-	healthcheck "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/runtime"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/shared/security/secretbox"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/adapters/postgres"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/application"
@@ -32,8 +30,6 @@ func main() {
 		err = serve(ctx)
 	case "migrate":
 		err = migrate(ctx)
-	case "healthcheck":
-		err = healthcheckCommand(ctx)
 	default:
 		slog.Error("unknown command", "command", command)
 		os.Exit(2)
@@ -42,17 +38,6 @@ func main() {
 		slog.Error("vault simulator failed", "command", command, "error", err)
 		os.Exit(1)
 	}
-}
-
-func healthcheckCommand(ctx context.Context) error {
-	if len(os.Args) != 3 || (os.Args[2] != "liveness" && os.Args[2] != "readiness") {
-		return errors.New("usage: vault-simulator healthcheck <liveness|readiness>")
-	}
-	cfg, err := config.HealthcheckFromLookup(os.Getenv)
-	if err != nil {
-		return err
-	}
-	return healthcheck.Check(ctx, cfg, os.Args[2])
 }
 
 func migrate(ctx context.Context) error {
@@ -82,19 +67,22 @@ func serve(ctx context.Context) error {
 		return err
 	}
 	service := application.NewService(store, sealer, cfg.FingerprintKey)
-	server, err := grpctransport.NewServer(cfg, service, store)
+	server := grpctransport.NewServer(cfg, service, store)
+	vaultListener, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
 		return err
 	}
-	grpcListener, err := net.Listen("tcp", cfg.GRPCAddr)
+	processingListener, err := net.Listen("tcp", cfg.ProcessingAddr)
 	if err != nil {
+		_ = vaultListener.Close()
 		return err
 	}
 	metricsListener, err := net.Listen("tcp", cfg.MetricsAddr)
 	if err != nil {
-		_ = grpcListener.Close()
+		_ = vaultListener.Close()
+		_ = processingListener.Close()
 		return err
 	}
-	slog.Info("starting vault simulator", "grpc_addr", cfg.GRPCAddr, "metrics_addr", cfg.MetricsAddr)
-	return server.Run(ctx, grpcListener, metricsListener)
+	slog.Info("starting vault simulator", "grpc_addr", cfg.GRPCAddr, "processing_addr", cfg.ProcessingAddr, "metrics_addr", cfg.MetricsAddr)
+	return server.Run(ctx, vaultListener, processingListener, metricsListener)
 }

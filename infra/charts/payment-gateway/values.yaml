@@ -9,6 +9,7 @@ defaults:
     enabled: false
     callers: []
     callerNamespaces: []
+    rules: []
   ports:
   - name: grpc
     containerPort: 8000
@@ -45,8 +46,8 @@ defaults:
       memory: 256Mi
   terminationGracePeriodSeconds: 30
   secretStoreRef:
-    kind: SecretStore
-    name: gateway-doppler
+    kind: ClusterSecretStore
+    name: fraud-doppler
   externalSecrets: []
   networkPolicy:
     enabled: true
@@ -85,14 +86,8 @@ services:
       value: /etc/edge/integrations/integrations.json
     - name: EDGE_PAYMENTS_ADDR
       value: payments.payment-gateway.svc.cluster.local:8000
-    - name: EDGE_PAYMENTS_CA_FILE
-      value: /etc/edge/pki/ca.crt
     - name: EDGE_VAULT_ADDRESS
       value: vault-simulator.payment-gateway.svc.cluster.local:8000
-    - name: EDGE_VAULT_CA_FILE
-      value: /etc/edge/pki/ca.crt
-    - name: EDGE_VAULT_CREDENTIAL_FILE
-      value: /etc/edge/secrets/vault-credential
     - name: EDGE_PUBLIC_BASE_URL
       value: https://pay-gateway.phuchoang.sbs
     - name: EDGE_TRUSTED_PROXY_HEADER
@@ -112,21 +107,12 @@ services:
     - name: secrets
       secret:
         secretName: edge-secrets
-    - name: pki
-      secret:
-        secretName: gateway-internal-ca
-        items:
-        - key: ca.crt
-          path: ca.crt
     volumeMounts:
     - name: integrations
       mountPath: /etc/edge/integrations
       readOnly: true
     - name: secrets
       mountPath: /etc/edge/secrets
-      readOnly: true
-    - name: pki
-      mountPath: /etc/edge/pki
       readOnly: true
     externalSecrets:
     - name: edge-integrations
@@ -135,8 +121,6 @@ services:
         remoteKey: GATEWAY_INTEGRATIONS_JSON
     - name: edge-secrets
       data:
-      - secretKey: vault-credential
-        remoteKey: GATEWAY_VAULT_EDGE_CREDENTIAL
       - secretKey: fingerprint-key
         remoteKey: GATEWAY_FINGERPRINT_KEY
       - secretKey: cookie-key
@@ -274,12 +258,6 @@ services:
           key: database-url
     - name: PAYMENTS_GRPC_ADDR
       value: :8000
-    - name: PAYMENTS_TLS_CERT_FILE
-      value: /etc/payments/tls/tls.crt
-    - name: PAYMENTS_TLS_KEY_FILE
-      value: /etc/payments/tls/tls.key
-    - name: PAYMENTS_HEALTHCHECK_CA_FILE
-      value: /etc/payments/tls/ca.crt
     - name: PAYMENTS_FRAUD_ADDR
       value: fraud-service.payment-gateway.svc.cluster.local:8000
     - name: PAYMENTS_PROCESSOR_ADDR
@@ -293,25 +271,13 @@ services:
     - name: PAYMENTS_CHECKOUT_TOKEN_KEY_FILE
       value: /etc/payments/secrets/checkout-token-key
     volumes:
-    - name: tls
-      secret:
-        secretName: payments-tls
     - name: secrets
       secret:
         secretName: payments-secrets
     volumeMounts:
-    - name: tls
-      mountPath: /etc/payments/tls
-      readOnly: true
     - name: secrets
       mountPath: /etc/payments/secrets
       readOnly: true
-    probes:
-      type: exec
-      exec:
-        command:
-        - /app/service
-        - healthcheck
     externalSecrets:
     - name: payments-secrets
       data:
@@ -375,33 +341,8 @@ services:
     - name: PROCESSOR_TIMEOUT_RATE
       value: '0'
     - name: VAULT_ADDRESS
-      value: vault-simulator.payment-gateway.svc.cluster.local:8000
-    - name: VAULT_CA_FILE
-      value: /etc/processor/pki/ca.crt
-    - name: VAULT_CREDENTIAL_FILE
-      value: /etc/processor/secrets/vault-credential
-    volumes:
-    - name: pki
-      secret:
-        secretName: gateway-internal-ca
-        items:
-        - key: ca.crt
-          path: ca.crt
-    - name: secrets
-      secret:
-        secretName: processor-secrets
-    volumeMounts:
-    - name: pki
-      mountPath: /etc/processor/pki
-      readOnly: true
-    - name: secrets
-      mountPath: /etc/processor/secrets
-      readOnly: true
+      value: vault-simulator.payment-gateway.svc.cluster.local:8001
     externalSecrets:
-    - name: processor-secrets
-      data:
-      - secretKey: vault-credential
-        remoteKey: GATEWAY_VAULT_PROCESSOR_CREDENTIAL
     - name: processor-database
       template:
         database-url: postgres://processor:{{ .password | urlquery }}@payment-gateway-pg-rw.payment-gateway.svc.cluster.local:5432/processor?sslmode=require
@@ -419,9 +360,24 @@ services:
   vault-simulator:
     enabled: true
     mesh:
-      callers:
-      - edge
-      - processor-simulator
+      rules:
+      - callers:
+        - edge
+        ports:
+        - 8000
+      - callers:
+        - processor-simulator
+        ports:
+        - 8001
+    ports:
+    - name: grpc
+      containerPort: 8000
+      appProtocol: kubernetes.io/h2c
+    - name: processing
+      containerPort: 8001
+      appProtocol: kubernetes.io/h2c
+    - name: http-metrics
+      containerPort: 8010
     image:
       repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/vault-simulator
     migrate:
@@ -440,54 +396,21 @@ services:
           key: database-url
     - name: VAULT_GRPC_ADDR
       value: :8000
-    - name: VAULT_TLS_CERT_FILE
-      value: /etc/vault/tls/tls.crt
-    - name: VAULT_TLS_KEY_FILE
-      value: /etc/vault/tls/tls.key
-    - name: VAULT_TLS_CA_FILE
-      value: /etc/vault/tls/ca.crt
-    - name: VAULT_CALLERS_FILE
-      value: /etc/vault/callers/callers.json
+    - name: VAULT_PROCESSING_ADDR
+      value: :8001
     - name: VAULT_ENCRYPTION_KEY_FILE
       value: /etc/vault/keys/encryption-key
     - name: VAULT_FINGERPRINT_KEY
       value: synthetic-fingerprint-v1
     volumes:
-    - name: tls
-      secret:
-        secretName: vault-simulator-tls
-    - name: callers
-      secret:
-        secretName: vault-callers
     - name: keys
       secret:
         secretName: vault-keys
     volumeMounts:
-    - name: tls
-      mountPath: /etc/vault/tls
-      readOnly: true
-    - name: callers
-      mountPath: /etc/vault/callers
-      readOnly: true
     - name: keys
       mountPath: /etc/vault/keys
       readOnly: true
-    probes:
-      type: exec
-      exec:
-        command:
-        - /app/service
-        - healthcheck
     externalSecrets:
-    - name: vault-callers
-      template:
-        callers.json: '[{"name":"edge","credential_sha256":"{{ .edge | sha256sum }}","permissions":["tokenize","describe"]},{"name":"processor","credential_sha256":"{{
-          .processor | sha256sum }}","permissions":["resolve"]}]'
-      data:
-      - secretKey: edge
-        remoteKey: GATEWAY_VAULT_EDGE_CREDENTIAL
-      - secretKey: processor
-        remoteKey: GATEWAY_VAULT_PROCESSOR_CREDENTIAL
     - name: vault-keys
       data:
       - secretKey: encryption-key
@@ -502,6 +425,7 @@ services:
     networkPolicy:
       ingressPorts:
       - 8000
+      - 8001
       ingressFrom:
       - podSelector:
           matchLabels:
@@ -523,8 +447,8 @@ database:
       memory: 1Gi
   externalSecrets:
     secretStoreRef:
-      kind: SecretStore
-      name: gateway-doppler
+      kind: ClusterSecretStore
+      name: fraud-doppler
     refreshInterval: 1h
   # Each owner role owns only its database. Payments migrates as `payments` and serves as `payments_app`.
   databases:
@@ -576,13 +500,13 @@ redis:
     remoteKey: GATEWAY_REDIS_PASSWORD
   externalSecrets:
     secretStoreRef:
-      kind: SecretStore
-      name: gateway-doppler
+      kind: ClusterSecretStore
+      name: fraud-doppler
     refreshInterval: 1h
   clients:
   - payments
 secretStore:
-  name: gateway-doppler
+  name: fraud-doppler
   project: payment-gateway-fraud-detection
   config: prd
   tokenSecret:
@@ -596,9 +520,3 @@ ingress:
     enabled: false
     clusterTunnel: ''
     hostname: ''
-pki:
-  certificates:
-  - name: vault-simulator
-    remotePrefix: GATEWAY_VAULT
-  - name: payments
-    remotePrefix: GATEWAY_PAYMENTS
