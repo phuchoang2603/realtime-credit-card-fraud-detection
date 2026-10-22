@@ -1,4 +1,7 @@
 name: edge
+mesh:
+  callers: [payment-gateway-ingress-istio]
+  callerNamespaces: [ecommerce]
 image:
   repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/edge
 ports:

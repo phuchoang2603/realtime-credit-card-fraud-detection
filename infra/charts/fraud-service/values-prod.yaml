@@ -1,6 +1,8 @@
 image:
   tag: "latest"
   pullPolicy: Always
+mesh:
+  enabled: true
 resources:
   requests:
     cpu: 100m

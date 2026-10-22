@@ -32,3 +32,33 @@ externalSecrets:
 networkPolicy:
   ingressPorts: [8000, 8010]
   ingressFrom: []
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - {port: 53, protocol: UDP}
+        - {port: 53, protocol: TCP}
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: payment-gateway-pg
+      ports:
+        - {port: 5432, protocol: TCP}
+    - to:
+        - podSelector:
+            matchLabels:
+              strimzi.io/cluster: payment-gateway-kafka
+      ports:
+        - {port: 9092, protocol: TCP}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ecommerce
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: web
+      ports:
+        - {port: 8080, protocol: TCP}
+        - {port: 15008, protocol: TCP}

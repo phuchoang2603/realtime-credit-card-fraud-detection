@@ -1,4 +1,6 @@
 name: vault-simulator
+mesh:
+  callers: [edge, processor-simulator]
 image:
   repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/vault-simulator
 migrate:

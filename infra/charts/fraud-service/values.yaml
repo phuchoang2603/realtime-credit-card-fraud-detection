@@ -1,4 +1,6 @@
 replicaCount: 2
+mesh:
+  enabled: false
 image:
   repository: "ghcr.io/phuchoang2603/payment-gateway-fraud-detection"
   tag: "latest"

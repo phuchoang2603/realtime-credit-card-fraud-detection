@@ -11,6 +11,14 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    {{- if .Values.mesh.enabled }}
+    - ports:
+        - port: 15008
+          protocol: TCP
+    - from:
+        - ipBlock:
+            cidr: 169.254.7.127/32
+    {{- end }}
     {{- if .Values.networkPolicy.ingressFrom }}
     - from:
         {{- toYaml .Values.networkPolicy.ingressFrom | nindent 8 }}
@@ -19,7 +27,7 @@ spec:
         - port: {{ . }}
           protocol: TCP
         {{- end }}
-    {{- else }}
+    {{- else if not .Values.mesh.enabled }}
     []
     {{- end }}
 {{- end }}

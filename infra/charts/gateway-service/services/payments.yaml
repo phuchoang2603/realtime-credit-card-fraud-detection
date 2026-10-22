@@ -1,4 +1,6 @@
 name: payments
+mesh:
+  callers: [edge]
 image:
   repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/payments
 migrate:

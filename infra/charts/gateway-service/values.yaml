@@ -5,6 +5,10 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 args: []
+mesh:
+  enabled: false
+  callers: []
+  callerNamespaces: []
 ports:
   - name: grpc
     containerPort: 8000

@@ -1,4 +1,6 @@
 name: processor-simulator
+mesh:
+  callers: [payments]
 image:
   repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/processor-simulator
 migrate:

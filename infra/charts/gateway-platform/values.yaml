@@ -14,8 +14,8 @@ ingress:
     clusterTunnel: ""
     hostname: ""
 pki:
-  duration: 2160h
-  renewBefore: 360h
   certificates:
-    - vault-simulator
-    - payments
+    - name: vault-simulator
+      remotePrefix: GATEWAY_VAULT
+    - name: payments
+      remotePrefix: GATEWAY_PAYMENTS

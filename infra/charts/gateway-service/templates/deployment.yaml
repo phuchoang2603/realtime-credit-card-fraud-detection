@@ -14,7 +14,12 @@ spec:
     metadata:
       labels:
         {{- include "gateway-service.labels" . | nindent 8 }}
+        {{- if .Values.mesh.enabled }}
+        istio.io/dataplane-mode: ambient
+        {{- end }}
     spec:
+      serviceAccountName: {{ .Values.name }}
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       securityContext:
         runAsNonRoot: true

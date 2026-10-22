@@ -1,58 +1,45 @@
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: gateway-selfsigned
-  namespace: {{ $.Release.Namespace }}
-spec:
-  selfSigned: {}
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
 metadata:
   name: gateway-internal-ca
-  namespace: {{ $.Release.Namespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
-  isCA: true
-  commonName: payment-gateway-internal-ca
-  secretName: gateway-internal-ca
-  privateKey:
-    algorithm: ECDSA
-    size: 256
-  issuerRef:
-    name: gateway-selfsigned
-    kind: Issuer
----
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: gateway-internal-ca
-  namespace: {{ $.Release.Namespace }}
-spec:
-  ca:
-    secretName: gateway-internal-ca
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: {{ .Values.secretStore.name }}
+  target:
+    name: gateway-internal-ca
+    creationPolicy: Owner
+  data:
+    - secretKey: ca.crt
+      remoteRef:
+        key: GATEWAY_INTERNAL_CA_CERT
 {{- range .Values.pki.certificates }}
 ---
-apiVersion: cert-manager.io/v1
-kind: Certificate
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
 metadata:
-  name: {{ . }}
+  name: {{ .name }}-tls
   namespace: {{ $.Release.Namespace }}
 spec:
-  secretName: {{ . }}-tls
-  duration: {{ $.Values.pki.duration }}
-  renewBefore: {{ $.Values.pki.renewBefore }}
-  commonName: {{ . }}
-  dnsNames:
-    - {{ . }}
-    - {{ . }}.{{ $.Release.Namespace }}
-    - {{ . }}.{{ $.Release.Namespace }}.svc
-    - {{ . }}.{{ $.Release.Namespace }}.svc.cluster.local
-  privateKey:
-    algorithm: ECDSA
-    size: 256
-  usages:
-    - server auth
-  issuerRef:
-    name: gateway-internal-ca
-    kind: Issuer
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: {{ $.Values.secretStore.name }}
+  target:
+    name: {{ .name }}-tls
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/tls
+  data:
+    - secretKey: tls.crt
+      remoteRef:
+        key: {{ .remotePrefix }}_TLS_CERT
+    - secretKey: tls.key
+      remoteRef:
+        key: {{ .remotePrefix }}_TLS_KEY
+    - secretKey: ca.crt
+      remoteRef:
+        key: GATEWAY_INTERNAL_CA_CERT
 {{- end }}

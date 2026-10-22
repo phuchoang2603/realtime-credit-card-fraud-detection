@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+automountServiceAccountToken: false
+{{- if .Values.mesh.enabled }}
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "gateway-service.selector" . | nindent 6 }}
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "gateway-service.selector" . | nindent 6 }}
+  action: ALLOW
+  {{- if or .Values.mesh.callers .Values.mesh.callerNamespaces }}
+  rules:
+    - from:
+        {{- range .Values.mesh.callers }}
+        - source:
+            principals:
+              - {{ printf "cluster.local/ns/%s/sa/%s" $.Release.Namespace . | quote }}
+        {{- end }}
+        {{- with .Values.mesh.callerNamespaces }}
+        - source:
+            namespaces:
+              {{- toYaml . | nindent 14 }}
+        {{- end }}
+      to:
+        - operation:
+            ports:
+              {{- range .Values.networkPolicy.ingressPorts }}
+              - {{ . | quote }}
+              {{- end }}
+  {{- else }}
+  rules: []
+  {{- end }}
+{{- end }}
