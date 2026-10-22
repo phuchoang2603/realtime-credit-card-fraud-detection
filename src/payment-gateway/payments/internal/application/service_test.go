@@ -139,7 +139,7 @@ func TestCreatePaymentRejectsInvalidSnapshots(t *testing.T) {
 }
 
 func TestCreatePaymentCarriesTheMerchantAndCustomerIdsOfTheIdentityVectors(t *testing.T) {
-	raw, err := os.ReadFile("../../../../contracts/synthetic/identity-vectors.json")
+	raw, err := os.ReadFile("../../../../../contracts/synthetic/identity-vectors.json")
 	if err != nil {
 		t.Fatal(err)
 	}

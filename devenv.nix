@@ -57,9 +57,9 @@
     exec = ''bash "${config.git.root}/scripts/codegen-sqlc.sh"'';
     before = [ "devenv:enterShell" ];
     execIfModified = [
-      "src/*/sqlc.yaml"
-      "src/*/db/migrations/*.sql"
-      "src/*/db/queries/*.sql"
+      "src/payment-gateway/*/sqlc.yaml"
+      "src/payment-gateway/*/db/migrations/*.sql"
+      "src/payment-gateway/*/db/queries/*.sql"
       "scripts/codegen-sqlc.sh"
     ];
   };
@@ -74,14 +74,14 @@
       ruff-format = {
         enable = true;
         excludes = [
-          "src/fraud-service/gen/**"
+          "src/payment-gateway/fraud-service/gen/**"
         ];
       };
       gofumpt = {
         enable = true;
         extra = true;
         excludes = [
-          "shared/proto/**/*.pb.go"
+          "src/payment-gateway/shared/proto/**/*.pb.go"
         ];
       };
     };

@@ -1,4 +1,4 @@
-module github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator
+module github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator
 
 go 1.26.0
 
@@ -11,7 +11,7 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.44.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.70.0
 	google.golang.org/grpc v1.83.0
-	google.golang.org/protobuf v1.36.12 // indirect
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
@@ -82,4 +82,4 @@ require (
 
 require github.com/phuchoang2603/payment-gateway-fraud-detection/shared v0.0.0
 
-replace github.com/phuchoang2603/payment-gateway-fraud-detection/shared => ../../shared
+replace github.com/phuchoang2603/payment-gateway-fraud-detection/shared => ../shared

@@ -11,19 +11,25 @@ contracts/
   vault/v1/                      # synthetic vault
   processor/v1/                  # synthetic processor
 src/
-  edge/                          # Go module; cmd/edge is the composition root
-    cmd/edge/main.go
-    internal/config/             # validated environment configuration
-    internal/transport/          # checkout HTTP routes, hosted page, health and correlation
-  fraud-service/                 # Python package; app.main:FraudServer is the composition root
-    app/main.py                  # gRPC composition and lifecycle
-    app/domain/                  # validated decision values and pure policy rules
-    app/transport/               # gRPC adapter, request mapping and correlation
-    app/telemetry/               # logging, metrics and tracing setup
-    gen/fraud/v1/                # generated decision bindings
-    gen/payments/v1/             # generated shared payment types
-    tests/
-shared/                          # only technical helpers or wire contracts (none yet)
+  payment-gateway/
+    edge/                        # Go module; cmd/edge is the composition root
+      cmd/edge/main.go
+      internal/config/           # validated environment configuration
+      internal/transport/        # checkout HTTP routes, hosted page, health and correlation
+    payments/
+    notifier/
+    vault-simulator/
+    processor-simulator/
+    fraud-service/               # Python package; app.main:FraudServer is the composition root
+      app/main.py                # gRPC composition and lifecycle
+      app/domain/                # validated decision values and pure policy rules
+      app/transport/             # gRPC adapter, request mapping and correlation
+      app/telemetry/             # logging, metrics and tracing setup
+      gen/fraud/v1/              # generated decision bindings
+      gen/payments/v1/           # generated shared payment types
+      tests/
+    shared/                      # one Go module: proto, testutil, runtime and security
+  simulator/                     # historical data generation
 ```
 
 Both languages keep business rules separate from transport. Edge now has checkout validation/fingerprinting domain values, application coordination and gRPC adapters. Payments, notifier, vault-simulator and processor-simulator each own a Go module, composition root, domain/application packages and persistence adapters. Python fraud serving evaluates a single stateless policy in `app/domain`, maps protobuf at `app/transport` and keeps telemetry in `app/telemetry`. Add an application/use-case layer only when a service coordinates multiple domain or I/O operations, and add storage adapters only when it persists data. Do not create empty layers for symmetry.
@@ -47,6 +53,6 @@ The versioned protobufs in `contracts/` are the shared wire contracts. Extract t
 
 ## Images and reference material
 
-The edge image is built from its own module with `GOWORK=off` using the reusable [`infra/docker/go-service.Dockerfile`](../../infra/docker/go-service.Dockerfile); the fraud image keeps its `src/fraud-service` context. Seven explicit image jobs share one workflow (see [CONTRIBUTING](../../CONTRIBUTING.md)).
+The edge image is built from its own module with `GOWORK=off` using the reusable [`infra/docker/go-service.Dockerfile`](../../infra/docker/go-service.Dockerfile); the fraud image keeps its `src/payment-gateway/fraud-service` context. Seven explicit image jobs share one workflow (see [CONTRIBUTING](../../CONTRIBUTING.md)).
 
 In the marketplace, `services/orders/cmd/orders/main.go` demonstrates a composition root, `shared/runtime/http.go` bounded HTTP shutdown, `shared/err/grpcerr/map.go` transport error mapping and `docs/development/code-generation.md` workspace/module conventions. This repository adopts those patterns selectively and keeps gateway domain ownership separate.

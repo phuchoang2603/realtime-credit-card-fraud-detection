@@ -12,7 +12,7 @@ import (
 )
 
 func TestContractJSONRoundTrip(t *testing.T) {
-	files, err := filepath.Glob("../../../../contracts/payments/v1/testdata/*.json")
+	files, err := filepath.Glob("../../../../../../contracts/payments/v1/testdata/*.json")
 	if err != nil || len(files) == 0 {
 		t.Fatalf("contract fixtures: %v", err)
 	}

@@ -9,7 +9,7 @@ from payments.v1.events_pb2 import PaymentEvent
 
 @pytest.mark.parametrize(
     "fixture",
-    sorted((Path(__file__).resolve().parents[3] / "contracts/payments/v1/testdata").glob("*.json")),
+    sorted((Path(__file__).resolve().parents[4] / "contracts/payments/v1/testdata").glob("*.json")),
     ids=lambda path: path.stem,
 )
 def test_payment_contract_json_round_trip(fixture):

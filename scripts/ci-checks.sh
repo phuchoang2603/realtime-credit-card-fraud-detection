@@ -55,7 +55,7 @@ case "${1:-}" in
         GOWORK=off golangci-lint run ./...
         GOWORK=off go test -p 1 -race -count=1 ./...
       )
-    done < <(find src shared -type f -name go.mod -not -path '*/vendor/*' -print0 | sort -z)
+    done < <(find src -type f -name go.mod -not -path '*/vendor/*' -print0 | sort -z)
     ;;
   contracts)
     TMPDIR_CHECKS="$(mktemp -d)"
@@ -65,7 +65,7 @@ case "${1:-}" in
     done < <(find contracts/data-products -mindepth 2 -maxdepth 2 -name product.odps.yaml -print0 | sort -z)
     ;;
   python)
-    check_python src/fraud-service app tests
+    check_python src/payment-gateway/fraud-service app tests
     check_python src/simulator simulator tests
     ;;
   helm)

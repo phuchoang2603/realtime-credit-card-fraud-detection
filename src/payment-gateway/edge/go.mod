@@ -16,4 +16,4 @@ require (
 
 require github.com/phuchoang2603/payment-gateway-fraud-detection/shared v0.0.0
 
-replace github.com/phuchoang2603/payment-gateway-fraud-detection/shared => ../../shared
+replace github.com/phuchoang2603/payment-gateway-fraud-detection/shared => ../shared

@@ -1,18 +1,18 @@
 # Build one module independently. The build context is the repository root.
 # docker build -f infra/docker/go-service.Dockerfile \
-#   --build-arg SERVICE_PATH=src/edge --build-arg BUILD_PKG=./cmd/edge \
+#   --build-arg SERVICE_PATH=src/payment-gateway/edge --build-arg BUILD_PKG=./cmd/edge \
 #   --build-arg BUILD_BIN=edge --build-arg EXPOSE_PORT=8080 -t fraud-edge .
 FROM golang:1.26-bookworm AS builder
 
-ARG SERVICE_PATH=src/edge
+ARG SERVICE_PATH=src/payment-gateway/edge
 ARG BUILD_PKG=./cmd/edge
 ARG BUILD_BIN=edge
 ENV GOWORK=off
 WORKDIR /repo/${SERVICE_PATH}
-COPY shared/go.mod shared/go.sum /repo/shared/
+COPY src/payment-gateway/shared/go.mod src/payment-gateway/shared/go.sum /repo/src/payment-gateway/shared/
 COPY ${SERVICE_PATH}/go.mod ${SERVICE_PATH}/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
-COPY shared /repo/shared
+COPY src/payment-gateway/shared /repo/src/payment-gateway/shared
 COPY ${SERVICE_PATH} ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \

@@ -32,7 +32,7 @@ type Vectors struct {
 func Load(t testing.TB) Vectors {
 	t.Helper()
 	_, file, _, _ := runtime.Caller(0)
-	path := filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "contracts", "synthetic", "identity-vectors.json")
+	path := filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "..", "contracts", "synthetic", "identity-vectors.json")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read identity vectors: %v", err)

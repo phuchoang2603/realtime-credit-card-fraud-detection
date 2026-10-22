@@ -22,7 +22,7 @@ jobs:
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}
-      context: src/fraud-service
+      context: src/payment-gateway/fraud-service
       dockerfile: infra/docker/fraud-service.Dockerfile
       publish: ${{ github.event_name != 'pull_request' }}
   edge:
@@ -33,7 +33,7 @@ jobs:
       context: .
       dockerfile: infra/docker/go-service.Dockerfile
       build-args: |
-        SERVICE_PATH=src/edge
+        SERVICE_PATH=src/payment-gateway/edge
         BUILD_PKG=./cmd/edge
         BUILD_BIN=edge
         EXPOSE_PORT=8080
@@ -46,7 +46,7 @@ jobs:
       context: .
       dockerfile: infra/docker/go-service.Dockerfile
       build-args: |
-        SERVICE_PATH=src/payments
+        SERVICE_PATH=src/payment-gateway/payments
         BUILD_PKG=./cmd/payments
         BUILD_BIN=payments
         EXPOSE_PORT=8000
@@ -59,7 +59,7 @@ jobs:
       context: .
       dockerfile: infra/docker/go-service.Dockerfile
       build-args: |
-        SERVICE_PATH=src/notifier
+        SERVICE_PATH=src/payment-gateway/notifier
         BUILD_PKG=./cmd/notifier
         BUILD_BIN=notifier
         EXPOSE_PORT=8000
@@ -72,7 +72,7 @@ jobs:
       context: .
       dockerfile: infra/docker/go-service.Dockerfile
       build-args: |
-        SERVICE_PATH=src/vault-simulator
+        SERVICE_PATH=src/payment-gateway/vault-simulator
         BUILD_PKG=./cmd/vault-simulator
         BUILD_BIN=vault-simulator
         EXPOSE_PORT=8000
@@ -85,7 +85,7 @@ jobs:
       context: .
       dockerfile: infra/docker/go-service.Dockerfile
       build-args: |
-        SERVICE_PATH=src/processor-simulator
+        SERVICE_PATH=src/payment-gateway/processor-simulator
         BUILD_PKG=./cmd/processor-simulator
         BUILD_BIN=processor-simulator
         EXPOSE_PORT=8000
