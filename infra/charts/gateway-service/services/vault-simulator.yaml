@@ -1,0 +1,61 @@
+name: vault-simulator
+image:
+  repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/vault-simulator
+migrate:
+  enabled: true
+  env:
+    - name: VAULT_MIGRATE_DATABASE_URL
+      valueFrom: {secretKeyRef: {name: vault-database, key: migrate-database-url}}
+env:
+  - name: VAULT_DATABASE_URL
+    valueFrom: {secretKeyRef: {name: vault-database, key: database-url}}
+  - {name: VAULT_GRPC_ADDR, value: ":8000"}
+  - {name: VAULT_TLS_CERT_FILE, value: /etc/vault/tls/tls.crt}
+  - {name: VAULT_TLS_KEY_FILE, value: /etc/vault/tls/tls.key}
+  - {name: VAULT_TLS_CA_FILE, value: /etc/vault/tls/ca.crt}
+  - {name: VAULT_CALLERS_FILE, value: /etc/vault/callers/callers.json}
+  - {name: VAULT_ENCRYPTION_KEY_FILE, value: /etc/vault/keys/encryption-key}
+  - {name: VAULT_FINGERPRINT_KEY, value: synthetic-fingerprint-v1}
+volumes:
+  - name: tls
+    secret:
+      secretName: vault-simulator-tls
+  - name: callers
+    secret:
+      secretName: vault-callers
+  - name: keys
+    secret:
+      secretName: vault-keys
+volumeMounts:
+  - {name: tls, mountPath: /etc/vault/tls, readOnly: true}
+  - {name: callers, mountPath: /etc/vault/callers, readOnly: true}
+  - {name: keys, mountPath: /etc/vault/keys, readOnly: true}
+probes:
+  type: exec
+  exec:
+    command: [/app/service, healthcheck]
+externalSecrets:
+  - name: vault-callers
+    template:
+      callers.json: '[{"name":"edge","credential_sha256":"{{ .edge | sha256sum }}","permissions":["tokenize","describe"]},{"name":"processor","credential_sha256":"{{ .processor | sha256sum }}","permissions":["resolve"]}]'
+    data:
+      - {secretKey: edge, remoteKey: GATEWAY_VAULT_EDGE_CREDENTIAL}
+      - {secretKey: processor, remoteKey: GATEWAY_VAULT_PROCESSOR_CREDENTIAL}
+  - name: vault-keys
+    data:
+      - {secretKey: encryption-key, remoteKey: GATEWAY_VAULT_ENCRYPTION_KEY}
+  - name: vault-database
+    template:
+      database-url: "postgres://vault:{{ .password | urlquery }}@payment-gateway-pg-rw.payment-gateway.svc.cluster.local:5432/vault?sslmode=require"
+      migrate-database-url: "postgres://vault:{{ .password | urlquery }}@payment-gateway-pg-rw.payment-gateway.svc.cluster.local:5432/vault?sslmode=require"
+    data:
+      - {secretKey: password, remoteKey: GATEWAY_DB_VAULT_PASSWORD}
+networkPolicy:
+  ingressPorts: [8000]
+  ingressFrom:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: edge
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: processor-simulator

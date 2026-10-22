@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gateway-service.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    {{- range .Values.ports }}
+    - name: {{ .name }}
+      port: {{ .containerPort }}
+      targetPort: {{ .name }}
+      protocol: TCP
+      {{- with .appProtocol }}
+      appProtocol: {{ . }}
+      {{- end }}
+    {{- end }}
+  selector:
+    {{- include "gateway-service.selector" . | nindent 4 }}

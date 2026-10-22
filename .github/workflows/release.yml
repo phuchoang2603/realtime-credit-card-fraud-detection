@@ -9,7 +9,7 @@ on:
       service:
         type: choice
         default: fraud
-        options: [fraud, edge, all]
+        options: [fraud, edge, payments, notifier, vault-simulator, processor-simulator, connect-debezium, all]
         description: Service image to publish from the selected revision
 
 permissions:
@@ -37,4 +37,64 @@ jobs:
         BUILD_PKG=./cmd/edge
         BUILD_BIN=edge
         EXPOSE_PORT=8080
+      publish: ${{ github.event_name != 'pull_request' }}
+  payments:
+    if: github.event_name != 'workflow_dispatch' || inputs.service == 'payments' || inputs.service == 'all'
+    uses: ./.github/workflows/build-image.yml
+    with:
+      image: ${{ github.repository }}/payments
+      context: .
+      dockerfile: infra/docker/go-service.Dockerfile
+      build-args: |
+        SERVICE_PATH=src/payments
+        BUILD_PKG=./cmd/payments
+        BUILD_BIN=payments
+        EXPOSE_PORT=8000
+      publish: ${{ github.event_name != 'pull_request' }}
+  notifier:
+    if: github.event_name != 'workflow_dispatch' || inputs.service == 'notifier' || inputs.service == 'all'
+    uses: ./.github/workflows/build-image.yml
+    with:
+      image: ${{ github.repository }}/notifier
+      context: .
+      dockerfile: infra/docker/go-service.Dockerfile
+      build-args: |
+        SERVICE_PATH=src/notifier
+        BUILD_PKG=./cmd/notifier
+        BUILD_BIN=notifier
+        EXPOSE_PORT=8000
+      publish: ${{ github.event_name != 'pull_request' }}
+  vault-simulator:
+    if: github.event_name != 'workflow_dispatch' || inputs.service == 'vault-simulator' || inputs.service == 'all'
+    uses: ./.github/workflows/build-image.yml
+    with:
+      image: ${{ github.repository }}/vault-simulator
+      context: .
+      dockerfile: infra/docker/go-service.Dockerfile
+      build-args: |
+        SERVICE_PATH=src/vault-simulator
+        BUILD_PKG=./cmd/vault-simulator
+        BUILD_BIN=vault-simulator
+        EXPOSE_PORT=8000
+      publish: ${{ github.event_name != 'pull_request' }}
+  processor-simulator:
+    if: github.event_name != 'workflow_dispatch' || inputs.service == 'processor-simulator' || inputs.service == 'all'
+    uses: ./.github/workflows/build-image.yml
+    with:
+      image: ${{ github.repository }}/processor-simulator
+      context: .
+      dockerfile: infra/docker/go-service.Dockerfile
+      build-args: |
+        SERVICE_PATH=src/processor-simulator
+        BUILD_PKG=./cmd/processor-simulator
+        BUILD_BIN=processor-simulator
+        EXPOSE_PORT=8000
+      publish: ${{ github.event_name != 'pull_request' }}
+  connect-debezium:
+    if: github.event_name != 'workflow_dispatch' || inputs.service == 'connect-debezium' || inputs.service == 'all'
+    uses: ./.github/workflows/build-image.yml
+    with:
+      image: ${{ github.repository }}/connect-debezium
+      context: .
+      dockerfile: infra/docker/connect-debezium.Dockerfile
       publish: ${{ github.event_name != 'pull_request' }}

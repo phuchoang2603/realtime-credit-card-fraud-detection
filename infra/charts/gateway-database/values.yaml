@@ -1,0 +1,39 @@
+name: payment-gateway-pg
+instances: 1
+imageName: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie
+storage:
+  size: 2Gi
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 1Gi
+externalSecrets:
+  secretStoreRef:
+    kind: SecretStore
+    name: gateway-doppler
+  refreshInterval: 1h
+# Each owner role owns only its database. Payments migrates as `payments` and serves as `payments_app`.
+databases:
+  - name: payments
+    owner: payments
+    connectRoles: [payments, payments_app, payments_cdc]
+  - name: notifier
+    owner: notifier
+    connectRoles: [notifier]
+  - name: vault
+    owner: vault
+    connectRoles: [vault]
+  - name: processor
+    owner: processor
+    connectRoles: [processor]
+roles:
+  - name: payments
+  - name: payments_app
+  - name: payments_cdc
+    replication: true
+  - name: notifier
+  - name: vault
+  - name: processor
+# Doppler keys follow GATEWAY_DB_<ROLE>_PASSWORD.

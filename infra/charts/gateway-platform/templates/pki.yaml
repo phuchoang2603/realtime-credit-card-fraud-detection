@@ -1,0 +1,58 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: gateway-selfsigned
+  namespace: {{ $.Release.Namespace }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gateway-internal-ca
+  namespace: {{ $.Release.Namespace }}
+spec:
+  isCA: true
+  commonName: payment-gateway-internal-ca
+  secretName: gateway-internal-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: gateway-selfsigned
+    kind: Issuer
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: gateway-internal-ca
+  namespace: {{ $.Release.Namespace }}
+spec:
+  ca:
+    secretName: gateway-internal-ca
+{{- range .Values.pki.certificates }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ . }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  secretName: {{ . }}-tls
+  duration: {{ $.Values.pki.duration }}
+  renewBefore: {{ $.Values.pki.renewBefore }}
+  commonName: {{ . }}
+  dnsNames:
+    - {{ . }}
+    - {{ . }}.{{ $.Release.Namespace }}
+    - {{ . }}.{{ $.Release.Namespace }}.svc
+    - {{ . }}.{{ $.Release.Namespace }}.svc.cluster.local
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  usages:
+    - server auth
+  issuerRef:
+    name: gateway-internal-ca
+    kind: Issuer
+{{- end }}

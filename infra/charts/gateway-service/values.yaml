@@ -1,0 +1,59 @@
+name: gateway-service
+replicaCount: 1
+image:
+  repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/payments
+  tag: latest
+  pullPolicy: IfNotPresent
+args: []
+ports:
+  - name: grpc
+    containerPort: 8000
+    appProtocol: kubernetes.io/h2c
+  - name: http-metrics
+    containerPort: 8010
+env: []
+migrate:
+  enabled: false
+  env: []
+volumes: []
+volumeMounts: []
+probes:
+  type: grpc
+  grpcPort: 8000
+  httpPort: 8080
+  liveness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
+  exec:
+    command: []
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+terminationGracePeriodSeconds: 30
+secretStoreRef:
+  kind: SecretStore
+  name: gateway-doppler
+externalSecrets: []
+networkPolicy:
+  enabled: true
+  ingressFrom: []
+  ingressPorts: [8000]
+  egress: []
+httpRoute:
+  enabled: false
+  gateway: payment-gateway-ingress
+  hostnames: []
+  pathPrefix: /checkout/
+  port: 8080
+  timeouts:
+    request: 10s

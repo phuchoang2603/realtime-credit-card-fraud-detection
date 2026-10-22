@@ -1,0 +1,10 @@
+apiVersion: v2
+name: gateway-redis
+description: Standalone Valkey instance for gateway idempotency records, managed by the platform Redis operator
+type: application
+version: 1.0.0
+appVersion: "8.1.10"
+kubeVersion: ">=1.27.0-0"
+maintainers:
+  - email: xuanphuc.a1gv@gmail.com
+    name: phuchoang2603

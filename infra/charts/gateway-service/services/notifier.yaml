@@ -1,0 +1,34 @@
+name: notifier
+image:
+  repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/notifier
+migrate:
+  enabled: true
+  env:
+    - name: NOTIFIER_MIGRATE_DATABASE_URL
+      valueFrom: {secretKeyRef: {name: notifier-database, key: migrate-database-url}}
+env:
+  - name: NOTIFIER_DATABASE_URL
+    valueFrom: {secretKeyRef: {name: notifier-database, key: database-url}}
+  - {name: NOTIFIER_INTEGRATIONS_FILE, value: /etc/notifier/integrations/integrations.json}
+  - {name: NOTIFIER_KAFKA_BROKERS, value: "payment-gateway-kafka-kafka-bootstrap.payment-gateway.svc.cluster.local:9092"}
+  - {name: NOTIFIER_KAFKA_TOPIC, value: payments.events.v1}
+  - {name: NOTIFIER_KAFKA_GROUP, value: gateway-notifier}
+volumes:
+  - name: integrations
+    secret:
+      secretName: notifier-integrations
+volumeMounts:
+  - {name: integrations, mountPath: /etc/notifier/integrations, readOnly: true}
+externalSecrets:
+  - name: notifier-integrations
+    data:
+      - {secretKey: integrations.json, remoteKey: GATEWAY_INTEGRATIONS_JSON}
+  - name: notifier-database
+    template:
+      database-url: "postgres://notifier:{{ .password | urlquery }}@payment-gateway-pg-rw.payment-gateway.svc.cluster.local:5432/notifier?sslmode=require"
+      migrate-database-url: "postgres://notifier:{{ .password | urlquery }}@payment-gateway-pg-rw.payment-gateway.svc.cluster.local:5432/notifier?sslmode=require"
+    data:
+      - {secretKey: password, remoteKey: GATEWAY_DB_NOTIFIER_PASSWORD}
+networkPolicy:
+  ingressPorts: [8000, 8010]
+  ingressFrom: []

@@ -1,0 +1,25 @@
+name: payment-gateway-redis
+image:
+  repository: valkey/valkey
+  tag: "8.1.10"
+  pullPolicy: IfNotPresent
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 640Mi
+# Sized for the 24 h idempotency window at the design load with headroom.
+maxmemory: 512mb
+password:
+  secretName: payment-gateway-redis
+  secretKey: password
+  remoteKey: GATEWAY_REDIS_PASSWORD
+externalSecrets:
+  secretStoreRef:
+    kind: SecretStore
+    name: gateway-doppler
+  refreshInterval: 1h
+clients:
+  - payments

@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "gateway-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "gateway-service.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gateway-service.labels" . | nindent 8 }}
+    spec:
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      {{- if .Values.migrate.enabled }}
+      initContainers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: [migrate]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          {{- with .Values.migrate.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          ports:
+            {{- range .Values.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort }}
+              protocol: TCP
+            {{- end }}
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if eq .Values.probes.type "grpc" }}
+          livenessProbe:
+            grpc:
+              port: {{ .Values.probes.grpcPort }}
+              service: liveness
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+          readinessProbe:
+            grpc:
+              port: {{ .Values.probes.grpcPort }}
+              service: readiness
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+          {{- else if eq .Values.probes.type "http" }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.probes.httpPort }}
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: {{ .Values.probes.httpPort }}
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+          {{- else if eq .Values.probes.type "exec" }}
+          livenessProbe:
+            exec:
+              command:
+                {{- toYaml (concat .Values.probes.exec.command (list "liveness")) | nindent 16 }}
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+          readinessProbe:
+            exec:
+              command:
+                {{- toYaml (concat .Values.probes.exec.command (list "readiness")) | nindent 16 }}
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

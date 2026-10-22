@@ -1,0 +1,10 @@
+apiVersion: v2
+name: gateway-database
+description: CloudNativePG cluster with per-service databases and roles for the payment gateway
+type: application
+version: 1.0.0
+appVersion: "18.3"
+kubeVersion: ">=1.27.0-0"
+maintainers:
+  - email: xuanphuc.a1gv@gmail.com
+    name: phuchoang2603

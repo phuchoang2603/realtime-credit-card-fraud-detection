@@ -1,0 +1,21 @@
+secretStore:
+  name: gateway-doppler
+  project: payment-gateway-fraud-detection
+  config: prd
+  tokenSecret:
+    name: gateway-doppler-token
+    key: dopplerToken
+ingress:
+  enabled: true
+  name: payment-gateway-ingress
+  port: 80
+  tunnel:
+    enabled: false
+    clusterTunnel: ""
+    hostname: ""
+pki:
+  duration: 2160h
+  renewBefore: 360h
+  certificates:
+    - vault-simulator
+    - payments

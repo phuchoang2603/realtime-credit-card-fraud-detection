@@ -1,0 +1,47 @@
+name: processor-simulator
+image:
+  repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/processor-simulator
+migrate:
+  enabled: true
+  env:
+    - name: PROCESSOR_MIGRATE_DATABASE_URL
+      valueFrom: {secretKeyRef: {name: processor-database, key: migrate-database-url}}
+env:
+  - name: PROCESSOR_DATABASE_URL
+    valueFrom: {secretKeyRef: {name: processor-database, key: database-url}}
+  - {name: PROCESSOR_GRPC_ADDR, value: ":8000"}
+  - {name: PROCESSOR_SEED, value: "42"}
+  - {name: PROCESSOR_LATENCY_MIN, value: 20ms}
+  - {name: PROCESSOR_LATENCY_MAX, value: 150ms}
+  - {name: PROCESSOR_TIMEOUT_RATE, value: "0"}
+  - {name: VAULT_ADDRESS, value: vault-simulator.payment-gateway.svc.cluster.local:8000}
+  - {name: VAULT_CA_FILE, value: /etc/processor/pki/ca.crt}
+  - {name: VAULT_CREDENTIAL_FILE, value: /etc/processor/secrets/vault-credential}
+volumes:
+  - name: pki
+    secret:
+      secretName: gateway-internal-ca
+      items:
+        - {key: ca.crt, path: ca.crt}
+  - name: secrets
+    secret:
+      secretName: processor-secrets
+volumeMounts:
+  - {name: pki, mountPath: /etc/processor/pki, readOnly: true}
+  - {name: secrets, mountPath: /etc/processor/secrets, readOnly: true}
+externalSecrets:
+  - name: processor-secrets
+    data:
+      - {secretKey: vault-credential, remoteKey: GATEWAY_VAULT_PROCESSOR_CREDENTIAL}
+  - name: processor-database
+    template:
+      database-url: "postgres://processor:{{ .password | urlquery }}@payment-gateway-pg-rw.payment-gateway.svc.cluster.local:5432/processor?sslmode=require"
+      migrate-database-url: "postgres://processor:{{ .password | urlquery }}@payment-gateway-pg-rw.payment-gateway.svc.cluster.local:5432/processor?sslmode=require"
+    data:
+      - {secretKey: password, remoteKey: GATEWAY_DB_PROCESSOR_PASSWORD}
+networkPolicy:
+  ingressPorts: [8000]
+  ingressFrom:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: payments

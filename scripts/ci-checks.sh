@@ -42,6 +42,11 @@ check_chart() {
     helm lint "$chart" -f "$values"
     helm template check "$chart" -f "$values" > /dev/null
   done
+  for values in "$chart"/services/*.yaml; do
+    [[ -f "$values" ]] || continue
+    helm lint "$chart" -f "$values" -f "$chart/values-prod.yaml"
+    helm template check "$chart" -f "$values" -f "$chart/values-prod.yaml" > /dev/null
+  done
 }
 
 DATACONTRACT_CLI=1.2.7

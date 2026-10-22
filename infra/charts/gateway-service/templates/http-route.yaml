@@ -1,0 +1,30 @@
+{{- if .Values.httpRoute.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.httpRoute.gateway }}
+  {{- with .Values.httpRoute.hostnames }}
+  hostnames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ .Values.httpRoute.pathPrefix }}
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: X-Forwarded-Proto
+                value: https
+      timeouts:
+        {{- toYaml .Values.httpRoute.timeouts | nindent 8 }}
+      backendRefs:
+        - name: {{ .Values.name }}
+          port: {{ .Values.httpRoute.port }}
+{{- end }}
