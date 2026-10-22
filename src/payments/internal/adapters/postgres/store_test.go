@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/wire"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -84,7 +86,7 @@ func (f *fixture) startAttempt(t *testing.T, state domain.State) (domain.State, 
 
 func (f *fixture) approve(t *testing.T, state domain.State, attemptID string) domain.State {
 	t.Helper()
-	next, err := f.transition(state, domain.RecordRiskDecision{Envelope: f.envelope(state.Version), AttemptID: attemptID, Assessment: testsupport.Approve()})
+	next, err := f.transition(state, domain.RecordRiskDecision{Envelope: f.envelope(state.Version), AttemptID: attemptID, Assessment: wire.Assessment(testsupport.Approve())})
 	if err != nil {
 		t.Fatalf("record risk: %v", err)
 	}
@@ -181,6 +183,17 @@ func TestRuntimeRoleHasOnlyInsertAndSelectOnLedger(t *testing.T) {
 	}
 	if len(privileges) != 2 || privileges[0] != "INSERT" || privileges[1] != "SELECT" {
 		t.Fatalf("payments_app privileges on payment_events = %v", privileges)
+	}
+	var publicConnect, replication bool
+	if err := f.db.Owner.QueryRow(context.Background(), `
+		SELECT EXISTS (
+			SELECT FROM pg_database d, aclexplode(coalesce(d.datacl, acldefault('d', d.datdba))) a
+			WHERE d.datname = current_database() AND a.grantee = 0 AND a.privilege_type = 'CONNECT'
+		), (SELECT rolreplication FROM pg_roles WHERE rolname = 'payments_app')`).Scan(&publicConnect, &replication); err != nil {
+		t.Fatal(err)
+	}
+	if publicConnect || replication {
+		t.Fatalf("public database connect = %v, runtime replication = %v", publicConnect, replication)
 	}
 }
 

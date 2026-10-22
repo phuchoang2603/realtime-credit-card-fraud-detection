@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/wire"
+
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
@@ -65,18 +67,18 @@ func commandFor(t *testing.T, event *paymentsv1.PaymentEvent) domain.Command {
 		return domain.CreatePayment{
 			Envelope: envelope, PaymentID: event.GetPaymentId(), IntegrationID: event.GetIntegrationId(),
 			CorrelationID: event.GetCorrelationId(), SessionID: "session",
-			Merchant: payload.PaymentCreated.GetMerchant(), Customer: payload.PaymentCreated.GetCustomer(), Snapshot: payload.PaymentCreated.GetSnapshot(),
+			Merchant: wire.Merchant(payload.PaymentCreated.GetMerchant()), Customer: wire.Customer(payload.PaymentCreated.GetCustomer()), Snapshot: wire.Snapshot(payload.PaymentCreated.GetSnapshot()),
 		}
 	case *paymentsv1.PaymentEvent_AttemptStarted:
-		return domain.StartAttempt{Envelope: envelope, AttemptID: payload.AttemptStarted.GetAttemptId(), Signals: payload.AttemptStarted.GetSignals()}
+		return domain.StartAttempt{Envelope: envelope, AttemptID: payload.AttemptStarted.GetAttemptId(), Signals: wire.Signals(payload.AttemptStarted.GetSignals())}
 	case *paymentsv1.PaymentEvent_RiskDecisionRecorded:
-		return domain.RecordRiskDecision{Envelope: envelope, AttemptID: payload.RiskDecisionRecorded.GetAttemptId(), Assessment: payload.RiskDecisionRecorded.GetAssessment()}
+		return domain.RecordRiskDecision{Envelope: envelope, AttemptID: payload.RiskDecisionRecorded.GetAttemptId(), Assessment: wire.Assessment(payload.RiskDecisionRecorded.GetAssessment())}
 	case *paymentsv1.PaymentEvent_ProcessorOperationRequested:
 		return domain.RequestProcessorOperation{Envelope: envelope, AttemptID: payload.ProcessorOperationRequested.GetAttemptId(), OperationKey: payload.ProcessorOperationRequested.GetOperationKey()}
 	case *paymentsv1.PaymentEvent_ProcessorOutcomeUnknown:
 		return domain.RecordOutcomeUnknown{Envelope: envelope, AttemptID: payload.ProcessorOutcomeUnknown.GetAttemptId()}
 	case *paymentsv1.PaymentEvent_AttemptDeclined:
-		return domain.DeclineAttempt{Envelope: envelope, AttemptID: payload.AttemptDeclined.GetAttemptId(), Source: payload.AttemptDeclined.GetSource(), Reason: payload.AttemptDeclined.GetReason()}
+		return domain.DeclineAttempt{Envelope: envelope, AttemptID: payload.AttemptDeclined.GetAttemptId(), Source: domain.DeclineSource(payload.AttemptDeclined.GetSource()), Reason: payload.AttemptDeclined.GetReason()}
 	case *paymentsv1.PaymentEvent_PaymentSucceeded:
 		return domain.SucceedPayment{Envelope: envelope, AttemptID: payload.PaymentSucceeded.GetAttemptId(), ProcessorReference: payload.PaymentSucceeded.GetProcessorReference()}
 	case *paymentsv1.PaymentEvent_PaymentExpired:
@@ -127,10 +129,10 @@ func TestGoldenHistoriesAreAcceptedOrRejectedForTheirRecordedRule(t *testing.T) 
 					if err != nil {
 						t.Fatalf("valid history rejected at event %d: %v", i+1, err)
 					}
-					if produced.GetAggregateVersion() != event.GetAggregateVersion() {
-						t.Fatalf("event %d version = %d, want %d", i+1, produced.GetAggregateVersion(), event.GetAggregateVersion())
+					if produced.Version != event.GetAggregateVersion() {
+						t.Fatalf("event %d version = %d, want %d", i+1, produced.Version, event.GetAggregateVersion())
 					}
-					if !proto.Equal(withoutEnvelope(produced), withoutEnvelope(event)) {
+					if !proto.Equal(withoutEnvelope(wire.Event(produced)), withoutEnvelope(event)) {
 						t.Fatalf("event %d payload differs from the golden event", i+1)
 					}
 					state = next

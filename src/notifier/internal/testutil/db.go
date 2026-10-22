@@ -17,13 +17,10 @@ import (
 
 var counter atomic.Int64
 
-// NewPool creates a migrated, uniquely named database on TEST_POSTGRES_URL and drops it on cleanup; it skips when unset.
+// NewPool creates a migrated, uniquely named database on the test PostgreSQL and drops it on cleanup.
 func NewPool(t *testing.T) (*pgxpool.Pool, string) {
 	t.Helper()
-	adminURL := os.Getenv("TEST_POSTGRES_URL")
-	if adminURL == "" {
-		t.Skip("TEST_POSTGRES_URL not set")
-	}
+	adminURL := PostgresURL(t)
 	ctx := context.Background()
 	name := fmt.Sprintf("notifier_test_%d_%d_%d", os.Getpid(), time.Now().UnixNano()%1_000_000, counter.Add(1))
 	admin, err := pgx.Connect(ctx, adminURL)

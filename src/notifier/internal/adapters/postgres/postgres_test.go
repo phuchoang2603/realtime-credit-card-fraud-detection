@@ -26,7 +26,7 @@ func TestReadinessRequiresLatestMigration(t *testing.T) {
 	if err := postgres.Migrate(ctx, dbURL); err != nil {
 		t.Fatalf("second migrate must be a no-op: %v", err)
 	}
-	if _, err := pool.Exec(ctx, "DELETE FROM goose_db_version WHERE version_id = 1"); err != nil {
+	if _, err := pool.Exec(ctx, "DELETE FROM goose_db_version WHERE version_id = (SELECT max(version_id) FROM goose_db_version)"); err != nil {
 		t.Fatal(err)
 	}
 	if err := readiness.Check(ctx); err == nil {

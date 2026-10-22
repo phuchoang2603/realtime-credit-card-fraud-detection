@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"math"
 	"regexp"
-
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
 )
 
 var (
@@ -14,50 +12,53 @@ var (
 	currencyPattern    = regexp.MustCompile(`^[A-Z]{3}$`)
 )
 
-func ValidateSnapshot(snapshot *paymentsv1.CheckoutSnapshot) error {
+func ValidateSnapshot(snapshot *CheckoutSnapshot) error {
 	invalid := func(format string, args ...any) error {
 		return fmt.Errorf("%w: %s", ErrInvalidSnapshot, fmt.Sprintf(format, args...))
 	}
 	if snapshot == nil {
 		return invalid("snapshot is required")
 	}
-	if snapshot.GetExternalOrderId() == "" {
+	if snapshot.ExternalOrderID == "" {
 		return invalid("external_order_id is required")
 	}
-	total := snapshot.GetTotal()
-	if total == nil || total.GetMinorUnits() < 0 || !currencyPattern.MatchString(total.GetCurrency()) {
+	total := snapshot.Total
+	if total == nil || total.MinorUnits < 0 || !currencyPattern.MatchString(total.Currency) {
 		return invalid("total must be a nonnegative amount with an ISO 4217 currency")
 	}
-	if len(snapshot.GetItems()) == 0 {
+	if len(snapshot.Items) == 0 {
 		return invalid("at least one item is required")
 	}
 	var sum int64
-	for _, item := range snapshot.GetItems() {
-		price := item.GetUnitPrice()
+	for _, item := range snapshot.Items {
+		if item == nil {
+			return invalid("item is required")
+		}
+		price := item.UnitPrice
 		switch {
-		case item.GetProductId() == "" || item.GetCategory() == "" || item.GetCondition() == "":
+		case item.ProductID == "" || item.Category == "" || item.Condition == "":
 			return invalid("item product_id, category and condition are required")
-		case item.GetQuantity() <= 0:
+		case item.Quantity <= 0:
 			return invalid("item quantity must be positive")
-		case price == nil || price.GetMinorUnits() < 0 || price.GetCurrency() != total.GetCurrency():
+		case price == nil || price.MinorUnits < 0 || price.Currency != total.Currency:
 			return invalid("item unit_price must be nonnegative in the total currency")
-		case price.GetMinorUnits() > math.MaxInt64/int64(item.GetQuantity()):
+		case price.MinorUnits > math.MaxInt64/int64(item.Quantity):
 			return invalid("item amount overflows")
 		}
-		line := price.GetMinorUnits() * int64(item.GetQuantity())
+		line := price.MinorUnits * int64(item.Quantity)
 		if sum > math.MaxInt64-line {
 			return invalid("item amounts overflow")
 		}
 		sum += line
 	}
-	if sum != total.GetMinorUnits() {
-		return invalid("items sum to %d but total is %d", sum, total.GetMinorUnits())
+	if sum != total.MinorUnits {
+		return invalid("items sum to %d but total is %d", sum, total.MinorUnits)
 	}
-	if snapshot.GetMerchantAccountCreatedAt() == nil || snapshot.GetCustomerAccountCreatedAt() == nil {
+	if snapshot.MerchantAccountCreatedAt.IsZero() || snapshot.CustomerAccountCreatedAt.IsZero() {
 		return invalid("account creation times are required")
 	}
-	shipping := snapshot.GetShipping()
-	if shipping == nil || shipping.GetCountry() == "" || shipping.GetAddressFingerprint() == "" {
+	shipping := snapshot.Shipping
+	if shipping == nil || shipping.Country == "" || shipping.AddressFingerprint == "" {
 		return invalid("shipping country and address_fingerprint are required")
 	}
 	return nil

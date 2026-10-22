@@ -8,6 +8,7 @@ import (
 
 	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/domain"
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/wire"
 )
 
 func Snapshot(orderReference string, minorUnits int64) *paymentsv1.CheckoutSnapshot {
@@ -52,8 +53,8 @@ func NewCreateCommand(integrationID uuid.UUID, orderReference string, now time.T
 		SessionID:     uuid.NewString(),
 		ReturnURL:     "https://shop.example/return",
 		ExpiresAt:     now.Add(15 * time.Minute).Truncate(time.Second),
-		Merchant:      &paymentsv1.MerchantRef{MerchantId: domain.MerchantID(id, "seller-01").String(), ExternalSellerId: "seller-01"},
-		Customer:      &paymentsv1.CustomerRef{CustomerId: domain.CustomerID(id, "buyer-01").String(), ExternalBuyerId: "buyer-01"},
-		Snapshot:      Snapshot(orderReference, 10000),
+		Merchant:      &domain.MerchantRef{MerchantID: domain.MerchantID(id, "seller-01").String(), ExternalSellerID: "seller-01"},
+		Customer:      &domain.CustomerRef{CustomerID: domain.CustomerID(id, "buyer-01").String(), ExternalBuyerID: "buyer-01"},
+		Snapshot:      wire.Snapshot(Snapshot(orderReference, 10000)),
 	}
 }

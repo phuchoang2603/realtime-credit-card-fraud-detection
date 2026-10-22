@@ -52,7 +52,7 @@ func (l *Leader) lead(ctx context.Context, work func(ctx context.Context)) {
 			case <-leaderCtx.Done():
 				return
 			case <-ticker.C:
-				probe, probeCancel := context.WithTimeout(leaderCtx, l.interval)
+				probe, probeCancel := context.WithTimeout(leaderCtx, max(l.interval, time.Second))
 				err := conn.Conn().Ping(probe)
 				probeCancel()
 				if err != nil && leaderCtx.Err() == nil {

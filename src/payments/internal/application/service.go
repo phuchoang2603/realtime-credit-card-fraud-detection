@@ -9,6 +9,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/wire"
+
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -93,7 +95,7 @@ func (s *Service) CreatePayment(ctx context.Context, request *paymentsv1.CreateP
 	if request.GetExternalSellerId() == "" || request.GetExternalBuyerId() == "" {
 		return nil, invalid("external_seller_id and external_buyer_id are required")
 	}
-	if err := domain.ValidateSnapshot(request.GetSnapshot()); err != nil {
+	if err := domain.ValidateSnapshot(wire.Snapshot(request.GetSnapshot())); err != nil {
 		return nil, invalid("%v", err)
 	}
 	digest, err := digestOf(&paymentsv1.CreatePaymentRequest{
@@ -172,9 +174,9 @@ func (s *Service) createInDatabase(ctx context.Context, integrationID uuid.UUID,
 		SessionID:     sessionID.String(),
 		ReturnURL:     request.GetReturnUrl(),
 		ExpiresAt:     now.Add(s.config.PaymentExpiry).Truncate(time.Second),
-		Merchant:      &paymentsv1.MerchantRef{MerchantId: domain.MerchantID(integration, request.GetExternalSellerId()).String(), ExternalSellerId: request.GetExternalSellerId()},
-		Customer:      &paymentsv1.CustomerRef{CustomerId: domain.CustomerID(integration, request.GetExternalBuyerId()).String(), ExternalBuyerId: request.GetExternalBuyerId()},
-		Snapshot:      request.GetSnapshot(),
+		Merchant:      &domain.MerchantRef{MerchantID: domain.MerchantID(integration, request.GetExternalSellerId()).String(), ExternalSellerID: request.GetExternalSellerId()},
+		Customer:      &domain.CustomerRef{CustomerID: domain.CustomerID(integration, request.GetExternalBuyerId()).String(), ExternalBuyerID: request.GetExternalBuyerId()},
+		Snapshot:      wire.Snapshot(request.GetSnapshot()),
 	}
 	storeCtx, cancel := context.WithTimeout(ctx, storeTimeout)
 	defer cancel()
@@ -246,9 +248,9 @@ func (s *Service) paymentView(state domain.State, withToken bool) (*paymentsv1.P
 		ExpiresAt:     timestamppb.New(state.ExpiresAt),
 		Status:        paymentStatus(state.Status),
 		Version:       state.Version,
-		Merchant:      state.Merchant,
-		Customer:      state.Customer,
-		Snapshot:      state.Snapshot,
+		Merchant:      wire.MerchantProto(state.Merchant),
+		Customer:      wire.CustomerProto(state.Customer),
+		Snapshot:      wire.SnapshotProto(state.Snapshot),
 		ReturnUrl:     state.ReturnURL,
 		IntegrationId: state.IntegrationID,
 	}

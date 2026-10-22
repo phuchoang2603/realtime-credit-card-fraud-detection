@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/wire"
+
 	"github.com/google/uuid"
 
 	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
@@ -69,11 +71,11 @@ func crashAfterIntent(t *testing.T, stack *testsupport.Stack, payment *paymentsv
 	if err != nil {
 		t.Fatal(err)
 	}
-	state, err = stack.Store.Transition(ctx, application.TransitionRequest{PaymentID: paymentID, Command: domain.StartAttempt{Envelope: envelope(state.Version), AttemptID: attemptID.String(), Signals: &paymentsv1.AttemptSignals{}}})
+	state, err = stack.Store.Transition(ctx, application.TransitionRequest{PaymentID: paymentID, Command: domain.StartAttempt{Envelope: envelope(state.Version), AttemptID: attemptID.String(), Signals: &domain.AttemptSignals{}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	state, err = stack.Store.Transition(ctx, application.TransitionRequest{PaymentID: paymentID, Command: domain.RecordRiskDecision{Envelope: envelope(state.Version), AttemptID: attemptID.String(), Assessment: testsupport.Approve()}})
+	state, err = stack.Store.Transition(ctx, application.TransitionRequest{PaymentID: paymentID, Command: domain.RecordRiskDecision{Envelope: envelope(state.Version), AttemptID: attemptID.String(), Assessment: wire.Assessment(testsupport.Approve())}})
 	if err != nil {
 		t.Fatal(err)
 	}

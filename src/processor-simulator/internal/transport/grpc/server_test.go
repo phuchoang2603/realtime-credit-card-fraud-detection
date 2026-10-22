@@ -532,7 +532,7 @@ func TestReadinessRequiresMigratedDatabase(t *testing.T) {
 
 func adminConn(t *testing.T) *pgx.Conn {
 	t.Helper()
-	conn, err := pgx.Connect(context.Background(), testutil.AdminURL())
+	conn, err := pgx.Connect(context.Background(), testutil.AdminURL(t))
 	if err != nil {
 		t.Fatal(err)
 	}

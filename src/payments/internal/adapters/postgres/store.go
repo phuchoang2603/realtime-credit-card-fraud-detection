@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/wire"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -55,7 +57,7 @@ func (s *Store) CreatePayment(ctx context.Context, request application.CreateReq
 		if err := claimIdempotency(ctx, q, request.Idempotency, command.Now); err != nil {
 			return err
 		}
-		next, event, err := domain.Transition(domain.State{}, command)
+		next, domainEvent, err := domain.Transition(domain.State{}, command)
 		if err != nil {
 			return err
 		}
@@ -74,7 +76,7 @@ func (s *Store) CreatePayment(ctx context.Context, request application.CreateReq
 			}
 			return fmt.Errorf("insert payment: %w", err)
 		}
-		if err := insertEvent(ctx, q, event); err != nil {
+		if err := insertEvent(ctx, q, wire.Event(domainEvent)); err != nil {
 			return err
 		}
 		if err := q.CompleteIdempotencyByPayment(ctx, sqlcgen.CompleteIdempotencyByPaymentParams{PaymentID: paymentID, CompletedAt: ptr(command.Now.UTC())}); err != nil {
@@ -101,7 +103,7 @@ func (s *Store) Transition(ctx context.Context, request application.TransitionRe
 		if err != nil {
 			return err
 		}
-		next, event, err := domain.Transition(current, request.Command)
+		next, domainEvent, err := domain.Transition(current, request.Command)
 		if err != nil {
 			return err
 		}
@@ -119,11 +121,11 @@ func (s *Store) Transition(ctx context.Context, request application.TransitionRe
 		if err != nil {
 			return err
 		}
-		if err := insertEvent(ctx, q, event); err != nil {
+		if err := insertEvent(ctx, q, wire.Event(domainEvent)); err != nil {
 			return err
 		}
 		if request.ProcessorRequest != nil {
-			if event.GetProcessorOperationRequested().GetOperationKey() != request.ProcessorRequest.OperationKey {
+			if wire.Event(domainEvent).GetProcessorOperationRequested().GetOperationKey() != request.ProcessorRequest.OperationKey {
 				return errors.New("processor request does not belong to a ProcessorOperationRequested event")
 			}
 			record := request.ProcessorRequest
@@ -238,26 +240,26 @@ func eventType(event *paymentsv1.PaymentEvent) string {
 
 func paymentRow(state domain.State) (sqlcgen.InsertPaymentParams, error) {
 	var ids [4]uuid.UUID
-	for i, raw := range []string{state.PaymentID, state.IntegrationID, state.SessionID, state.Merchant.GetMerchantId()} {
+	for i, raw := range []string{state.PaymentID, state.IntegrationID, state.SessionID, state.Merchant.MerchantID} {
 		id, err := uuid.Parse(raw)
 		if err != nil {
 			return sqlcgen.InsertPaymentParams{}, fmt.Errorf("parse identity %q: %w", raw, err)
 		}
 		ids[i] = id
 	}
-	customerID, err := uuid.Parse(state.Customer.GetCustomerId())
+	customerID, err := uuid.Parse(state.Customer.CustomerID)
 	if err != nil {
 		return sqlcgen.InsertPaymentParams{}, fmt.Errorf("parse customer id: %w", err)
 	}
-	snapshot, err := proto.Marshal(state.Snapshot)
+	snapshot, err := proto.Marshal(wire.SnapshotProto(state.Snapshot))
 	if err != nil {
 		return sqlcgen.InsertPaymentParams{}, fmt.Errorf("marshal snapshot: %w", err)
 	}
 	return sqlcgen.InsertPaymentParams{
-		PaymentID: ids[0], IntegrationID: ids[1], SessionID: ids[2], OrderReference: state.Snapshot.GetExternalOrderId(),
+		PaymentID: ids[0], IntegrationID: ids[1], SessionID: ids[2], OrderReference: state.Snapshot.ExternalOrderID,
 		Status: string(state.Status), Version: int64(state.Version), MerchantID: ids[3],
-		ExternalSellerID: state.Merchant.GetExternalSellerId(), CustomerID: customerID,
-		ExternalBuyerID: state.Customer.GetExternalBuyerId(), Snapshot: snapshot, ReturnUrl: state.ReturnURL,
+		ExternalSellerID: state.Merchant.ExternalSellerID, CustomerID: customerID,
+		ExternalBuyerID: state.Customer.ExternalBuyerID, Snapshot: snapshot, ReturnUrl: state.ReturnURL,
 		CorrelationID: state.CorrelationID, ExpiresAt: state.ExpiresAt, CreatedAt: state.CreatedAt, UpdatedAt: state.UpdatedAt,
 	}, nil
 }
@@ -310,15 +312,15 @@ func loadState(ctx context.Context, q *sqlcgen.Queries, paymentID uuid.UUID) (do
 	state := domain.State{
 		PaymentID: row.PaymentID.String(), IntegrationID: row.IntegrationID.String(), CorrelationID: row.CorrelationID,
 		SessionID: row.SessionID.String(), Status: domain.Status(row.Status), Version: uint64(row.Version),
-		Merchant: &paymentsv1.MerchantRef{MerchantId: row.MerchantID.String(), ExternalSellerId: row.ExternalSellerID},
-		Customer: &paymentsv1.CustomerRef{CustomerId: row.CustomerID.String(), ExternalBuyerId: row.ExternalBuyerID},
-		Snapshot: snapshot, ReturnURL: row.ReturnUrl,
+		Merchant: &domain.MerchantRef{MerchantID: row.MerchantID.String(), ExternalSellerID: row.ExternalSellerID},
+		Customer: &domain.CustomerRef{CustomerID: row.CustomerID.String(), ExternalBuyerID: row.ExternalBuyerID},
+		Snapshot: wire.Snapshot(snapshot), ReturnURL: row.ReturnUrl,
 		ExpiresAt: row.ExpiresAt.UTC(), CreatedAt: row.CreatedAt.UTC(), UpdatedAt: row.UpdatedAt.UTC(),
 	}
 	for _, attempt := range attempts {
 		state.Attempts = append(state.Attempts, domain.Attempt{
 			ID: attempt.AttemptID.String(), Version: uint64(attempt.Version), Phase: domain.Phase(attempt.Status),
-			DeclineSource: paymentsv1.DeclineSource(attempt.DeclineSource), DeclineReason: attempt.DeclineReason,
+			DeclineSource: domain.DeclineSource(attempt.DeclineSource), DeclineReason: attempt.DeclineReason,
 			OperationKey: attempt.OperationKey, ProcessorReference: attempt.ProcessorReference,
 			StartedAt: attempt.StartedAt.UTC(), UpdatedAt: attempt.UpdatedAt.UTC(),
 		})

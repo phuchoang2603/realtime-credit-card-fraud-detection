@@ -1,10 +1,11 @@
 package kafka_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,11 +20,7 @@ import (
 )
 
 func TestConsumerRecordsOnceAcrossRestartsAndGroups(t *testing.T) {
-	brokersEnv := os.Getenv("TEST_KAFKA_BROKERS")
-	if brokersEnv == "" {
-		t.Skip("TEST_KAFKA_BROKERS not set")
-	}
-	brokers := strings.Split(brokersEnv, ",")
+	brokers := testutil.KafkaBrokers(t)
 	pool, _ := testutil.NewPool(t)
 	set, err := domain.ParseIntegrations([]byte(`[
 	{"integration_id":"sub","webhook":{"url":"https://hooks.example.com/x","secret":"s","events":["attempt.declined","payment.succeeded"]}},
@@ -52,45 +49,49 @@ func TestConsumerRecordsOnceAcrossRestartsAndGroups(t *testing.T) {
 		{"p2", testutil.Succeeded(t, "k6", "p2", "bare", "a1")},
 		{"p2", []byte{0xff, 0xff}},
 	}
+	produceCtx, cancelProduce := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelProduce()
 	for _, message := range messages {
 		record := &kgo.Record{Topic: topic, Key: []byte(message.key), Value: message.value}
-		if err := producer.ProduceSync(context.Background(), record).FirstErr(); err != nil {
+		if err := producer.ProduceSync(produceCtx, record).FirstErr(); err != nil {
 			t.Fatalf("produce: %v", err)
 		}
 	}
 
-	runConsumer := func(group string, wantEvents int) {
+	runConsumer := func(group string) {
 		t.Helper()
 		ingestor := &application.Ingestor{Store: postgres.NewStore(pool), Integrations: set, Now: time.Now}
-		m := metrics.New()
-		consumer, err := kafka.NewConsumer(brokers, topic, group, ingestor, m)
+		markerID := fmt.Sprintf("marker-%d", time.Now().UnixNano())
+		marker := testutil.Created(t, markerID, markerID, "bare", markerID)
+		handler := &observedHandler{Handler: ingestor, marker: marker, observed: make(chan struct{})}
+		consumer, err := kafka.NewConsumer(brokers, topic, group, handler, metrics.New())
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer consumer.Close()
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
 		go func() {
+			defer close(done)
 			consumer.Run(ctx)
-			close(done)
 		}()
-		deadline := time.Now().Add(40 * time.Second)
-		for time.Now().Before(deadline) {
-			var refs int
-			if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM payment_refs").Scan(&refs); err != nil {
-				t.Fatal(err)
-			}
-			if refs == wantEvents {
-				break
-			}
-			time.Sleep(200 * time.Millisecond)
+		defer func() {
+			cancel()
+			<-done
+			consumer.Close()
+		}()
+		produceCtx, stopProduce := context.WithTimeout(context.Background(), 30*time.Second)
+		defer stopProduce()
+		if err := producer.ProduceSync(produceCtx, &kgo.Record{Topic: topic, Key: []byte("p1"), Value: marker}).FirstErr(); err != nil {
+			t.Fatal(err)
 		}
-		time.Sleep(time.Second)
-		cancel()
-		<-done
+		select {
+		case <-handler.observed:
+		case <-time.After(40 * time.Second):
+			t.Fatal("consumer did not handle the marker after the outcome events")
+		}
 	}
 
-	runConsumer(group, 2)
+	runConsumer(group)
 	assertDeliveries := func() {
 		t.Helper()
 		rows, err := pool.Query(context.Background(), "SELECT event_id FROM webhook_deliveries ORDER BY event_id")
@@ -112,9 +113,24 @@ func TestConsumerRecordsOnceAcrossRestartsAndGroups(t *testing.T) {
 	}
 	assertDeliveries()
 
-	runConsumer(group, 2)
+	runConsumer(group)
 	assertDeliveries()
 
-	runConsumer(group+"-replay", 2)
+	runConsumer(group + "-replay")
 	assertDeliveries()
+}
+
+type observedHandler struct {
+	kafka.Handler
+	marker   []byte
+	observed chan struct{}
+	once     sync.Once
+}
+
+func (h *observedHandler) Handle(ctx context.Context, value []byte) (application.Result, error) {
+	result, err := h.Handler.Handle(ctx, value)
+	if err == nil && bytes.Equal(value, h.marker) {
+		h.once.Do(func() { close(h.observed) })
+	}
+	return result, err
 }

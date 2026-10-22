@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -37,20 +36,11 @@ type Database struct {
 	App      *pgxpool.Pool
 }
 
-func RedisAddr(t testing.TB) string {
-	t.Helper()
-	addr := os.Getenv("TEST_REDIS_ADDR")
-	if addr == "" {
-		t.Skip("TEST_REDIS_ADDR is not set")
-	}
-	return addr
-}
-
 func withCredentials(t testing.TB, adminURL, user, password, database string) string {
 	t.Helper()
 	parsed, err := url.Parse(adminURL)
 	if err != nil {
-		t.Fatalf("parse TEST_POSTGRES_URL: %v", err)
+		t.Fatalf("parse postgres URL: %v", err)
 	}
 	parsed.User = url.UserPassword(user, password)
 	parsed.Path = "/" + database
@@ -75,10 +65,7 @@ func EnsureRole(ctx context.Context, admin *pgx.Conn, name, attributes string) e
 
 func NewDatabase(t testing.TB) *Database {
 	t.Helper()
-	adminURL := os.Getenv("TEST_POSTGRES_URL")
-	if adminURL == "" {
-		t.Skip("TEST_POSTGRES_URL is not set")
-	}
+	adminURL := postgresURL(t)
 	ctx := context.Background()
 	admin, err := pgx.Connect(ctx, adminURL)
 	if err != nil {

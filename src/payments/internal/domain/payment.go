@@ -6,10 +6,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
-
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
 )
 
 const SchemaVersion = 2
@@ -47,7 +43,7 @@ type Attempt struct {
 	ID                 string
 	Version            uint64
 	Phase              Phase
-	DeclineSource      paymentsv1.DeclineSource
+	DeclineSource      DeclineSource
 	DeclineReason      string
 	OperationKey       string
 	ProcessorReference string
@@ -62,9 +58,9 @@ type State struct {
 	SessionID     string
 	Status        Status
 	Version       uint64
-	Merchant      *paymentsv1.MerchantRef
-	Customer      *paymentsv1.CustomerRef
-	Snapshot      *paymentsv1.CheckoutSnapshot
+	Merchant      *MerchantRef
+	Customer      *CustomerRef
+	Snapshot      *CheckoutSnapshot
 	ReturnURL     string
 	ExpiresAt     time.Time
 	CreatedAt     time.Time
@@ -158,21 +154,21 @@ type CreatePayment struct {
 	SessionID     string
 	ReturnURL     string
 	ExpiresAt     time.Time
-	Merchant      *paymentsv1.MerchantRef
-	Customer      *paymentsv1.CustomerRef
-	Snapshot      *paymentsv1.CheckoutSnapshot
+	Merchant      *MerchantRef
+	Customer      *CustomerRef
+	Snapshot      *CheckoutSnapshot
 }
 
 type StartAttempt struct {
 	Envelope
 	AttemptID string
-	Signals   *paymentsv1.AttemptSignals
+	Signals   *AttemptSignals
 }
 
 type RecordRiskDecision struct {
 	Envelope
 	AttemptID  string
-	Assessment *paymentsv1.RiskAssessment
+	Assessment *RiskAssessment
 }
 
 type RequestProcessorOperation struct {
@@ -189,7 +185,7 @@ type RecordOutcomeUnknown struct {
 type DeclineAttempt struct {
 	Envelope
 	AttemptID string
-	Source    paymentsv1.DeclineSource
+	Source    DeclineSource
 	Reason    string
 }
 
@@ -205,7 +201,7 @@ type ExpirePayment struct {
 
 func (c Envelope) envelope() Envelope { return c }
 
-func Transition(state State, command Command) (State, *paymentsv1.PaymentEvent, error) {
+func Transition(state State, command Command) (State, *Event, error) {
 	envelope := command.envelope()
 	if envelope.EventID == "" {
 		return State{}, nil, violation(RuleInvalidCommand, "event id is empty")
@@ -237,12 +233,9 @@ func Transition(state State, command Command) (State, *paymentsv1.PaymentEvent, 
 	}
 	next.UpdatedAt = occurred
 
-	event := &paymentsv1.PaymentEvent{
-		EventId:          envelope.EventID,
-		AggregateVersion: next.Version,
-		OccurredAt:       timestamppb.New(occurred),
-		RecordedAt:       timestamppb.New(occurred),
-		SchemaVersion:    SchemaVersion,
+	event := &Event{
+		ID: envelope.EventID, Version: next.Version, OccurredAt: occurred, RecordedAt: occurred,
+		Command: command,
 	}
 
 	switch cmd := command.(type) {
@@ -261,9 +254,7 @@ func Transition(state State, command Command) (State, *paymentsv1.PaymentEvent, 
 		next.Merchant = cmd.Merchant
 		next.Customer = cmd.Customer
 		next.Snapshot = cmd.Snapshot
-		event.Payload = &paymentsv1.PaymentEvent_PaymentCreated{PaymentCreated: &paymentsv1.PaymentCreated{
-			Merchant: cmd.Merchant, Customer: cmd.Customer, Snapshot: cmd.Snapshot,
-		}}
+
 	case StartAttempt:
 		if cmd.AttemptID == "" {
 			return State{}, nil, violation(RuleInvalidCommand, "attempt id is empty")
@@ -275,7 +266,6 @@ func Transition(state State, command Command) (State, *paymentsv1.PaymentEvent, 
 			return State{}, nil, violation(RuleDuplicateAttempt, cmd.AttemptID)
 		}
 		next.Attempts = append(next.Attempts, Attempt{ID: cmd.AttemptID, Version: 1, Phase: PhaseStarted, StartedAt: occurred, UpdatedAt: occurred})
-		event.Payload = &paymentsv1.PaymentEvent_AttemptStarted{AttemptStarted: &paymentsv1.AttemptStarted{AttemptId: cmd.AttemptID, Signals: cmd.Signals}}
 	case RecordRiskDecision:
 		index, err := activeIndex(state, cmd.AttemptID)
 		if err != nil {
@@ -288,14 +278,16 @@ func Transition(state State, command Command) (State, *paymentsv1.PaymentEvent, 
 			return State{}, nil, err
 		}
 		phase := PhaseRiskApproved
-		if cmd.Assessment.GetOutcome() == paymentsv1.RiskOutcome_RISK_OUTCOME_DECLINE {
+		if cmd.Assessment.Outcome == RiskOutcomeDecline {
 			phase = PhaseRiskDeclined
 		}
 		advance(&next.Attempts[index], phase, occurred)
 		if phase == PhaseRiskDeclined {
-			next.Attempts[index].DeclineReason = strings.ToLower(cmd.Assessment.GetReasonCodes()[0])
+			next.Attempts[index].DeclineReason = "risk_declined"
+			if reasons := cmd.Assessment.ReasonCodes; len(reasons) > 0 {
+				next.Attempts[index].DeclineReason = strings.ToLower(reasons[0])
+			}
 		}
-		event.Payload = &paymentsv1.PaymentEvent_RiskDecisionRecorded{RiskDecisionRecorded: &paymentsv1.RiskDecisionRecorded{AttemptId: cmd.AttemptID, Assessment: cmd.Assessment}}
 	case RequestProcessorOperation:
 		index, err := activeIndex(state, cmd.AttemptID)
 		if err != nil {
@@ -309,7 +301,6 @@ func Transition(state State, command Command) (State, *paymentsv1.PaymentEvent, 
 		}
 		advance(&next.Attempts[index], PhaseRequested, occurred)
 		next.Attempts[index].OperationKey = cmd.OperationKey
-		event.Payload = &paymentsv1.PaymentEvent_ProcessorOperationRequested{ProcessorOperationRequested: &paymentsv1.ProcessorOperationRequested{AttemptId: cmd.AttemptID, OperationKey: cmd.OperationKey}}
 	case RecordOutcomeUnknown:
 		index, err := activeIndex(state, cmd.AttemptID)
 		if err != nil {
@@ -319,7 +310,6 @@ func Transition(state State, command Command) (State, *paymentsv1.PaymentEvent, 
 			return State{}, nil, violation(RuleUnknownRequiresRequest, string(state.Attempts[index].Phase))
 		}
 		advance(&next.Attempts[index], PhaseUnknown, occurred)
-		event.Payload = &paymentsv1.PaymentEvent_ProcessorOutcomeUnknown{ProcessorOutcomeUnknown: &paymentsv1.ProcessorOutcomeUnknown{AttemptId: cmd.AttemptID}}
 	case DeclineAttempt:
 		index, err := activeIndex(state, cmd.AttemptID)
 		if err != nil {
@@ -330,11 +320,11 @@ func Transition(state State, command Command) (State, *paymentsv1.PaymentEvent, 
 		}
 		phase := state.Attempts[index].Phase
 		switch cmd.Source {
-		case paymentsv1.DeclineSource_DECLINE_SOURCE_RISK:
+		case DeclineSourceRisk:
 			if phase != PhaseRiskDeclined {
 				return State{}, nil, violation(RuleRiskDeclineRequiresRisk, string(phase))
 			}
-		case paymentsv1.DeclineSource_DECLINE_SOURCE_PROCESSOR:
+		case DeclineSourceProcessor:
 			if !phase.AwaitingProcessor() {
 				return State{}, nil, violation(RuleProcessorDeclineNoReq, string(phase))
 			}
@@ -344,7 +334,6 @@ func Transition(state State, command Command) (State, *paymentsv1.PaymentEvent, 
 		advance(&next.Attempts[index], PhaseDeclined, occurred)
 		next.Attempts[index].DeclineSource = cmd.Source
 		next.Attempts[index].DeclineReason = cmd.Reason
-		event.Payload = &paymentsv1.PaymentEvent_AttemptDeclined{AttemptDeclined: &paymentsv1.AttemptDeclined{AttemptId: cmd.AttemptID, Source: cmd.Source, Reason: cmd.Reason}}
 	case SucceedPayment:
 		index, err := activeIndex(state, cmd.AttemptID)
 		if err != nil {
@@ -359,20 +348,18 @@ func Transition(state State, command Command) (State, *paymentsv1.PaymentEvent, 
 		advance(&next.Attempts[index], PhaseSucceeded, occurred)
 		next.Attempts[index].ProcessorReference = cmd.ProcessorReference
 		next.Status = StatusSucceeded
-		event.Payload = &paymentsv1.PaymentEvent_PaymentSucceeded{PaymentSucceeded: &paymentsv1.PaymentSucceeded{AttemptId: cmd.AttemptID, ProcessorReference: cmd.ProcessorReference}}
 	case ExpirePayment:
 		if active, ok := state.ActiveAttempt(); ok && active.Phase.AwaitingProcessor() {
 			return State{}, nil, violation(RuleExpiryWhileUnresolved, active.ID)
 		}
 		next.Status = StatusExpired
-		event.Payload = &paymentsv1.PaymentEvent_PaymentExpired{PaymentExpired: &paymentsv1.PaymentExpired{}}
 	default:
 		return State{}, nil, violation(RuleInvalidCommand, fmt.Sprintf("unknown command %T", command))
 	}
 
-	event.PaymentId = next.PaymentID
-	event.IntegrationId = next.IntegrationID
-	event.CorrelationId = next.CorrelationID
+	event.PaymentID = next.PaymentID
+	event.IntegrationID = next.IntegrationID
+	event.CorrelationID = next.CorrelationID
 	return next, event, nil
 }
 
@@ -403,15 +390,15 @@ func validateCreate(cmd CreatePayment) error {
 	return nil
 }
 
-func validateAssessment(assessment *paymentsv1.RiskAssessment) error {
+func validateAssessment(assessment *RiskAssessment) error {
 	switch {
 	case assessment == nil:
 		return violation(RuleInvalidCommand, "assessment is missing")
-	case assessment.GetOutcome() != paymentsv1.RiskOutcome_RISK_OUTCOME_APPROVE && assessment.GetOutcome() != paymentsv1.RiskOutcome_RISK_OUTCOME_DECLINE:
+	case assessment.Outcome != RiskOutcomeApprove && assessment.Outcome != RiskOutcomeDecline:
 		return violation(RuleInvalidCommand, "assessment outcome is unspecified")
-	case assessment.GetPolicyVersion() == "":
+	case assessment.PolicyVersion == "":
 		return violation(RuleInvalidCommand, "assessment policy version is empty")
-	case len(assessment.GetReasonCodes()) == 0 || slices.Contains(assessment.GetReasonCodes(), ""):
+	case slices.Contains(assessment.ReasonCodes, ""):
 		return violation(RuleInvalidCommand, "assessment reason codes are empty")
 	}
 	return nil

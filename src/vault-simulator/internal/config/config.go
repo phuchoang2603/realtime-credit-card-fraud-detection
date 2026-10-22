@@ -28,7 +28,7 @@ const (
 //
 //	VAULT_GRPC_ADDR, VAULT_METRICS_ADDR, VAULT_SHUTDOWN_TIMEOUT
 //	VAULT_DATABASE_URL, VAULT_MIGRATE_DATABASE_URL (owner role, falls back to VAULT_DATABASE_URL)
-//	VAULT_TLS_CERT_FILE, VAULT_TLS_KEY_FILE, VAULT_TLS_CA_FILE (cert-manager secret keys tls.crt, tls.key, ca.crt)
+//	VAULT_TLS_CERT_FILE, VAULT_TLS_KEY_FILE, VAULT_TLS_CA_FILE (secret keys tls.crt, tls.key, ca.crt)
 //	VAULT_CALLERS_FILE: JSON array of {"name","credential_sha256","permissions":["tokenize"|"describe"|"resolve"]}
 //	VAULT_ENCRYPTION_KEY: base64 of 32 bytes (AES-256-GCM)
 //	VAULT_FINGERPRINT_KEY: synthetic HMAC key shared with contracts/synthetic/identity-vectors.json

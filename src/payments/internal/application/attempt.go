@@ -7,8 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
+
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/wire"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
@@ -169,7 +172,7 @@ func (s *Service) runAttempt(ctx context.Context, input attemptInput) (*payments
 		}
 		claim := input.claim
 		state, err = s.commit(ctx, state, &claim, nil, domain.StartAttempt{
-			Envelope: s.envelope(state.Version), AttemptID: input.attemptID.String(), Signals: input.signals,
+			Envelope: s.envelope(state.Version), AttemptID: input.attemptID.String(), Signals: wire.Signals(input.signals),
 		})
 		switch {
 		case err == nil:
@@ -263,7 +266,7 @@ func (s *Service) drive(ctx, budgetCtx context.Context, state domain.State, inpu
 		switch attempt.Phase {
 		case domain.PhaseStarted:
 			assessment := s.assess(budgetCtx, state, input)
-			next, err = s.commit(ctx, state, nil, nil, domain.RecordRiskDecision{Envelope: s.envelope(state.Version), AttemptID: attemptID, Assessment: assessment})
+			next, err = s.commit(ctx, state, nil, nil, domain.RecordRiskDecision{Envelope: s.envelope(state.Version), AttemptID: attemptID, Assessment: wire.Assessment(assessment)})
 		case domain.PhaseRiskDeclined:
 			if strings.EqualFold(attempt.DeclineReason, FallbackReason) {
 				s.failure("fraud_unavailable")
@@ -271,7 +274,7 @@ func (s *Service) drive(ctx, budgetCtx context.Context, state domain.State, inpu
 				s.failure("risk_declined")
 			}
 			next, err = s.commit(ctx, state, nil, nil, domain.DeclineAttempt{
-				Envelope: s.envelope(state.Version), AttemptID: attemptID, Source: paymentsv1.DeclineSource_DECLINE_SOURCE_RISK, Reason: attempt.DeclineReason,
+				Envelope: s.envelope(state.Version), AttemptID: attemptID, Source: domain.DeclineSourceRisk, Reason: attempt.DeclineReason,
 			})
 		case domain.PhaseRiskApproved:
 			next, err = s.requestProcessor(ctx, state, input)
@@ -317,14 +320,14 @@ func (s *Service) assess(budgetCtx context.Context, state domain.State, input at
 	defer cancel()
 	assessment, err := s.deps.Fraud.Decide(fraudCtx, RiskInput{
 		IntegrationID: state.IntegrationID, PaymentID: state.PaymentID, AttemptID: input.attemptID.String(),
-		Merchant: state.Merchant, Customer: state.Customer, Snapshot: state.Snapshot, Signals: input.signals,
+		Merchant: wire.MerchantProto(state.Merchant), Customer: wire.CustomerProto(state.Customer), Snapshot: wire.SnapshotProto(state.Snapshot), Signals: input.signals,
 		CorrelationID: input.correlationID,
 	})
 	if err != nil || assessment == nil {
 		slog.Warn("fraud decision unavailable; failing closed", "payment_id", state.PaymentID, "error", err)
 		return fallback
 	}
-	if assessment.GetPolicyVersion() == "" || len(assessment.GetReasonCodes()) == 0 ||
+	if assessment.GetPolicyVersion() == "" || slices.Contains(assessment.GetReasonCodes(), "") ||
 		(assessment.GetOutcome() != paymentsv1.RiskOutcome_RISK_OUTCOME_APPROVE && assessment.GetOutcome() != paymentsv1.RiskOutcome_RISK_OUTCOME_DECLINE) {
 		slog.Warn("fraud returned an unusable assessment; failing closed", "payment_id", state.PaymentID)
 		return fallback
@@ -345,9 +348,9 @@ func (s *Service) requestProcessor(ctx context.Context, state domain.State, inpu
 	if err != nil {
 		return domain.State{}, fmt.Errorf("seal payment method token: %w", err)
 	}
-	total := state.Snapshot.GetTotal()
+	total := state.Snapshot.Total
 	tokenDigest := sha256.Sum256([]byte(input.token))
-	binding := sha256.Sum256([]byte(fmt.Sprintf("%s\n%s\n%d\n%s\n%x", state.IntegrationID, operationKey(input.attemptID), total.GetMinorUnits(), total.GetCurrency(), tokenDigest)))
+	binding := sha256.Sum256([]byte(fmt.Sprintf("%s\n%s\n%d\n%s\n%x", state.IntegrationID, operationKey(input.attemptID), total.MinorUnits, total.Currency, tokenDigest)))
 	return s.commit(ctx, state, nil, &ProcessorRequestRecord{
 		OperationKey: operationKey(input.attemptID), PaymentID: input.paymentID, AttemptID: input.attemptID,
 		IntegrationID: input.integrationID, RequestHash: binding[:], EncryptedToken: sealed,
@@ -364,7 +367,7 @@ func (s *Service) callProcessor(ctx, budgetCtx context.Context, state domain.Sta
 	defer cancel()
 	operation, err := s.deps.Processor.Sale(saleCtx, SaleRequest{
 		OperationKey: attempt.OperationKey, IntegrationID: state.IntegrationID, PaymentMethodToken: input.token,
-		AmountMinorUnits: state.Snapshot.GetTotal().GetMinorUnits(), Currency: state.Snapshot.GetTotal().GetCurrency(),
+		AmountMinorUnits: state.Snapshot.Total.MinorUnits, Currency: state.Snapshot.Total.Currency,
 		CorrelationID: input.correlationID,
 	})
 	if err != nil {
@@ -390,7 +393,7 @@ func (s *Service) recordOperation(ctx context.Context, state domain.State, attem
 		}
 		s.failure("processor_declined")
 		return s.commit(ctx, state, nil, nil, domain.DeclineAttempt{
-			Envelope: s.envelope(state.Version), AttemptID: attempt.ID, Source: paymentsv1.DeclineSource_DECLINE_SOURCE_PROCESSOR, Reason: reason,
+			Envelope: s.envelope(state.Version), AttemptID: attempt.ID, Source: domain.DeclineSourceProcessor, Reason: reason,
 		})
 	}
 	return domain.State{}, fmt.Errorf("unsupported processor outcome %d", operation.Outcome)

@@ -6,19 +6,55 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
-	"os"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/testcontainers/testcontainers-go"
+	pgmodule "github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+var (
+	postgresOnce sync.Once
+	postgresURL  string
+	postgresErr  error
+)
+
+func adminURL(t *testing.T) string {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("short mode: skipping tests that need PostgreSQL")
+	}
+	postgresOnce.Do(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		defer cancel()
+		container, err := pgmodule.Run(ctx, "postgres:17.6-alpine",
+			pgmodule.WithDatabase("postgres"),
+			pgmodule.WithUsername("postgres"),
+			pgmodule.WithPassword("postgres"),
+			testcontainers.WithWaitStrategy(
+				wait.ForLog("database system is ready to accept connections").
+					WithOccurrence(2).
+					WithStartupTimeout(2*time.Minute),
+			),
+		)
+		if err != nil {
+			postgresErr = err
+			return
+		}
+		postgresURL, postgresErr = container.ConnectionString(ctx, "sslmode=disable")
+	})
+	if postgresErr != nil {
+		t.Fatalf("start postgres container (is Docker available?): %v", postgresErr)
+	}
+	return postgresURL
+}
 
 func NewDatabase(t *testing.T) string {
 	t.Helper()
-	adminURL := os.Getenv("TEST_POSTGRES_URL")
-	if adminURL == "" {
-		t.Skip("TEST_POSTGRES_URL is not set")
-	}
+	adminURL := adminURL(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	admin, err := pgx.Connect(ctx, adminURL)
@@ -57,6 +93,7 @@ func NewDatabase(t *testing.T) string {
 	return parsed.String()
 }
 
-func AdminURL() string {
-	return os.Getenv("TEST_POSTGRES_URL")
+func AdminURL(t *testing.T) string {
+	t.Helper()
+	return adminURL(t)
 }

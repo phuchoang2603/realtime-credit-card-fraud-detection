@@ -69,7 +69,7 @@ func (s *Service) lookupOperation(ctx context.Context, state domain.State, attem
 	defer saleCancel()
 	operation, err = s.deps.Processor.Sale(saleCtx, SaleRequest{
 		OperationKey: attempt.OperationKey, IntegrationID: state.IntegrationID, PaymentMethodToken: string(token),
-		AmountMinorUnits: state.Snapshot.GetTotal().GetMinorUnits(), Currency: state.Snapshot.GetTotal().GetCurrency(),
+		AmountMinorUnits: state.Snapshot.Total.MinorUnits, Currency: state.Snapshot.Total.Currency,
 		CorrelationID: state.CorrelationID,
 	})
 	if err != nil {

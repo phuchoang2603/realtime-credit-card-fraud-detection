@@ -49,7 +49,7 @@ func (i *Ingestor) Handle(ctx context.Context, value []byte) (Result, error) {
 	}
 
 	created := event.GetPaymentCreated()
-	outcome, notify := domain.OutcomeOf(&event)
+	outcome, notify := outcomeOf(&event)
 	integration, known := i.Integrations.Lookup(event.GetIntegrationId())
 	deliver := notify && known && integration.Subscribes(outcome.Type)
 	if created == nil && !deliver {
@@ -72,7 +72,7 @@ func (i *Ingestor) Handle(ctx context.Context, value []byte) (Result, error) {
 		if err != nil {
 			return err
 		}
-		body, err := domain.BuildBody(&event, outcome, orderReference)
+		body, err := domain.BuildBody(domain.Event{ID: event.GetEventId(), PaymentID: event.GetPaymentId(), OccurredAt: event.GetOccurredAt().AsTime()}, outcome, orderReference)
 		if err != nil {
 			return err
 		}

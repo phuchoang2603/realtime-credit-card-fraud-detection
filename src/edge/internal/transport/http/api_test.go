@@ -359,7 +359,7 @@ func TestPaymentMethodRouteIsSyntheticOnly(t *testing.T) {
 func TestTestCardTokensMatchIdentityVectorsAndAreOpaque(t *testing.T) {
 	vectors := testvectors.Load(t)
 	if len(vectors.TestCards) == 0 {
-		t.Skip("identity vectors have no test_cards yet")
+		t.Fatal("identity vectors must include test_cards")
 	}
 	h := newHarness(t)
 	for _, card := range vectors.TestCards {

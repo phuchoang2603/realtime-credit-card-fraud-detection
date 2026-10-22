@@ -334,6 +334,36 @@ func TestRiskDeclineEndsTheAttemptWithoutCallingTheProcessor(t *testing.T) {
 	}
 }
 
+func TestApproveWithoutReasonCodesIsAcceptedAndReachesTheProcessor(t *testing.T) {
+	stack := newStack(t, false)
+	stack.Fraud.SetAssessment(&paymentsv1.RiskAssessment{Outcome: paymentsv1.RiskOutcome_RISK_OUTCOME_APPROVE, PolicyVersion: "rules-v1"})
+	payment := mustCreate(t, stack, "key-1", "order-1")
+	result := mustStart(t, stack, payment, "attempt-1", "vault-token")
+	if result.GetStatus() != paymentsv1.AttemptStatus_ATTEMPT_STATUS_SUCCEEDED {
+		t.Fatalf("result = %v", result)
+	}
+	assessment := stack.DB.Events(t, payment.GetPaymentId())[2].GetRiskDecisionRecorded().GetAssessment()
+	if assessment.GetOutcome() != paymentsv1.RiskOutcome_RISK_OUTCOME_APPROVE || assessment.GetPolicyVersion() != "rules-v1" || len(assessment.GetReasonCodes()) != 0 {
+		t.Fatalf("assessment = %v", assessment)
+	}
+	if stack.Processor.TotalSaleCalls() != 1 {
+		t.Fatalf("sale calls = %d, want 1", stack.Processor.TotalSaleCalls())
+	}
+}
+
+func TestDeclineWithoutReasonCodesUsesAGenericReasonWithoutCallingTheProcessor(t *testing.T) {
+	stack := newStack(t, false)
+	stack.Fraud.SetAssessment(&paymentsv1.RiskAssessment{Outcome: paymentsv1.RiskOutcome_RISK_OUTCOME_DECLINE, PolicyVersion: "rules-v1"})
+	payment := mustCreate(t, stack, "key-1", "order-1")
+	result := mustStart(t, stack, payment, "attempt-1", "vault-token")
+	if result.GetStatus() != paymentsv1.AttemptStatus_ATTEMPT_STATUS_DECLINED || result.GetDeclineReason() != "risk_declined" {
+		t.Fatalf("result = %v", result)
+	}
+	if stack.Processor.TotalSaleCalls() != 0 {
+		t.Fatal("risk decline invoked the processor")
+	}
+}
+
 func TestFraudTimeoutFailsClosedWithARecordedFallbackDecision(t *testing.T) {
 	stack := newStack(t, false)
 	stack.Fraud.SetHandler(func(ctx context.Context, _ *fraudRequest) (*fraudResponse, error) {
