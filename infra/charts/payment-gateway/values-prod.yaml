@@ -25,6 +25,10 @@ redis:
   maxmemory: 1536mb
 ingress:
   enabled: true
+  tunnel:
+    enabled: true
+    clusterTunnel: talos-proxmox
+    hostname: pay-gateway.phuchoang.sbs
 services:
   edge:
     image:
