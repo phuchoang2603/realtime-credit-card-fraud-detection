@@ -27,6 +27,8 @@ spec:
       terminationGracePeriodSeconds: {{ $svc.terminationGracePeriodSeconds }}
       securityContext:
         runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
         seccompProfile:
           type: RuntimeDefault
       {{- if $svc.migrate.enabled }}
