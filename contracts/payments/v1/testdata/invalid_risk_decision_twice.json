@@ -1,0 +1,118 @@
+{
+  "name": "risk_decision_twice",
+  "valid": false,
+  "invalid_rule": "risk_decision_requires_started_attempt",
+  "events": [
+    {
+      "eventId": "3f05ac3d-9ee2-5a9e-b06d-7a30c39ed406",
+      "paymentId": "0910c60f-9b81-57f8-8ea6-88ee73809445",
+      "aggregateVersion": "1",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:01Z",
+      "recordedAt": "2026-01-01T10:00:01Z",
+      "schemaVersion": 2,
+      "correlationId": "0910c60f-9b81-57f8-8ea6-88ee73809445",
+      "paymentCreated": {
+        "merchant": {
+          "merchantId": "0a1da25b-c927-5084-8f10-f33b3eced9b4",
+          "externalSellerId": "seller-01"
+        },
+        "customer": {
+          "customerId": "87d92bde-0bc7-5d3d-be21-113c6bbebd1e",
+          "externalBuyerId": "buyer-01"
+        },
+        "snapshot": {
+          "externalOrderId": "order-risk_decision_twice",
+          "total": {
+            "minorUnits": "20000",
+            "currency": "USD"
+          },
+          "items": [
+            {
+              "productId": "sku-phone-001",
+              "category": "phone",
+              "condition": "good",
+              "quantity": 2,
+              "unitPrice": {
+                "minorUnits": "10000",
+                "currency": "USD"
+              }
+            }
+          ],
+          "merchantAccountCreatedAt": "2025-06-01T00:00:00Z",
+          "customerAccountCreatedAt": "2025-09-01T00:00:00Z",
+          "shipping": {
+            "country": "US",
+            "region": "CA",
+            "postalCode": "94105",
+            "addressFingerprint": "3e749dce5096ba78de0bd0faebbd401473ce860f9810c7f6571377c8ff8643a6"
+          }
+        }
+      }
+    },
+    {
+      "eventId": "4f5ad0ed-76a4-54ce-9122-2278d0be11f7",
+      "paymentId": "0910c60f-9b81-57f8-8ea6-88ee73809445",
+      "aggregateVersion": "2",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:02Z",
+      "recordedAt": "2026-01-01T10:00:02Z",
+      "schemaVersion": 2,
+      "correlationId": "0910c60f-9b81-57f8-8ea6-88ee73809445",
+      "attemptStarted": {
+        "attemptId": "1f6378e5-8c58-5e2c-a880-c3cc329ce1c7",
+        "signals": {
+          "attemptedAt": "2026-01-01T10:00:02Z",
+          "paymentMethod": {
+            "type": "card",
+            "fingerprint": "b1da4f34aef8ad201aacc913ded9afaecf07632414b82c70bdfbcdcc78f40b7a"
+          },
+          "deviceFingerprint": "device-1",
+          "ipCountry": "US",
+          "ipNetworkFingerprint": "cb67edbe05e7d95ff6abc00b5b7721eadb7f73326599a73f83bee60bd4678c72",
+          "userAgentFamily": "Chromium"
+        }
+      }
+    },
+    {
+      "eventId": "f11bd7b4-d1e8-5947-bd47-4040137d04f1",
+      "paymentId": "0910c60f-9b81-57f8-8ea6-88ee73809445",
+      "aggregateVersion": "3",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:03Z",
+      "recordedAt": "2026-01-01T10:00:03Z",
+      "schemaVersion": 2,
+      "correlationId": "0910c60f-9b81-57f8-8ea6-88ee73809445",
+      "riskDecisionRecorded": {
+        "attemptId": "1f6378e5-8c58-5e2c-a880-c3cc329ce1c7",
+        "assessment": {
+          "outcome": "RISK_OUTCOME_APPROVE",
+          "reasonCodes": [
+            "ALLOW"
+          ],
+          "policyVersion": "rules-v1"
+        }
+      }
+    },
+    {
+      "eventId": "ef953579-4d86-5a17-8bb5-3d37dc5189ce",
+      "paymentId": "0910c60f-9b81-57f8-8ea6-88ee73809445",
+      "aggregateVersion": "4",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:04Z",
+      "recordedAt": "2026-01-01T10:00:04Z",
+      "schemaVersion": 2,
+      "correlationId": "0910c60f-9b81-57f8-8ea6-88ee73809445",
+      "riskDecisionRecorded": {
+        "attemptId": "1f6378e5-8c58-5e2c-a880-c3cc329ce1c7",
+        "assessment": {
+          "outcome": "RISK_OUTCOME_APPROVE",
+          "reasonCodes": [
+            "ALLOW"
+          ],
+          "policyVersion": "rules-v1"
+        }
+      }
+    }
+  ]
+}

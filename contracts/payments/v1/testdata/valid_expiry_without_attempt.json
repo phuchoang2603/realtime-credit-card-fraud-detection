@@ -1,0 +1,64 @@
+{
+  "name": "expiry_without_attempt",
+  "valid": true,
+  "events": [
+    {
+      "eventId": "63012368-4402-59e5-8dd6-b6d3c2237b38",
+      "paymentId": "5c1799f1-c29a-545c-aa8a-1e0524393eea",
+      "aggregateVersion": "1",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:01Z",
+      "recordedAt": "2026-01-01T10:00:01Z",
+      "schemaVersion": 2,
+      "correlationId": "5c1799f1-c29a-545c-aa8a-1e0524393eea",
+      "paymentCreated": {
+        "merchant": {
+          "merchantId": "0a1da25b-c927-5084-8f10-f33b3eced9b4",
+          "externalSellerId": "seller-01"
+        },
+        "customer": {
+          "customerId": "87d92bde-0bc7-5d3d-be21-113c6bbebd1e",
+          "externalBuyerId": "buyer-01"
+        },
+        "snapshot": {
+          "externalOrderId": "order-expiry_without_attempt",
+          "total": {
+            "minorUnits": "20000",
+            "currency": "USD"
+          },
+          "items": [
+            {
+              "productId": "sku-phone-001",
+              "category": "phone",
+              "condition": "good",
+              "quantity": 2,
+              "unitPrice": {
+                "minorUnits": "10000",
+                "currency": "USD"
+              }
+            }
+          ],
+          "merchantAccountCreatedAt": "2025-06-01T00:00:00Z",
+          "customerAccountCreatedAt": "2025-09-01T00:00:00Z",
+          "shipping": {
+            "country": "US",
+            "region": "CA",
+            "postalCode": "94105",
+            "addressFingerprint": "3e749dce5096ba78de0bd0faebbd401473ce860f9810c7f6571377c8ff8643a6"
+          }
+        }
+      }
+    },
+    {
+      "eventId": "a66b5828-a49e-56c6-8f5c-364de67ecdfc",
+      "paymentId": "5c1799f1-c29a-545c-aa8a-1e0524393eea",
+      "aggregateVersion": "2",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:02Z",
+      "recordedAt": "2026-01-01T10:00:02Z",
+      "schemaVersion": 2,
+      "correlationId": "5c1799f1-c29a-545c-aa8a-1e0524393eea",
+      "paymentExpired": {}
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+package application
+
+import "errors"
+
+var (
+	ErrInvalidRequest      = errors.New("invalid request")
+	ErrIdempotencyConflict = errors.New("idempotency key reused with a different request")
+	ErrOrderConflict       = errors.New("order reference already used by another payment")
+	ErrPaymentNotOpen      = errors.New("payment is not open")
+	ErrAttemptActive       = errors.New("another attempt is active")
+	ErrAccessDenied        = errors.New("checkout token does not authorize this session")
+)

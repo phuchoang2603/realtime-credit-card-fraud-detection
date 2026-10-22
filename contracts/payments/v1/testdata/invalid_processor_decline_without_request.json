@@ -1,0 +1,113 @@
+{
+  "name": "processor_decline_without_request",
+  "valid": false,
+  "invalid_rule": "processor_decline_requires_processor_request",
+  "events": [
+    {
+      "eventId": "fe0f07fb-78c4-5e6e-a683-bcc702114fb0",
+      "paymentId": "6b7012c0-809c-5c43-88c6-31e3ebb66d75",
+      "aggregateVersion": "1",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:01Z",
+      "recordedAt": "2026-01-01T10:00:01Z",
+      "schemaVersion": 2,
+      "correlationId": "6b7012c0-809c-5c43-88c6-31e3ebb66d75",
+      "paymentCreated": {
+        "merchant": {
+          "merchantId": "0a1da25b-c927-5084-8f10-f33b3eced9b4",
+          "externalSellerId": "seller-01"
+        },
+        "customer": {
+          "customerId": "87d92bde-0bc7-5d3d-be21-113c6bbebd1e",
+          "externalBuyerId": "buyer-01"
+        },
+        "snapshot": {
+          "externalOrderId": "order-processor_decline_without_request",
+          "total": {
+            "minorUnits": "20000",
+            "currency": "USD"
+          },
+          "items": [
+            {
+              "productId": "sku-phone-001",
+              "category": "phone",
+              "condition": "good",
+              "quantity": 2,
+              "unitPrice": {
+                "minorUnits": "10000",
+                "currency": "USD"
+              }
+            }
+          ],
+          "merchantAccountCreatedAt": "2025-06-01T00:00:00Z",
+          "customerAccountCreatedAt": "2025-09-01T00:00:00Z",
+          "shipping": {
+            "country": "US",
+            "region": "CA",
+            "postalCode": "94105",
+            "addressFingerprint": "3e749dce5096ba78de0bd0faebbd401473ce860f9810c7f6571377c8ff8643a6"
+          }
+        }
+      }
+    },
+    {
+      "eventId": "605403cc-cf37-5171-b9fe-1f8964efbc56",
+      "paymentId": "6b7012c0-809c-5c43-88c6-31e3ebb66d75",
+      "aggregateVersion": "2",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:02Z",
+      "recordedAt": "2026-01-01T10:00:02Z",
+      "schemaVersion": 2,
+      "correlationId": "6b7012c0-809c-5c43-88c6-31e3ebb66d75",
+      "attemptStarted": {
+        "attemptId": "504855c9-a97c-58a2-b49b-8af9b2a67d65",
+        "signals": {
+          "attemptedAt": "2026-01-01T10:00:02Z",
+          "paymentMethod": {
+            "type": "card",
+            "fingerprint": "b1da4f34aef8ad201aacc913ded9afaecf07632414b82c70bdfbcdcc78f40b7a"
+          },
+          "deviceFingerprint": "device-1",
+          "ipCountry": "US",
+          "ipNetworkFingerprint": "cb67edbe05e7d95ff6abc00b5b7721eadb7f73326599a73f83bee60bd4678c72",
+          "userAgentFamily": "Chromium"
+        }
+      }
+    },
+    {
+      "eventId": "476c58fe-acf6-5589-8a40-595d16f0f501",
+      "paymentId": "6b7012c0-809c-5c43-88c6-31e3ebb66d75",
+      "aggregateVersion": "3",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:03Z",
+      "recordedAt": "2026-01-01T10:00:03Z",
+      "schemaVersion": 2,
+      "correlationId": "6b7012c0-809c-5c43-88c6-31e3ebb66d75",
+      "riskDecisionRecorded": {
+        "attemptId": "504855c9-a97c-58a2-b49b-8af9b2a67d65",
+        "assessment": {
+          "outcome": "RISK_OUTCOME_DECLINE",
+          "reasonCodes": [
+            "VELOCITY"
+          ],
+          "policyVersion": "rules-v1"
+        }
+      }
+    },
+    {
+      "eventId": "5ab2f79e-dade-55e8-9068-aba7e37bdda6",
+      "paymentId": "6b7012c0-809c-5c43-88c6-31e3ebb66d75",
+      "aggregateVersion": "4",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:04Z",
+      "recordedAt": "2026-01-01T10:00:04Z",
+      "schemaVersion": 2,
+      "correlationId": "6b7012c0-809c-5c43-88c6-31e3ebb66d75",
+      "attemptDeclined": {
+        "attemptId": "504855c9-a97c-58a2-b49b-8af9b2a67d65",
+        "source": "DECLINE_SOURCE_PROCESSOR",
+        "reason": "insufficient_funds"
+      }
+    }
+  ]
+}

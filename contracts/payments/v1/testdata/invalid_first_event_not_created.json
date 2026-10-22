@@ -1,0 +1,31 @@
+{
+  "name": "first_event_not_created",
+  "valid": false,
+  "invalid_rule": "first_event_not_created",
+  "events": [
+    {
+      "eventId": "232c9fb2-de52-577e-8526-8b37cdd8ea8a",
+      "paymentId": "886423e4-28f9-53ae-bc26-e9af5da11340",
+      "aggregateVersion": "1",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:01Z",
+      "recordedAt": "2026-01-01T10:00:01Z",
+      "schemaVersion": 2,
+      "correlationId": "886423e4-28f9-53ae-bc26-e9af5da11340",
+      "attemptStarted": {
+        "attemptId": "33537f7a-5219-550c-9723-7a128f0972a1",
+        "signals": {
+          "attemptedAt": "2026-01-01T10:00:01Z",
+          "paymentMethod": {
+            "type": "card",
+            "fingerprint": "b1da4f34aef8ad201aacc913ded9afaecf07632414b82c70bdfbcdcc78f40b7a"
+          },
+          "deviceFingerprint": "device-1",
+          "ipCountry": "US",
+          "ipNetworkFingerprint": "cb67edbe05e7d95ff6abc00b5b7721eadb7f73326599a73f83bee60bd4678c72",
+          "userAgentFamily": "Chromium"
+        }
+      }
+    }
+  ]
+}

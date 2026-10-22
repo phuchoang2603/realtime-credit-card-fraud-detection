@@ -1,0 +1,125 @@
+{
+  "name": "processor_success",
+  "valid": true,
+  "events": [
+    {
+      "eventId": "482d295c-f62c-5012-839b-a540b4e3446a",
+      "paymentId": "765202d1-9e73-57ad-992c-adf9bd8e8b02",
+      "aggregateVersion": "1",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:01Z",
+      "recordedAt": "2026-01-01T10:00:01Z",
+      "schemaVersion": 2,
+      "correlationId": "765202d1-9e73-57ad-992c-adf9bd8e8b02",
+      "paymentCreated": {
+        "merchant": {
+          "merchantId": "0a1da25b-c927-5084-8f10-f33b3eced9b4",
+          "externalSellerId": "seller-01"
+        },
+        "customer": {
+          "customerId": "87d92bde-0bc7-5d3d-be21-113c6bbebd1e",
+          "externalBuyerId": "buyer-01"
+        },
+        "snapshot": {
+          "externalOrderId": "order-processor_success",
+          "total": {
+            "minorUnits": "20000",
+            "currency": "USD"
+          },
+          "items": [
+            {
+              "productId": "sku-phone-001",
+              "category": "phone",
+              "condition": "good",
+              "quantity": 2,
+              "unitPrice": {
+                "minorUnits": "10000",
+                "currency": "USD"
+              }
+            }
+          ],
+          "merchantAccountCreatedAt": "2025-06-01T00:00:00Z",
+          "customerAccountCreatedAt": "2025-09-01T00:00:00Z",
+          "shipping": {
+            "country": "US",
+            "region": "CA",
+            "postalCode": "94105",
+            "addressFingerprint": "3e749dce5096ba78de0bd0faebbd401473ce860f9810c7f6571377c8ff8643a6"
+          }
+        }
+      }
+    },
+    {
+      "eventId": "ebc654c5-dca3-55af-9f11-0b01d5c2fbc4",
+      "paymentId": "765202d1-9e73-57ad-992c-adf9bd8e8b02",
+      "aggregateVersion": "2",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:02Z",
+      "recordedAt": "2026-01-01T10:00:02Z",
+      "schemaVersion": 2,
+      "correlationId": "765202d1-9e73-57ad-992c-adf9bd8e8b02",
+      "attemptStarted": {
+        "attemptId": "c8325765-c673-584b-8f88-bf793c5c4d48",
+        "signals": {
+          "attemptedAt": "2026-01-01T10:00:02Z",
+          "paymentMethod": {
+            "type": "card",
+            "fingerprint": "b1da4f34aef8ad201aacc913ded9afaecf07632414b82c70bdfbcdcc78f40b7a"
+          },
+          "deviceFingerprint": "device-1",
+          "ipCountry": "US",
+          "ipNetworkFingerprint": "cb67edbe05e7d95ff6abc00b5b7721eadb7f73326599a73f83bee60bd4678c72",
+          "userAgentFamily": "Chromium"
+        }
+      }
+    },
+    {
+      "eventId": "1df40fc6-a3b6-558e-8942-2abc29fcc5e7",
+      "paymentId": "765202d1-9e73-57ad-992c-adf9bd8e8b02",
+      "aggregateVersion": "3",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:03Z",
+      "recordedAt": "2026-01-01T10:00:03Z",
+      "schemaVersion": 2,
+      "correlationId": "765202d1-9e73-57ad-992c-adf9bd8e8b02",
+      "riskDecisionRecorded": {
+        "attemptId": "c8325765-c673-584b-8f88-bf793c5c4d48",
+        "assessment": {
+          "outcome": "RISK_OUTCOME_APPROVE",
+          "reasonCodes": [
+            "ALLOW"
+          ],
+          "policyVersion": "rules-v1"
+        }
+      }
+    },
+    {
+      "eventId": "630e3b67-552e-5a36-abee-0413b3b3b24f",
+      "paymentId": "765202d1-9e73-57ad-992c-adf9bd8e8b02",
+      "aggregateVersion": "4",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:04Z",
+      "recordedAt": "2026-01-01T10:00:04Z",
+      "schemaVersion": 2,
+      "correlationId": "765202d1-9e73-57ad-992c-adf9bd8e8b02",
+      "processorOperationRequested": {
+        "attemptId": "c8325765-c673-584b-8f88-bf793c5c4d48",
+        "operationKey": "765202d1-9e73-57ad-992c-adf9bd8e8b02:1"
+      }
+    },
+    {
+      "eventId": "58539da7-9b45-57cf-9ffd-8659fd0c6f6b",
+      "paymentId": "765202d1-9e73-57ad-992c-adf9bd8e8b02",
+      "aggregateVersion": "5",
+      "integrationId": "01234567-89ab-4cde-8fab-0123456789ab",
+      "occurredAt": "2026-01-01T10:00:05Z",
+      "recordedAt": "2026-01-01T10:00:05Z",
+      "schemaVersion": 2,
+      "correlationId": "765202d1-9e73-57ad-992c-adf9bd8e8b02",
+      "paymentSucceeded": {
+        "attemptId": "c8325765-c673-584b-8f88-bf793c5c4d48",
+        "processorReference": "sim-765202d1-9e73-57ad-992c-adf9bd8e8b02-1"
+      }
+    }
+  ]
+}
