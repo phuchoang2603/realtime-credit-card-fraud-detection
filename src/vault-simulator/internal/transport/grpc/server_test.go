@@ -24,14 +24,15 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 
-	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/gen/vault/v1"
-	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/adapters/crypto"
+	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1"
+	healthcheck "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/runtime"
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/shared/security/secretbox"
+	testpostgres "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/postgres"
+	testtls "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/tls"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/adapters/postgres"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/config"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/domain"
-	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/healthcheck"
-	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/testutil"
 	grpctransport "github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/transport/grpc"
 )
 
@@ -95,7 +96,7 @@ func newHarness(t *testing.T) *harness {
 
 func newHarnessWithMigrations(t *testing.T, migrate bool) *harness {
 	t.Helper()
-	databaseURL := testutil.NewDatabase(t)
+	databaseURL := testpostgres.SetupPostgres(t)
 	ctx := context.Background()
 	if migrate {
 		if err := postgres.Migrate(ctx, databaseURL); err != nil {
@@ -113,11 +114,11 @@ func newHarnessWithMigrations(t *testing.T, migrate bool) *harness {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(logs, &slog.HandlerOptions{Level: slog.LevelDebug})))
 	t.Cleanup(func() { slog.SetDefault(previous) })
 
-	sealer, err := crypto.NewSealer([]byte(strings.Repeat("k", 32)))
+	sealer, err := secretbox.New([]byte(strings.Repeat("k", 32)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	cert := testutil.NewSelfSignedCertificate(t)
+	cert := testtls.NewSelfSignedCertificate(t, "vault-simulator-test")
 	cfg := config.Config{
 		ShutdownTimeout: 2 * time.Second,
 		TLSCertFile:     cert.CertFile,
@@ -459,7 +460,7 @@ func TestHealthServicesAreServedWithoutCredentials(t *testing.T) {
 }
 
 func TestReadinessRequiresMigratedDatabase(t *testing.T) {
-	databaseURL := testutil.NewDatabase(t)
+	databaseURL := testpostgres.SetupPostgres(t)
 	ctx := context.Background()
 	store, err := postgres.NewStore(ctx, databaseURL)
 	if err != nil {
@@ -510,7 +511,7 @@ func TestHealthcheckCommandExitSemantics(t *testing.T) {
 	waitFor(unready, grpctransport.LivenessService, healthpb.HealthCheckResponse_SERVING)
 	waitFor(unready, grpctransport.ReadinessService, healthpb.HealthCheckResponse_NOT_SERVING)
 
-	otherCert := testutil.NewSelfSignedCertificate(t)
+	otherCert := testtls.NewSelfSignedCertificate(t, "vault-simulator-test")
 	tests := []struct {
 		name    string
 		harness *harness

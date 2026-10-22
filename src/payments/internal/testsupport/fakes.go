@@ -13,9 +13,9 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	fraudv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/fraud/v1"
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
-	processorv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/processor/v1"
+	fraudv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/fraud/v1"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
+	processorv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/processor/v1"
 )
 
 func listen(t testing.TB, register func(*grpc.Server)) (*grpc.ClientConn, string) {

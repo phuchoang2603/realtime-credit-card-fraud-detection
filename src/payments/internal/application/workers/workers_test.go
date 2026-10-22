@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/domain"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/testsupport"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
 )
 
 func newStack(t *testing.T) *testsupport.Stack {

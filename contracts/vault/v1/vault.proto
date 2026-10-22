@@ -1,6 +1,8 @@
 syntax = "proto3";
 package vault.v1;
 
+option go_package = "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1;vaultv1";
+
 // Synthetic vault: allow-listed test cards only; never a cardholder-data environment.
 // Callers are separated by authenticated identity: Edge may tokenize and describe,
 // only the processor may resolve.

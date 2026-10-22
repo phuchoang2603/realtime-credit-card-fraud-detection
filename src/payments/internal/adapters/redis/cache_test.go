@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	testredis "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/redis"
+
 	"github.com/google/uuid"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/redis"
@@ -29,7 +31,7 @@ func newCache(t *testing.T, addr string, ttl time.Duration) (*redis.Cache, *coun
 }
 
 func TestConcurrentClaimsOfOneKeyAreAtomic(t *testing.T) {
-	cache, observed, key := newCache(t, testsupport.RedisAddr(t), time.Minute)
+	cache, observed, key := newCache(t, testredis.SetupRedis(t).Address, time.Minute)
 	var warm sync.WaitGroup
 	for range 20 {
 		warm.Add(1)
@@ -67,7 +69,7 @@ func TestConcurrentClaimsOfOneKeyAreAtomic(t *testing.T) {
 }
 
 func TestCompletedRecordIsReturnedAndExpiresAfterTheConfiguredTTL(t *testing.T) {
-	cache, _, key := newCache(t, testsupport.RedisAddr(t), 300*time.Millisecond)
+	cache, _, key := newCache(t, testredis.SetupRedis(t).Address, 300*time.Millisecond)
 	if _, claimed, err := cache.Claim(context.Background(), key, application.CacheRecord{Digest: "abc", State: application.CacheInFlight}); err != nil || !claimed {
 		t.Fatalf("claim = %v, %v", claimed, err)
 	}
@@ -86,7 +88,7 @@ func TestCompletedRecordIsReturnedAndExpiresAfterTheConfiguredTTL(t *testing.T) 
 }
 
 func TestReleaseRemovesOnlyAnInFlightClaimOfTheSameDigest(t *testing.T) {
-	cache, _, key := newCache(t, testsupport.RedisAddr(t), time.Minute)
+	cache, _, key := newCache(t, testredis.SetupRedis(t).Address, time.Minute)
 	ctx := context.Background()
 	if _, _, err := cache.Claim(ctx, key, application.CacheRecord{Digest: "abc", State: application.CacheInFlight}); err != nil {
 		t.Fatal(err)

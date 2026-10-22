@@ -8,9 +8,15 @@ ARG SERVICE_PATH=src/edge
 ARG BUILD_PKG=./cmd/edge
 ARG BUILD_BIN=edge
 ENV GOWORK=off
-WORKDIR /src
+WORKDIR /repo/${SERVICE_PATH}
+COPY shared/go.mod shared/go.sum /repo/shared/
+COPY ${SERVICE_PATH}/go.mod ${SERVICE_PATH}/go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY shared /repo/shared
 COPY ${SERVICE_PATH} ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -trimpath -ldflags='-s -w' -o /out/${BUILD_BIN} ${BUILD_PKG}
 
 FROM gcr.io/distroless/static-debian12:nonroot

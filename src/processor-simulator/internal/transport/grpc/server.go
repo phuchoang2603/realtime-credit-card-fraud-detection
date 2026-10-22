@@ -18,9 +18,9 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	processorv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/gen/processor/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/domain"
+	processorv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/processor/v1"
 )
 
 const (

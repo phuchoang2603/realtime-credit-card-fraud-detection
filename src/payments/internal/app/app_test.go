@@ -16,10 +16,10 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/app"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/config"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/testsupport"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
 )
 
 const closedAddr = "127.0.0.1:1"

@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	sharedruntime "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/runtime"
 )
 
 const (
@@ -223,12 +225,7 @@ func validateAddr(name, addr string) error {
 	return nil
 }
 
-type Healthcheck struct {
-	Address    string
-	CAFile     string
-	ServerName string
-	Timeout    time.Duration
-}
+type Healthcheck = sharedruntime.Healthcheck
 
 func HealthcheckFromLookup(lookup func(string) string) (Healthcheck, error) {
 	addr := lookup("VAULT_GRPC_ADDR")

@@ -2,54 +2,17 @@ package healthcheck_test
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
-	"math/big"
 	"net"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
+	testtls "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/tls"
+
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/app"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/config"
-	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/healthcheck"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/testsupport"
+	healthcheck "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/runtime"
 )
-
-func selfSignedCertificate(t *testing.T, dir, dnsName string) (certFile, keyFile string) {
-	t.Helper()
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	template := &x509.Certificate{
-		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: dnsName},
-		NotBefore: time.Now().Add(-time.Minute), NotAfter: time.Now().Add(time.Hour),
-		KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true, IsCA: true, DNSNames: []string{dnsName},
-	}
-	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	keyDER, err := x509.MarshalECPrivateKey(key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	certFile, keyFile = filepath.Join(dir, "tls.crt"), filepath.Join(dir, "tls.key")
-	if err := os.WriteFile(certFile, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(keyFile, pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER}), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	return certFile, keyFile
-}
 
 func serve(t *testing.T, cfg config.Config) string {
 	t.Helper()
@@ -80,7 +43,8 @@ func serve(t *testing.T, cfg config.Config) string {
 
 func TestHealthcheckOverTLSReportsLivenessAndReadiness(t *testing.T) {
 	db := testsupport.NewDatabase(t)
-	certFile, keyFile := selfSignedCertificate(t, t.TempDir(), "payments.payment-gateway.svc")
+	cert := testtls.NewSelfSignedCertificate(t, "payments.payment-gateway.svc")
+	certFile, keyFile := cert.CertFile, cert.KeyFile
 	addr := serve(t, config.Config{
 		GRPCAddr: "127.0.0.1:0", MetricsAddr: "127.0.0.1:0", ShutdownTimeout: time.Second, DatabaseURL: db.AppURL,
 		FraudAddr: "127.0.0.1:1", ProcessorAddr: "127.0.0.1:1", TLSCertFile: certFile, TLSKeyFile: keyFile,
@@ -111,9 +75,9 @@ func TestHealthcheckOverTLSReportsLivenessAndReadiness(t *testing.T) {
 	if err := healthcheck.Check(context.Background(), wrongName, "liveness"); err == nil {
 		t.Fatal("healthcheck accepted a certificate for another server name")
 	}
-	otherCert, _ := selfSignedCertificate(t, t.TempDir(), "payments.payment-gateway.svc")
+	otherCert := testtls.NewSelfSignedCertificate(t, "payments.payment-gateway.svc")
 	untrusted := cfg
-	untrusted.CAFile = otherCert
+	untrusted.CAFile = otherCert.CertFile
 	if err := healthcheck.Check(context.Background(), untrusted, "liveness"); err == nil {
 		t.Fatal("healthcheck accepted a server whose certificate the CA does not vouch for")
 	}

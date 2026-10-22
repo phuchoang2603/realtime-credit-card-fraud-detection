@@ -7,9 +7,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	fraudv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/fraud/v1"
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/application"
+	fraudv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/fraud/v1"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
 )
 
 const RequestIDHeader = "x-request-id"

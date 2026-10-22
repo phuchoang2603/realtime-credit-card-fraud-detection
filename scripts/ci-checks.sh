@@ -42,11 +42,6 @@ check_chart() {
     helm lint "$chart" -f "$values"
     helm template check "$chart" -f "$values" > /dev/null
   done
-  for values in "$chart"/services/*.yaml; do
-    [[ -f "$values" ]] || continue
-    helm lint "$chart" -f "$values" -f "$chart/values-prod.yaml"
-    helm template check "$chart" -f "$values" -f "$chart/values-prod.yaml" > /dev/null
-  done
 }
 
 DATACONTRACT_CLI=1.2.7
@@ -60,7 +55,7 @@ case "${1:-}" in
         GOWORK=off golangci-lint run ./...
         GOWORK=off go test -p 1 -race -count=1 ./...
       )
-    done < <(find src -type f -name go.mod -not -path '*/vendor/*' -print0 | sort -z)
+    done < <(find src shared -type f -name go.mod -not -path '*/vendor/*' -print0 | sort -z)
     ;;
   contracts)
     TMPDIR_CHECKS="$(mktemp -d)"

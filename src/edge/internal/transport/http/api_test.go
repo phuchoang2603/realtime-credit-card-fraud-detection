@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/edge/gen/vault/v1"
+	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/domain"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/testvectors"

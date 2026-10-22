@@ -14,33 +14,9 @@ protoc \
   --grpc_python_out=src/fraud-service/gen \
   "${protos[@]}"
 
-declare -A go_protos=(
-  [edge]="payments/v1/types.proto payments/v1/payments.proto vault/v1/vault.proto"
-  [payments]="payments/v1/types.proto payments/v1/events.proto payments/v1/payments.proto fraud/v1/fraud.proto processor/v1/processor.proto"
-  [notifier]="payments/v1/types.proto payments/v1/events.proto"
-  [vault-simulator]="vault/v1/vault.proto"
-  [processor-simulator]="processor/v1/processor.proto vault/v1/vault.proto"
-)
-
-go_package_name() {
-  local dir
-  dir="$(dirname "$1")"
-  printf '%s%s' "${dir%%/*}" "${dir##*/}"
-}
-
-for module in "${!go_protos[@]}"; do
-  out="src/$module/gen"
-  rm -rf "$out"
-  mkdir -p "$out"
-  read -r -a files <<<"${go_protos[$module]}"
-  mapping=()
-  for file in "${files[@]}"; do
-    mapping+=("M$file=$GO_MODULE_PREFIX/$module/gen/$(dirname "$file");$(go_package_name "$file")")
-  done
-  options="$(IFS=,; printf '%s' "${mapping[*]}")"
-  protoc \
-    -I contracts \
-    --go_out="$out" --go_opt="paths=import,module=$GO_MODULE_PREFIX/$module/gen,$options" \
-    --go-grpc_out="$out" --go-grpc_opt="paths=import,module=$GO_MODULE_PREFIX/$module/gen,$options" \
-    "${files[@]}"
-done
+mkdir -p shared/proto
+protoc \
+  -I contracts \
+  --go_out=shared --go_opt="module=$GO_MODULE_PREFIX/shared" \
+  --go-grpc_out=shared --go-grpc_opt="module=$GO_MODULE_PREFIX/shared" \
+  "${protos[@]}"

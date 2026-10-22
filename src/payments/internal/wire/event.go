@@ -1,8 +1,8 @@
 package wire
 
 import (
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/domain"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
 )
 
 func Event(value *domain.Event) *paymentsv1.PaymentEvent {

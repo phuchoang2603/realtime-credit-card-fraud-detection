@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	testkafka "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/kafka"
+
 	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/notifier/internal/adapters/kafka"
@@ -20,7 +22,7 @@ import (
 )
 
 func TestConsumerRecordsOnceAcrossRestartsAndGroups(t *testing.T) {
-	brokers := testutil.KafkaBrokers(t)
+	brokers := testkafka.SetupKafka(t)
 	pool, _ := testutil.NewPool(t)
 	set, err := domain.ParseIntegrations([]byte(`[
 	{"integration_id":"sub","webhook":{"url":"https://hooks.example.com/x","secret":"s","events":["attempt.declined","payment.succeeded"]}},

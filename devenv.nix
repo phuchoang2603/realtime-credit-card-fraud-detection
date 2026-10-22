@@ -81,7 +81,7 @@
         enable = true;
         extra = true;
         excludes = [
-          "src/*/gen/**"
+          "shared/proto/**/*.pb.go"
         ];
       };
     };

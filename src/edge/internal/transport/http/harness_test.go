@@ -21,8 +21,6 @@ import (
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/domain"
 
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/edge/gen/payments/v1"
-	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/edge/gen/vault/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/adapters/grpcclient"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/adapters/integrations"
 	paymentsadapter "github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/adapters/payments"
@@ -30,6 +28,8 @@ import (
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/testvectors"
 	httptransport "github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/transport/http"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
+	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

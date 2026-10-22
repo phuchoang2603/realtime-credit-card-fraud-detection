@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/gen/vault/v1"
+	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/config"
 )
 

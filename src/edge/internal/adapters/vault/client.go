@@ -3,10 +3,10 @@ package vault
 import (
 	"context"
 
-	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/edge/gen/vault/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/adapters/grpcerr"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/domain"
+	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -3,10 +3,10 @@ package payments
 import (
 	"context"
 
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/edge/gen/payments/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/adapters/grpcerr"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/domain"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

@@ -14,10 +14,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/protobuf/proto"
 
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/postgres/sqlcgen"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/domain"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
 )
 
 const (

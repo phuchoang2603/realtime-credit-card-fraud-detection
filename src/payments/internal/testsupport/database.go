@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	testpostgres "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/postgres"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -65,7 +67,7 @@ func EnsureRole(ctx context.Context, admin *pgx.Conn, name, attributes string) e
 
 func NewDatabase(t testing.TB) *Database {
 	t.Helper()
-	adminURL := postgresURL(t)
+	adminURL := testpostgres.AdminURL(t)
 	ctx := context.Background()
 	admin, err := pgx.Connect(ctx, adminURL)
 	if err != nil {

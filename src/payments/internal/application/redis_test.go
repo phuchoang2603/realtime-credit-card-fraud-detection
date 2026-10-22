@@ -116,7 +116,7 @@ func TestRestartedRedisFallsBackToPostgresWithoutAnotherProcessorEffect(t *testi
 	first := mustStart(t, stack, payment, "attempt-1", "vault-token")
 	events := stack.DB.CountEvents(t)
 
-	address := testsupport.RestartRedis(t)
+	address := stack.Redis.Restart(t)
 	restarted := stack.Restart(t, testsupport.StackOptions{Config: shortConfig(), WithRedis: true, RedisAddr: address})
 	if len(restarted.RedisEntries(t)) != 0 {
 		t.Fatal("Redis retained entries despite persistence being disabled")

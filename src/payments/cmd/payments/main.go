@@ -11,7 +11,7 @@ import (
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/postgres"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/app"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/config"
-	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/healthcheck"
+	healthcheck "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/runtime"
 )
 
 func main() {

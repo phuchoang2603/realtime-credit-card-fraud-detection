@@ -1,5 +1,7 @@
 syntax = "proto3";
 package processor.v1;
+
+option go_package = "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/processor/v1;processorv1";
 import "google/protobuf/timestamp.proto";
 
 // Synthetic processor. Operation-key idempotency and status queries are simulator

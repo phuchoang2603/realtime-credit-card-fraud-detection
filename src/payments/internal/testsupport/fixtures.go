@@ -6,9 +6,9 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/domain"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/wire"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
 )
 
 func Snapshot(orderReference string, minorUnits int64) *paymentsv1.CheckoutSnapshot {

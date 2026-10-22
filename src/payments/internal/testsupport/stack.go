@@ -7,17 +7,19 @@ import (
 	"testing"
 	"time"
 
+	testredis "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/redis"
+
 	"github.com/google/uuid"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/fraud"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/postgres"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/processor"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/redis"
-	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/secretbox"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/application/workers"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/domain"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/metrics"
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/shared/security/secretbox"
 )
 
 type Clock struct {
@@ -56,6 +58,7 @@ type StackOptions struct {
 }
 
 type Stack struct {
+	Redis     *testredis.Redis
 	DB        *Database
 	Store     *postgres.Store
 	Service   *application.Service
@@ -110,7 +113,8 @@ func NewStack(t testing.TB, options StackOptions) *Stack {
 	if options.WithRedis {
 		addr := options.RedisAddr
 		if addr == "" {
-			addr = RedisAddr(t)
+			stack.Redis = testredis.SetupRedis(t)
+			addr = stack.Redis.Address
 		}
 		stack.Cache = redis.New(redis.Options{Addr: addr, KeyPrefix: stack.Prefix, TTL: time.Hour, OpTimeout: 50 * time.Millisecond, Observer: stack.Metrics})
 		t.Cleanup(func() { _ = stack.Cache.Close() })
@@ -129,6 +133,9 @@ func (s *Stack) Restart(t testing.TB, options StackOptions) *Stack {
 	options.Database = s.DB
 	options.Clock = s.Clock
 	options.RedisPrefix = s.Prefix
+	if options.WithRedis && options.RedisAddr == "" && s.Cache != nil {
+		options.RedisAddr = s.Cache.Client().Options().Addr
+	}
 	return NewStack(t, options)
 }
 

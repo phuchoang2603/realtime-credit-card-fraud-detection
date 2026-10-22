@@ -9,11 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/adapters/crypto"
+	healthcheck "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/runtime"
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/shared/security/secretbox"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/adapters/postgres"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/config"
-	"github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/healthcheck"
 	grpctransport "github.com/phuchoang2603/payment-gateway-fraud-detection/vault-simulator/internal/transport/grpc"
 )
 
@@ -77,7 +77,7 @@ func serve(ctx context.Context) error {
 		return err
 	}
 	defer store.Close()
-	sealer, err := crypto.NewSealer(cfg.EncryptionKey)
+	sealer, err := secretbox.New(cfg.EncryptionKey)
 	if err != nil {
 		return err
 	}

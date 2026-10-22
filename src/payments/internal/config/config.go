@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	sharedruntime "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/runtime"
 )
 
 type Config struct {
@@ -181,12 +183,7 @@ func (c Config) Validate() error {
 	return errors.Join(problems...)
 }
 
-type Healthcheck struct {
-	Address    string
-	CAFile     string
-	ServerName string
-	Timeout    time.Duration
-}
+type Healthcheck = sharedruntime.Healthcheck
 
 func HealthcheckFromLookup(lookup func(string) string) (Healthcheck, error) {
 	addr := lookup("PAYMENTS_GRPC_ADDR")
@@ -221,6 +218,7 @@ func HealthcheckFromLookup(lookup func(string) string) (Healthcheck, error) {
 		}
 		check.Timeout = timeout
 	}
+	check.AllowPlaintext = check.CAFile == ""
 	return check, nil
 }
 

@@ -20,15 +20,16 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	processorv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/gen/processor/v1"
-	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/gen/vault/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/adapters/postgres"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/adapters/vault"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/config"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/domain"
-	"github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/testutil"
 	grpctransport "github.com/phuchoang2603/payment-gateway-fraud-detection/processor-simulator/internal/transport/grpc"
+	processorv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/processor/v1"
+	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1"
+	testpostgres "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/postgres"
+	testtls "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/testutil/tls"
 )
 
 const (
@@ -62,7 +63,7 @@ func (f *fakeVault) ResolveForProcessing(ctx context.Context, req *vaultv1.Resol
 
 func startFakeVault(t *testing.T) (*fakeVault, config.Vault) {
 	t.Helper()
-	cert := testutil.NewSelfSignedCertificate(t)
+	cert := testtls.NewSelfSignedCertificate(t, "processor-simulator-test")
 	creds, err := credentials.NewServerTLSFromFile(cert.CertFile, cert.KeyFile)
 	if err != nil {
 		t.Fatal(err)
@@ -105,7 +106,7 @@ type harnessOptions struct {
 
 func newHarness(t *testing.T, options harnessOptions) *harness {
 	t.Helper()
-	databaseURL := testutil.NewDatabase(t)
+	databaseURL := testpostgres.SetupPostgres(t)
 	ctx := context.Background()
 	if err := postgres.Migrate(ctx, databaseURL); err != nil {
 		t.Fatal(err)
@@ -512,7 +513,7 @@ func TestReadinessFollowsDatabaseNotVault(t *testing.T) {
 }
 
 func TestReadinessRequiresMigratedDatabase(t *testing.T) {
-	databaseURL := testutil.NewDatabase(t)
+	databaseURL := testpostgres.SetupPostgres(t)
 	ctx := context.Background()
 	store, err := postgres.NewStore(ctx, databaseURL)
 	if err != nil {
@@ -532,7 +533,7 @@ func TestReadinessRequiresMigratedDatabase(t *testing.T) {
 
 func adminConn(t *testing.T) *pgx.Conn {
 	t.Helper()
-	conn, err := pgx.Connect(context.Background(), testutil.AdminURL(t))
+	conn, err := pgx.Connect(context.Background(), testpostgres.AdminURL(t))
 	if err != nil {
 		t.Fatal(err)
 	}

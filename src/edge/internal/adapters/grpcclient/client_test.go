@@ -17,11 +17,11 @@ import (
 	"testing"
 	"time"
 
-	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/edge/gen/vault/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/adapters/grpcclient"
 	vaultadapter "github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/adapters/vault"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/domain"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/requestid"
+	vaultv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/vault/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"

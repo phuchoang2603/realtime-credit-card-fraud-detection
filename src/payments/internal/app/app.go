@@ -22,18 +22,18 @@ import (
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/gen/payments/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/fraud"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/postgres"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/processor"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/redis"
-	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/adapters/secretbox"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/application/workers"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/config"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/domain"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/metrics"
 	transport "github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/transport/grpc"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/shared/security/secretbox"
 )
 
 const (

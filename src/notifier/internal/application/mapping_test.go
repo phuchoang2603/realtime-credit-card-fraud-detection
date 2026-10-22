@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/notifier/gen/payments/v1"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/notifier/internal/domain"
+	paymentsv1 "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
