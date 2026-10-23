@@ -4,13 +4,6 @@ on:
   pull_request:
   push:
     branches: ['**']
-  workflow_dispatch:
-    inputs:
-      service:
-        type: choice
-        default: fraud
-        options: [fraud, edge, payments, notifier, vault-simulator, processor-simulator, connect-debezium, all]
-        description: Service image to publish from the selected revision
 
 permissions:
   contents: read
@@ -18,7 +11,6 @@ permissions:
 
 jobs:
   fraud:
-    if: github.event_name != 'workflow_dispatch' || inputs.service == 'fraud' || inputs.service == 'all'
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}
@@ -26,7 +18,6 @@ jobs:
       dockerfile: infra/docker/fraud-service.Dockerfile
       publish: ${{ github.event_name != 'pull_request' }}
   edge:
-    if: github.event_name != 'workflow_dispatch' || inputs.service == 'edge' || inputs.service == 'all'
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}/edge
@@ -39,7 +30,6 @@ jobs:
         EXPOSE_PORT=8080
       publish: ${{ github.event_name != 'pull_request' }}
   payments:
-    if: github.event_name != 'workflow_dispatch' || inputs.service == 'payments' || inputs.service == 'all'
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}/payments
@@ -52,7 +42,6 @@ jobs:
         EXPOSE_PORT=8000
       publish: ${{ github.event_name != 'pull_request' }}
   notifier:
-    if: github.event_name != 'workflow_dispatch' || inputs.service == 'notifier' || inputs.service == 'all'
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}/notifier
@@ -65,7 +54,6 @@ jobs:
         EXPOSE_PORT=8000
       publish: ${{ github.event_name != 'pull_request' }}
   vault-simulator:
-    if: github.event_name != 'workflow_dispatch' || inputs.service == 'vault-simulator' || inputs.service == 'all'
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}/vault-simulator
@@ -78,7 +66,6 @@ jobs:
         EXPOSE_PORT=8000
       publish: ${{ github.event_name != 'pull_request' }}
   processor-simulator:
-    if: github.event_name != 'workflow_dispatch' || inputs.service == 'processor-simulator' || inputs.service == 'all'
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}/processor-simulator
@@ -91,7 +78,6 @@ jobs:
         EXPOSE_PORT=8000
       publish: ${{ github.event_name != 'pull_request' }}
   connect-debezium:
-    if: github.event_name != 'workflow_dispatch' || inputs.service == 'connect-debezium' || inputs.service == 'all'
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}/connect-debezium
@@ -100,7 +86,7 @@ jobs:
       publish: ${{ github.event_name != 'pull_request' }}
 
   pin:
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    if: github.event_name == 'push'
     needs: [fraud, edge, payments, notifier, vault-simulator, processor-simulator, connect-debezium]
     runs-on: ubuntu-latest
     permissions:
@@ -108,28 +94,4 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Pin the prod charts to the released images
-        run: |
-          tag="${GITHUB_SHA::7}"
-          pin() {
-            file=$1
-            pattern=$2
-            replacement=$3
-            count=$(grep -cE "$pattern" "$file")
-            if [ "$count" -ne 1 ]; then
-              echo "expected exactly one match for '${pattern}' in ${file}, found ${count}"
-              exit 1
-            fi
-            sed -i -E "s|${pattern}|${replacement}|" "$file"
-          }
-          pin infra/charts/payment-gateway/values-prod.yaml '^imageTag: .*$' "imageTag: ${tag}"
-          pin infra/charts/fraud-service/values-prod.yaml '^  tag: ".*"$' "  tag: \"${tag}\""
-          pin infra/charts/kafka/values-prod.yaml '^  imageTag: .*$' "  imageTag: ${tag}"
-          if git diff --quiet; then
-            echo "image tags already at ${tag}"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add infra/charts/payment-gateway/values-prod.yaml infra/charts/fraud-service/values-prod.yaml infra/charts/kafka/values-prod.yaml
-          git commit -m "chore(infra): track service images ${tag} [skip ci]"
-          git push
+        run: bash scripts/pin-service-images.sh

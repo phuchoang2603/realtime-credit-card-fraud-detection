@@ -12,75 +12,15 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete PR-only package versions
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Delete unreferenced PR package versions
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: ${{ github.repository_owner }}
-          REPO: ${{ github.event.repository.name }}
+          REPOSITORY: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR: ${{ github.event.number }}
-        run: |
-          python3 <<'PY'
-          import json, os, subprocess, urllib.parse
-
-          owner = os.environ["OWNER"]
-          repo = os.environ["REPO"]
-          pr = os.environ["PR"]
-          images = [
-              "", "/edge", "/payments", "/notifier",
-              "/vault-simulator", "/processor-simulator", "/connect-debezium",
-          ]
-
-          def gh(*args):
-              return subprocess.run(["gh", "api", *args], check=False, capture_output=True, text=True)
-
-          def paginate(path):
-              items = []
-              page = 1
-              while True:
-                  listed = gh(f"{path}?per_page=100&page={page}")
-                  if listed.returncode != 0 or not listed.stdout.strip():
-                      break
-                  try:
-                      chunk = json.loads(listed.stdout)
-                  except json.JSONDecodeError:
-                      break
-                  if isinstance(chunk, dict):
-                      chunk = [chunk]
-                  if not chunk:
-                      break
-                  items.extend(chunk)
-                  if len(chunk) < 100:
-                      break
-                  page += 1
-              return items
-
-          shas = {
-              c["sha"][:7]
-              for c in paginate(f"/repos/{owner}/{repo}/pulls/{pr}/commits")
-              if c.get("sha")
-          }
-          if not shas:
-              print("no PR commits; nothing to delete")
-              raise SystemExit(0)
-
-          for image in images:
-              pkg = urllib.parse.quote(f"{repo}{image}", safe="")
-              list_path = f"/users/{owner}/packages/container/{pkg}/versions"
-              for version in paginate(list_path):
-                  tags = (
-                      (version.get("metadata") or {})
-                      .get("container", {})
-                      .get("tags")
-                      or []
-                  )
-                  if "latest" in tags:
-                      continue
-                  if not (set(tags) & shas):
-                      continue
-                  vid = version["id"]
-                  print(f"deleting {repo}{image} version {vid} tags={tags}")
-                  deleted = gh("-X", "DELETE", f"{list_path}/{vid}")
-                  if deleted.returncode != 0:
-                      print(deleted.stderr)
-                      raise SystemExit(deleted.returncode)
-          PY
+        run: python3 scripts/cleanup-pr-images.py

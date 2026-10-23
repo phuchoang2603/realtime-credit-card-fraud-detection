@@ -25,6 +25,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: contracts/data-products/**/*.yaml
+      - name: Check PR image retention rules
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
       - name: Lint data products and check generated references
         run: bash scripts/ci-checks.sh contracts
 
@@ -48,7 +50,7 @@ jobs:
     timeout-minutes: 20
     env:
       GOWORK: "off"
-      GATEWAY_TEST_REPORTS: ${{ github.workspace }}/../gateway-test-evidence
+      GATEWAY_TEST_REPORTS: /tmp/gateway-test-evidence
       MUTATION_BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@v7.0.1
@@ -67,7 +69,7 @@ jobs:
         run: bash scripts/ci-checks.sh go
       - name: Install mutation testing tool
         if: github.event_name == 'pull_request'
-        run: go install github.com/go-gremlins/gremlins@v0.6.0
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
       - name: Mutate changed ledger validator code
         if: github.event_name == 'pull_request'
         run: bash scripts/ci-checks.sh go-mutation
