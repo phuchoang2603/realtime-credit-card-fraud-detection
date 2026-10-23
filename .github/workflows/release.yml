@@ -14,65 +14,21 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.images.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - id: images
+        run: echo "matrix=$(jq -c . .github/service-images.json)" >> "$GITHUB_OUTPUT"
+
   images:
+    needs: matrix
     name: ${{ matrix.service }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - service: fraud
-            image-suffix: ""
-            context: src/fraud-service
-            dockerfile: infra/docker/fraud-service.Dockerfile
-          - service: edge
-            image-suffix: /edge
-            context: .
-            dockerfile: infra/docker/go-service.Dockerfile
-            build-args: |
-              SERVICE_PATH=src/payment-gateway/edge
-              BUILD_PKG=./cmd/edge
-              BUILD_BIN=edge
-              EXPOSE_PORT=8080
-          - service: payments
-            image-suffix: /payments
-            context: .
-            dockerfile: infra/docker/go-service.Dockerfile
-            build-args: |
-              SERVICE_PATH=src/payment-gateway/payments
-              BUILD_PKG=./cmd/payments
-              BUILD_BIN=payments
-              EXPOSE_PORT=8000
-          - service: notifier
-            image-suffix: /notifier
-            context: .
-            dockerfile: infra/docker/go-service.Dockerfile
-            build-args: |
-              SERVICE_PATH=src/payment-gateway/notifier
-              BUILD_PKG=./cmd/notifier
-              BUILD_BIN=notifier
-              EXPOSE_PORT=8000
-          - service: vault-simulator
-            image-suffix: /vault-simulator
-            context: .
-            dockerfile: infra/docker/go-service.Dockerfile
-            build-args: |
-              SERVICE_PATH=src/payment-gateway/vault-simulator
-              BUILD_PKG=./cmd/vault-simulator
-              BUILD_BIN=vault-simulator
-              EXPOSE_PORT=8000
-          - service: processor-simulator
-            image-suffix: /processor-simulator
-            context: .
-            dockerfile: infra/docker/go-service.Dockerfile
-            build-args: |
-              SERVICE_PATH=src/payment-gateway/processor-simulator
-              BUILD_PKG=./cmd/processor-simulator
-              BUILD_BIN=processor-simulator
-              EXPOSE_PORT=8000
-          - service: connect-debezium
-            image-suffix: /connect-debezium
-            context: .
-            dockerfile: infra/docker/connect-debezium.Dockerfile
+      matrix: ${{ fromJSON(needs.matrix.outputs.images) }}
     uses: ./.github/workflows/build-image.yml
     with:
       image: ${{ github.repository }}${{ matrix.image-suffix }}
