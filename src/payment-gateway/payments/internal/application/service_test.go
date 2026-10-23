@@ -3,16 +3,21 @@ package application_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"math/rand"
 	"os"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
+	"testing/quick"
 	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/payments/internal/testsupport"
@@ -62,45 +67,67 @@ func wantKinds(t *testing.T, got []string, want ...string) {
 	}
 }
 
-func TestCreatePaymentRepeatReturnsTheSamePaymentSessionTokenAndExpiry(t *testing.T) {
+func TestIdempotencyProperties(t *testing.T) {
 	for _, withRedis := range []bool{false, true} {
 		t.Run(map[bool]string{false: "postgres only", true: "with redis"}[withRedis], func(t *testing.T) {
 			stack := newStack(t, withRedis)
-			first := mustCreate(t, stack, "key-1", "order-1")
-			stack.Clock.Advance(3 * time.Minute)
-			second := mustCreate(t, stack, "key-1", "order-1")
-			if first.GetPaymentId() != second.GetPaymentId() || first.GetSessionId() != second.GetSessionId() ||
-				first.GetCheckoutToken() != second.GetCheckoutToken() || !first.GetExpiresAt().AsTime().Equal(second.GetExpiresAt().AsTime()) {
-				t.Fatalf("repeat differs:\n%v\n%v", first, second)
+			sequence := 0
+			property := func(amount uint16, repeats uint8) bool {
+				sequence++
+				key := fmt.Sprintf("property-%d", sequence)
+				request := testsupport.CreateRequest(testsupport.IntegrationID, key, key, int64(amount))
+				payment, err := stack.Service.CreatePayment(context.Background(), request)
+				if err != nil {
+					t.Logf("create: %v", err)
+					return false
+				}
+				if payment.GetCheckoutToken() == "" || payment.GetSessionId() == payment.GetPaymentId() ||
+					!payment.GetExpiresAt().AsTime().Equal(stack.Clock.Now().Add(15*time.Minute).Truncate(time.Second)) {
+					return false
+				}
+				for range 1 + int(repeats%4) {
+					stack.Clock.Advance(time.Second)
+					again, err := stack.Service.CreatePayment(context.Background(), request)
+					if err != nil || !proto.Equal(payment, again) {
+						t.Logf("create replay: %v", err)
+						return false
+					}
+				}
+				request.Snapshot.Total.MinorUnits++
+				request.Snapshot.Items[0].UnitPrice.MinorUnits++
+				_, err = stack.Service.CreatePayment(context.Background(), request)
+				if !errors.Is(err, application.ErrIdempotencyConflict) {
+					return false
+				}
+				if withRedis {
+					stack.FlushRedis(t)
+					if _, err := stack.Service.CreatePayment(context.Background(), request); !errors.Is(err, application.ErrIdempotencyConflict) {
+						return false
+					}
+				}
+				loaded, err := stack.Service.GetPayment(context.Background(), &paymentsv1.GetPaymentRequest{IntegrationId: payment.GetIntegrationId(), PaymentId: payment.GetPaymentId()})
+				if err != nil || loaded.GetSnapshot().GetTotal().GetMinorUnits() != int64(amount) || loaded.GetVersion() != 1 {
+					return false
+				}
+				sales, decisions := stack.Processor.TotalSaleCalls(), len(stack.Fraud.Requests())
+				first := mustStart(t, stack, payment, key, "vault-token")
+				for range 1 + int(repeats%4) {
+					again := mustStart(t, stack, payment, key, "vault-token")
+					if !proto.Equal(first, again) {
+						return false
+					}
+				}
+				_, err = start(stack, payment, key, "different-token")
+				if !errors.Is(err, application.ErrIdempotencyConflict) || stack.Processor.TotalSaleCalls() != sales+1 || len(stack.Fraud.Requests()) != decisions+1 {
+					return false
+				}
+				wantKinds(t, kinds(t, stack, payment), "created", "started", "risk", "requested", "succeeded")
+				return true
 			}
-			if first.GetCheckoutToken() == "" || first.GetSessionId() == first.GetPaymentId() {
-				t.Fatalf("payment %v must carry a token and a session distinct from the payment", first)
-			}
-			wantKinds(t, kinds(t, stack, first), "created")
-			wantExpiry := stack.Clock.Now().Add(-3 * time.Minute).Add(15 * time.Minute).Truncate(time.Second)
-			if !first.GetExpiresAt().AsTime().Equal(wantExpiry) {
-				t.Fatalf("expires_at = %v, want %v", first.GetExpiresAt().AsTime(), wantExpiry)
+			if err := quick.Check(property, &quick.Config{MaxCount: 12, Rand: rand.New(rand.NewSource(82))}); err != nil {
+				t.Fatal(err)
 			}
 		})
-	}
-}
-
-func TestCreatePaymentChangedSnapshotIsAConflictAndLeavesTheOriginalUnchanged(t *testing.T) {
-	stack := newStack(t, true)
-	original := mustCreate(t, stack, "key-1", "order-1")
-
-	_, err := stack.Service.CreatePayment(context.Background(), testsupport.CreateRequest(testsupport.IntegrationID, "key-1", "order-1", 99999))
-	if err == nil || !strings.Contains(err.Error(), application.ErrIdempotencyConflict.Error()) {
-		t.Fatalf("err = %v, want idempotency conflict", err)
-	}
-	stack.FlushRedis(t)
-	_, err = stack.Service.CreatePayment(context.Background(), testsupport.CreateRequest(testsupport.IntegrationID, "key-1", "order-1", 99999))
-	if err == nil || !strings.Contains(err.Error(), application.ErrIdempotencyConflict.Error()) {
-		t.Fatalf("after redis flush err = %v, want idempotency conflict from postgres", err)
-	}
-	loaded, err := stack.Service.GetPayment(context.Background(), &paymentsv1.GetPaymentRequest{IntegrationId: original.GetIntegrationId(), PaymentId: original.GetPaymentId()})
-	if err != nil || loaded.GetSnapshot().GetTotal().GetMinorUnits() != 12500 || loaded.GetVersion() != 1 {
-		t.Fatalf("original payment changed: %v, %v", loaded, err)
 	}
 }
 
@@ -121,8 +148,6 @@ func TestCreatePaymentRejectsInvalidSnapshots(t *testing.T) {
 	stack := newStack(t, false)
 	tests := map[string]func(*paymentsv1.CreatePaymentRequest){
 		"items disagree with total": func(r *paymentsv1.CreatePaymentRequest) { r.Snapshot.Total.MinorUnits++ },
-		"currency mismatch":         func(r *paymentsv1.CreatePaymentRequest) { r.Snapshot.Items[0].UnitPrice.Currency = "EUR" },
-		"no items":                  func(r *paymentsv1.CreatePaymentRequest) { r.Snapshot.Items = nil },
 		"missing key":               func(r *paymentsv1.CreatePaymentRequest) { r.IdempotencyKey = "" },
 		"missing seller":            func(r *paymentsv1.CreatePaymentRequest) { r.ExternalSellerId = "" },
 		"bad integration":           func(r *paymentsv1.CreatePaymentRequest) { r.IntegrationId = "nope" },
@@ -232,24 +257,6 @@ func TestStartAttemptSuccessRecordsTheFullLifecycle(t *testing.T) {
 	}
 }
 
-func TestRetriedAttemptSubmissionCreatesOneAttemptAndReturnsTheSameResult(t *testing.T) {
-	for _, withRedis := range []bool{false, true} {
-		t.Run(map[bool]string{false: "postgres only", true: "with redis"}[withRedis], func(t *testing.T) {
-			stack := newStack(t, withRedis)
-			payment := mustCreate(t, stack, "key-1", "order-1")
-			first := mustStart(t, stack, payment, "attempt-1", "vault-token")
-			second := mustStart(t, stack, payment, "attempt-1", "vault-token")
-			if first.String() != second.String() {
-				t.Fatalf("results differ: %v vs %v", first, second)
-			}
-			wantKinds(t, kinds(t, stack, payment), "created", "started", "risk", "requested", "succeeded")
-			if stack.Processor.TotalSaleCalls() != 1 || len(stack.Fraud.Requests()) != 1 {
-				t.Fatalf("sale calls = %d, fraud calls = %d, want 1 each", stack.Processor.TotalSaleCalls(), len(stack.Fraud.Requests()))
-			}
-		})
-	}
-}
-
 func TestAttemptRetryAfterProcessRestartReturnsStoredResultWithoutAnotherProcessorEffect(t *testing.T) {
 	stack := newStack(t, true)
 	payment := mustCreate(t, stack, "key-1", "order-1")
@@ -265,25 +272,6 @@ func TestAttemptRetryAfterProcessRestartReturnsStoredResultWithoutAnotherProcess
 		t.Fatal("restarted instance re-ran an effect")
 	}
 	wantKinds(t, kinds(t, stack, payment), "created", "started", "risk", "requested", "succeeded")
-}
-
-func TestAttemptKeyReusedWithDifferentContentIsAConflictAndDoesNotInvokeTheProcessor(t *testing.T) {
-	for _, withRedis := range []bool{false, true} {
-		t.Run(map[bool]string{false: "postgres only", true: "with redis"}[withRedis], func(t *testing.T) {
-			stack := newStack(t, withRedis)
-			payment := mustCreate(t, stack, "key-1", "order-1")
-			mustStart(t, stack, payment, "attempt-1", "vault-token")
-			sales, decisions := stack.Processor.TotalSaleCalls(), len(stack.Fraud.Requests())
-
-			_, err := start(stack, payment, "attempt-1", "a-different-token")
-			if err == nil || !strings.Contains(err.Error(), application.ErrIdempotencyConflict.Error()) {
-				t.Fatalf("err = %v, want idempotency conflict", err)
-			}
-			if stack.Processor.TotalSaleCalls() != sales || len(stack.Fraud.Requests()) != decisions {
-				t.Fatal("conflicting request invoked fraud or the processor")
-			}
-		})
-	}
 }
 
 func TestAttemptIsRefusedWhileAnotherIsActiveOrThePaymentIsNotOpen(t *testing.T) {

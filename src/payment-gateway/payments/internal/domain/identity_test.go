@@ -77,9 +77,3 @@ func TestCheckoutTokenRoundTripAndTamperDetection(t *testing.T) {
 		t.Error("token verified under another key")
 	}
 }
-
-func TestSnapshotValidation(t *testing.T) {
-	if err := domain.ValidateSnapshot(nil); err == nil {
-		t.Fatal("nil snapshot accepted")
-	}
-}

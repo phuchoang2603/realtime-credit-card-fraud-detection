@@ -122,7 +122,9 @@ func apply(state *lifecycle, r row, event *paymentsv1.PaymentEvent) error {
 	if r.AggregateVersion != state.version+1 {
 		return fmt.Errorf("aggregate version %d follows %d", r.AggregateVersion, state.version)
 	}
-	state.version = r.AggregateVersion
+	if state.version == 0 && event.GetPaymentCreated() == nil {
+		return fmt.Errorf("first event must be payment_created")
+	}
 	phase := ""
 	if state.active != "" {
 		phase = state.attempts[state.active]
@@ -153,10 +155,22 @@ func apply(state *lifecycle, r row, event *paymentsv1.PaymentEvent) error {
 		if err := expectActive(state, id, "started"); err != nil {
 			return err
 		}
-		if event.GetRiskDecisionRecorded().GetAssessment().GetOutcome() == paymentsv1.RiskOutcome_RISK_OUTCOME_DECLINE {
-			state.attempts[id] = "risk_declined"
-		} else {
+		assessment := event.GetRiskDecisionRecorded().GetAssessment()
+		if assessment == nil || assessment.GetPolicyVersion() == "" {
+			return fmt.Errorf("risk decision requires an assessment and policy version")
+		}
+		for _, reason := range assessment.GetReasonCodes() {
+			if reason == "" {
+				return fmt.Errorf("risk decision has an empty reason code")
+			}
+		}
+		switch assessment.GetOutcome() {
+		case paymentsv1.RiskOutcome_RISK_OUTCOME_APPROVE:
 			state.attempts[id] = "risk_approved"
+		case paymentsv1.RiskOutcome_RISK_OUTCOME_DECLINE:
+			state.attempts[id] = "risk_declined"
+		default:
+			return fmt.Errorf("risk outcome must be approve or decline")
 		}
 	case "processor_operation_requested":
 		id := event.GetProcessorOperationRequested().GetAttemptId()
@@ -189,13 +203,14 @@ func apply(state *lifecycle, r row, event *paymentsv1.PaymentEvent) error {
 		state.active = ""
 		state.terminal = true
 	case "payment_expired":
-		if state.active != "" {
+		if phase == "requested" || phase == "unknown" {
 			return fmt.Errorf("expiry while attempt %s is %s", state.active, phase)
 		}
 		state.terminal = true
 	default:
 		return fmt.Errorf("unknown event kind")
 	}
+	state.version = r.AggregateVersion
 	return nil
 }
 

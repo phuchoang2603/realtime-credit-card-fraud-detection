@@ -48,8 +48,12 @@ jobs:
     timeout-minutes: 20
     env:
       GOWORK: "off"
+      GATEWAY_TEST_REPORTS: ${{ runner.temp }}/gateway-tests
+      MUTATION_BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: src/payment-gateway/edge/go.mod
@@ -61,6 +65,18 @@ jobs:
           install-only: true
       - name: Lint and test every Go module
         run: bash scripts/ci-checks.sh go
+      - name: Install mutation testing tool
+        if: github.event_name == 'pull_request'
+        run: go install github.com/go-gremlins/gremlins@v0.6.0
+      - name: Mutate changed ledger validator code
+        if: github.event_name == 'pull_request'
+        run: bash scripts/ci-checks.sh go-mutation
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: gateway-test-evidence
+          path: ${{ runner.temp }}/gateway-tests
+          if-no-files-found: warn
 
   helm:
     runs-on: ubuntu-latest

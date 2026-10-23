@@ -49,13 +49,34 @@ DATAPRODUCT_CLI=0.3.2
 
 case "${1:-}" in
   go)
+    report_dir="${GATEWAY_TEST_REPORTS:-$(mktemp -d)}"
+    mkdir -p "$report_dir"
     while IFS= read -r -d '' manifest; do
       (
         cd "$(dirname "$manifest")"
         GOWORK=off golangci-lint run ./...
-        GOWORK=off go test -p 1 -race -count=1 ./...
+        module_name="$(basename "$PWD")"
+        GOWORK=off go test -p 1 -race -count=1 -coverprofile "$report_dir/$module_name.out" ./...
+        go tool cover -func "$report_dir/$module_name.out" | tee "$report_dir/$module_name.txt"
+        go tool cover -html "$report_dir/$module_name.out" -o "$report_dir/$module_name.html"
       )
     done < <(find src -type f -name go.mod -not -path '*/vendor/*' -print0 | sort -z)
+    ;;
+  go-mutation)
+    : "${MUTATION_BASE:?Set MUTATION_BASE to the reviewed base commit}"
+    : "${GATEWAY_TEST_REPORTS:?Set GATEWAY_TEST_REPORTS to the CI artifact directory}"
+    mkdir -p "$GATEWAY_TEST_REPORTS"
+    cd src/payment-gateway/payments/cmd/ledger-check
+    mutation_dir="$(mktemp -d)"
+    trap 'rm -rf "$mutation_dir"' EXIT
+    cp ../../go.mod "$mutation_dir/go.mod"
+    cp ../../go.sum "$mutation_dir/go.sum"
+    go mod edit -modfile "$mutation_dir/go.mod" \
+      -replace "github.com/phuchoang2603/payment-gateway-fraud-detection/shared=$(cd ../../../shared && pwd)"
+    GOWORK=off GOFLAGS="-p=1 -modfile=$mutation_dir/go.mod" \
+      GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true \
+      gremlins unleash --diff "$MUTATION_BASE" --workers 2 --test-cpu 1 \
+      --output "$GATEWAY_TEST_REPORTS/ledger-mutation.json" | tee "$GATEWAY_TEST_REPORTS/ledger-mutation.txt"
     ;;
   contracts)
     TMPDIR_CHECKS="$(mktemp -d)"
@@ -74,7 +95,7 @@ case "${1:-}" in
     done < <(find infra -type f -name Chart.yaml -print0)
     ;;
   *)
-    printf 'Usage: %s {contracts|python|go|helm}\n' "$0" >&2
+    printf 'Usage: %s {contracts|python|go|go-mutation|helm}\n' "$0" >&2
     exit 2
     ;;
 esac
