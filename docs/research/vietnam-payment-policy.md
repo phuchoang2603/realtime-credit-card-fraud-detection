@@ -57,7 +57,7 @@ Keep disputes, merchant refunds, processor uncertainty and fraud ground truth di
 
 ## Mapping the research into the gateway
 
-The [processor simulator](../../openspec/changes/build-minimum-payment-gateway/design.md#processor-simulator-store-and-faults) stands in for the external payment provider. It accepts a stable operation key, stores the simulated outcome and answers status queries. For example, it can persist success but delay the response past Payments' deadline: Payments records an unknown outcome, then recovers the existing success without charging twice. Fraud approval only permits proceeding to processing; it does not prove that the provider accepted or settled a payment.
+The [processor simulator](../../openspec/changes/archive/2026-10-23-build-minimum-payment-gateway/design.md#processor-simulator-store-and-faults) stands in for the external payment provider. It accepts a stable operation key, stores the simulated outcome and answers status queries. For example, it can persist success but delay the response past Payments' deadline: Payments records an unknown outcome, then recovers the existing success without charging twice. Fraud approval only permits proceeding to processing; it does not prove that the provider accepted or settled a payment.
 
 | Concern | Proposed owner and behavior |
 | --- | --- |
@@ -69,7 +69,7 @@ The [processor simulator](../../openspec/changes/build-minimum-payment-gateway/d
 | Disputes and investigation | Preserve evidence and versioned policy citations. Add a separate lifecycle when implemented; do not overload processor timeout recovery or rewrite payment history. |
 | Analyst knowledge | A later read-only investigation agent retrieves scoped, cited policy and case evidence. It cannot approve payments, grant refunds or change deployed rules from retrieved prose. |
 
-The current `fraud.v2` contract has only `APPROVE` and `DECLINE`; it has no challenge workflow. Authentication-required, pending, expiry and cancellation behavior would need an explicit provider/checkout contract and lifecycle design. This research does not add those states to runtime or silently reinterpret existing events.
+The current `fraud.v1` contract has only `APPROVE` and `DECLINE`; it has no challenge workflow. Authentication-required, pending, expiry and cancellation behavior would need an explicit provider/checkout contract and lifecycle design. This research does not add those states to runtime or silently reinterpret existing events.
 
 ## Knowledge corpus and next research
 

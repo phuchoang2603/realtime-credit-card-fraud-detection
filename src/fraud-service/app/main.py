@@ -7,9 +7,9 @@ from app.config import Settings, settings_from_env
 from app.runtime import RuntimeState
 from app.transport.grpc import FraudService
 from app.transport.rpc import RequestContextInterceptor
-from fraud.v2 import fraud_pb2_grpc
+from fraud.v1 import fraud_pb2_grpc
 
-SERVICE = "fraud.v2.FraudService"
+SERVICE = "fraud.v1.FraudService"
 
 
 class FraudServer:

@@ -13,6 +13,9 @@
     protoc-gen-go
     protoc-gen-go-grpc
 
+    sqlc
+    goose
+
     openspec
     zlib
   ];
@@ -50,6 +53,17 @@
     ];
   };
 
+  tasks."codegen:sqlc" = {
+    exec = ''bash "${config.git.root}/scripts/codegen-sqlc.sh"'';
+    before = [ "devenv:enterShell" ];
+    execIfModified = [
+      "src/payment-gateway/*/sqlc.yaml"
+      "src/payment-gateway/*/db/migrations/*.sql"
+      "src/payment-gateway/*/db/queries/*.sql"
+      "scripts/codegen-sqlc.sh"
+    ];
+  };
+
   git-hooks.hooks = {
     treefmt.enable = true;
   };
@@ -66,6 +80,9 @@
       gofumpt = {
         enable = true;
         extra = true;
+        excludes = [
+          "src/payment-gateway/shared/proto/**/*.pb.go"
+        ];
       };
     };
   };

@@ -6,7 +6,7 @@ Specify the internal fraud decision RPC, its input validation, the stateless rul
 
 ### Requirement: Decision RPC
 
-The fraud service SHALL expose `fraud.v2.FraudService/Decide` over internal gRPC. A request SHALL carry `integration_id`, `payment_id`, `attempt_id`, merchant and customer references, the checkout snapshot and the attempt signals. A response SHALL carry an `APPROVE` or `DECLINE` outcome, zero or more reason codes, the evaluation time and the policy version, and SHALL carry model version, feature-set version and risk score only when a model or feature set contributed. A decline SHALL be a successful response, not an error status.
+The fraud service SHALL expose `fraud.v1.FraudService/Decide` over internal gRPC. A request SHALL carry `integration_id`, `payment_id`, `attempt_id`, merchant and customer references, the checkout snapshot and the attempt signals. A response SHALL carry a `payments.v1.RiskAssessment` (an `APPROVE` or `DECLINE` outcome, zero or more reason codes and the policy version, plus model version, feature-set version and risk score only when a model or feature set contributed) and the evaluation time. A decline SHALL be a successful response, not an error status.
 
 #### Scenario: Rule decline
 

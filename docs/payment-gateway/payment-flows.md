@@ -4,17 +4,17 @@ Identity, checkout and payment-authority contracts for the planned gateway, with
 
 ## Identity and checkout contract
 
-One authenticated marketplace integration manages separate gateway merchant accounts for its sellers. Accounts maps `(integration_id, external_seller_id)` to `merchant_id` and `(integration_id, external_buyer_id)` to `customer_id`. Derive integration identity from credentials, not caller-selected tenant fields or email. Authorize seller provisioning explicitly and make it idempotent; buyer mapping may be lazy.
+Edge loads integration IDs, SHA-256 API key hashes and synthetic flags from configuration. Payments derives merchant and customer UUIDv5 values from `(integration_id, external_seller_id)` and `(integration_id, external_buyer_id)` using the [shared vectors](../../contracts/synthetic/identity-vectors.json). There is no Accounts service or merchant/customer provisioning call. Buyer authentication stays at the marketplace; the gateway receives account ages and commerce facts in one immutable payment snapshot.
 
-Buyer authentication remains at marketplace. Gateway checkout uses short-lived, scoped access without gateway buyer passwords or shared marketplace JWT secrets. Merchant records do not imply wallets, payouts or bank accounts. Credential rotation, revocation, disabled-account handling and tenant isolation belong to integration identity contracts and Accounts.
+`POST /v1/payments` accepts `order_reference`, `seller` and `buyer` (`external_id`, `account_created_at`), `amount` (`minor_units`, `currency`), `items` (`product_id`, `category`, `condition`, `quantity`, integer `unit_price` in the total currency), `shipping_address` (`name`, `line1`, `line2`, `city`, `region`, `postal_code`, `country`) and an absolute HTTPS `return_url`. It requires `Authorization: Bearer <integration API key>` and `Idempotency-Key`; `GET /v1/payments/{payment_id}` uses the same integration credential. The response supplies `payment_id`, `session_id`, `checkout_token`, `checkout_url` and `expires_at`. Repeating a key with changed content conflicts; order references are unique per integration.
 
-Keep order, session, payment and attempt identifiers distinct. Scope external order references to the integration and merchant. Session creation is idempotent for the agreed order scope; a changed payload under an existing key is a conflict. Refreshing hosted checkout creates no new attempt. Amount/currency and commerce snapshots are immutable for that session; return URLs are validated. Signed webhook delivery and authenticated status queries determine commerce outcomes, never the buyer redirect alone.
+`POST /v1/checkout/sessions/{session_id}/attempts` takes `payment_method_token` and optional `device_fingerprint`, `user_agent_family` and synthetic-only `simulated_client` (`ip_country`, `ip_network`) context, authenticated with `Authorization: Bearer <checkout token>` and `Idempotency-Key`. Results are `SUCCEEDED`, `DECLINED` with `reason`, or `PENDING`. Tokens are base64url of the 16-byte session UUID, eight-byte big-endian Unix expiry and HMAC-SHA256 over those 24 bytes; verification needs no stored token. The hosted page exchanges its URL token for a secure, HTTP-only, session-path cookie, protects submissions against cross-site requests, and retains one key across a repeated form submission. A decline leaves the payment open for another attempt; success redirects to the validated return URL. Signed webhooks and status queries determine commerce outcomes, never that redirect alone.
 
 The marketplace's [current webhook handler](https://github.com/phuchoang2603/refurbished-marketplace/blob/main/services/payment/internal/service/gateway_webhook.go) treats failed sessions as terminal and suppresses subsequent terminal outcomes. Target retries under the same order therefore require a contract change: the marketplace integration contract must separate attempt decline from final payment failure, specify expiry/late-success handling, and coordinate inventory behavior with marketplace.
 
 ## Isolated synthetic vault
 
-An authenticated simulator CLI sends an allow-listed fictional card reference and behavior to the separately deployed vault over encrypted gRPC. The vault creates an opaque random token bound to an integration, stores only its digest alongside an encrypted fixture payload in its own database, and returns the token once. This first slice accepts fixture references, not PAN, PIN or card-security-code fields. A later browser collection flow needs its own vault-facing access contract.
+Only Edge calls vault tokenization: the hosted form accepts an allow-listed test card number, and synthetic integrations can call `POST /v1/payment-methods` with `card_number` plus their integration credential and idempotency header. Both paths immediately discard the number after vault tokenization. The vault issues opaque random integration-scoped tokens, stores digests and encrypted fictional fixtures, and rejects every number outside its Luhn-valid allow-list. Numbers, tokens and bodies are excluded from access logs and traces. This is a synthetic boundary; real card collection remains outside scope.
 
 At attempt submission, Edge authenticates checkout access and calls the vault's restricted metadata API with the resolved integration identity. The response contains only method type and a stable fingerprint, derived from the fixture's card identity with the shared synthetic fingerprint key. It excludes token behavior and fixture contents. Thus token rotation does not change the card fingerprint or break historical/live identity parity. Unknown, inactive or foreign tokens are rejected before starting an attempt.
 
@@ -22,19 +22,21 @@ Only the authenticated processor-simulator identity may resolve a token to its f
 
 ## Payment authority and recovery
 
-Payments owns an ordered event stream per aggregate. Commands validate authoritative aggregate state and append with an expected version; stale status projections cannot authorize money movement. Durable idempotency stores the request identity, content binding and result so concurrent retries cannot create additional effects. Status views and snapshots are rebuildable; schema versions, correlation IDs and causation IDs preserve interpretation.
+Payments owns authoritative versioned payment and attempt rows. Each transition uses the expected row version and atomically commits the state update, exactly one append-only `PaymentEvent` and idempotency state. The runtime role can only read/insert ledger rows; triggers reject update, delete and truncate for every role. Commands and workers read current rows rather than rehydrate event history. Event versions establish per-payment order; correlation IDs connect the calls, without a separate causation field.
 
 Persist an external-effect intent before calling the processor and reuse a stable operation key on retries. A timeout means **unknown**, not declined: query the simulator by operation key before deciding whether another operation is safe. Record discovered results as new events. The project omits automated reconciliation and bank settlement files. A later synthetic ISO profile must define its supported query or reversal/advice; if it cannot safely resolve an operation, leave it pending for inspection instead of blindly resending. The gRPC simulator's idempotent `Sale` and `GetOperation` are not universal bank capabilities.
 
-Record each risk outcome with model, policy and feature versions. Aggregate replay consumes the recorded outcome; it never reruns models, invokes processors or sends webhooks. Recovery workers resume unresolved intents explicitly; projection replay does not activate external effects. Publish integration events atomically with committed domain state through an outbox or equivalent commit-log boundary. Consumers deduplicate stable event identities; transport may be at least once. A broker alone is not the authoritative event store.
+Each attempt records the `fraud.v1` risk assessment before a processor request. Fraud unavailability/timeouts fail closed with `DECLINE`, `FRAUD_UNAVAILABLE` and `payments-fallback-v1`, without calling the processor. The default overall attempt budget is 5 s, with 1 s for fraud and 3 s for the processor; a lost response after committed intent remains pending. Recovery and expiry workers use advisory-lock leadership and expected versions. Expiry waits for unresolved processor effects.
 
-The chosen commit-log boundary is the Payments event table: append events, status and idempotency in one Postgres transaction; later WAL CDC publishes committed payloads to Kafka. A `bigserial` position identifies a row but does not establish commit order. Payments uses Redis only for immutable completed-attempt results, keyed by integration/session and a digest of the idempotency key, with a request digest and TTL. Authorize the request before reading the cache. Do not cache pending state, method tokens, checkout credentials or sensitive request bodies. Miss, eviction, malformed entries or outage fall back to durable database idempotency; cache population happens only after commit. A changed request under the same key remains a conflict. Redis does not grant permission to call the processor.
+Debezium publishes committed `payment_events` bytes through WAL CDC to the internal `payments.events.v1` topic, keyed by payment. A `bigserial` position identifies a ledger row but does not establish commit order. The notifier consumes that topic, records one delivery per event ID, and sends subscribed `attempt.declined`, `payment.succeeded` and `payment.expired` JSON webhooks. `Idempotency-Key` carries the event ID; `Gateway-Signature: t=<unix>,v1=<hex>` signs the timestamp, a dot and the exact body with HMAC-SHA256. Receivers check a five-minute timestamp window and deduplicate event IDs. Broker or webhook outages do not block payment commits.
+
+Redis is the first idempotency check for creation and attempts: `SET NX` claims a digest-bound in-flight key, then completion stores its result after commit. TTL defaults to 24 h, bounded memory uses `noeviction`, and operations have a 50 ms deadline. Postgres uniqueness remains the final arbiter on a miss, restart, timeout or outage. Records contain no method token, checkout credential or request body. Edge computes address and /24 IPv4 or /48 IPv6 network fingerprints; only coarse shipping location and fingerprints travel internally. Synthetic integrations use the shared non-secret fingerprint key and may supply simulated network/country; real integrations use a secret key and cannot submit simulated context.
 
 The [bank adapter](architecture.md#bank-adapter-and-iso-8583) translates gateway operations to a selected ISO 8583 or HTTP provider profile. Keep wire encoding, network/session management and bank-specific identifiers out of the domain aggregate. Fraud approval permits proceeding; issuer authentication verifies a separate concern, authorization can reserve funds, capture confirms a financial operation and settlement is established through provider evidence. The minimum synthetic `Sale` path does not implement all these stages.
 
 Financial postings are distinct from domain workflow events and integration messages. The Payments-owned journal records balanced confirmed effects per currency in integer minor units; authorization holds differ from captured funds. Source event identity prevents duplicate postings. Refunds cannot cumulatively exceed captured funds, and corrections use compensating postings/events rather than edited history. The transactional/projection boundary belongs to journal work.
 
-Event schemas and transition catalogs belong to event-sourced aggregate contracts; implementation follows in event storage, processor recovery and refunds.
+Event schemas and representative Go/Python serialization fixtures live in [`contracts/payments/v1`](../../contracts/payments/v1); compact table-driven domain tests check lifecycle transitions and rejection rules. Refunds and the financial journal remain later work.
 
 ## Checkout and recovery sequence
 
@@ -46,29 +48,29 @@ sequenceDiagram
     participant B as Browser
     participant M as External marketplace
     participant E as Gateway edge
-    participant A as Accounts
     participant V as Isolated vault simulator
     participant P as Payments
     participant F as Fraud decision and inference
     participant X as External processor simulator
     participant R as Payments recovery worker
-    participant W as Webhook delivery
+    participant K as Internal Kafka via Debezium
+    participant W as Notifier
     M->>M: Create order and reserve inventory
     M->>E: Create session with scoped key and immutable snapshot
-    E->>A: Authorize merchant and map buyer
-    A-->>E: Gateway identity references
-    E->>P: Idempotent session command
+    E->>P: Full snapshot with configured integration
+    P->>P: Derive merchant/customer UUIDv5 identities
     P-->>E: Session ID, expiry and checkout access
     E-->>M: Hosted URL and session metadata
     M-->>B: Redirect to hosted checkout
-    Note over B,V: API-driven first slice: simulator CLI provisions a scoped opaque token directly at Vault
-    B->>E: Submit synthetic method token
+    B->>E: Submit allow-listed test card and per-submit key
+    E->>V: Edge-only tokenization
+    V-->>E: Scoped opaque token
     E->>V: Authorized method metadata for owning integration
     V-->>E: Method type and stable fingerprint, no behavior
     E->>P: Attempt command with idempotency key
     P->>F: Score decision-time inputs
     F-->>P: Risk outcome and model/policy/feature versions
-    P->>P: Append decision using expected version
+    P->>P: Commit state and decision using expected version
     alt Risk declined
         P->>P: Record attempt decline without processor call
     else Risk accepted
@@ -78,17 +80,17 @@ sequenceDiagram
         V-->>X: Fictional processing fixture
         alt Processor result known
             X-->>P: Confirmed success or decline
-            P->>P: Append result and financial effect if applicable
+            P->>P: Commit state and append result event
         else Timeout or lost response
             P->>P: Retain unknown outcome
             R->>X: Query operation status by stable key
             X-->>R: Stable operation ID and observed result
             R->>P: Recovery command with observation
-            P->>P: Append resolved outcome and required postings
+            P->>P: Commit state and append resolved outcome
         end
     end
-    P->>P: Atomically make committed integration event publishable
-    P-)W: Deliver committed outcome, possibly repeated
+    P-)K: WAL CDC publishes committed ledger bytes
+    K-)W: Deliver committed outcome, possibly repeated
     W-)M: Signed versioned webhook with stable event ID
     M->>M: Deduplicate and apply agreed commerce transition
     E-->>B: Redirect back, possibly before webhook arrives
@@ -102,6 +104,6 @@ Worker crashes, callback races and late results must converge on the same record
 
 ## Later database sharding
 
-Start with one Payments database. When measured capacity requires sharding, route `(integration_id, merchant_id)` through a durable, versioned shard directory. A payment has one authoritative home shard at a time and moves only through a fenced migration; use a stable locator for session/payment lookups rather than guessing a shard from caller-provided tenant fields. Events, idempotency rows, status, encrypted operation requests and the later journal share that home shard, preserving local atomic commits. Keep Accounts and vault ownership separate from Payments sharding.
+Start with one Payments database. When measured capacity requires sharding, route `(integration_id, merchant_id)` through a durable, versioned shard directory. A payment has one authoritative home shard at a time and moves only through a fenced migration; use a stable locator for session/payment lookups rather than guessing a shard from caller-provided tenant fields. Events, idempotency rows, status, encrypted operation requests and the later journal share that home shard, preserving local atomic commits. Keep Edge integration configuration and vault ownership separate from Payments sharding.
 
 Before moving an existing merchant, drain or fence its writers/recovery workers, copy and verify its complete state, switch the directory atomically and reject writes to the old owner. Define rollback and hot-merchant handling; do not add blind dual writes. CDC checkpoints become per shard, while stable event IDs and per-payment versions survive moves. Global sequence positions are shard-local; there is no cross-shard total commit order. Cross-merchant reporting consumes events asynchronously, not cross-shard payment transactions.

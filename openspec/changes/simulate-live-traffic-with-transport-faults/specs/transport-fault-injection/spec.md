@@ -15,12 +15,17 @@ The fault injector SHALL consume `payments.events.v1` and publish to `payments.e
 
 ### Requirement: Configurable delivery faults
 
-The injector SHALL support three independently configured faults:
-- duplicate delivery publishes the record a second time after a delay within a configured range;
-- late delivery holds the record for a delay within a configured range before publishing it;
-- burst hold buffers all records during a configured hold period that repeats at a configured interval, then publishes them together.
+The injector SHALL support three independently configured faults: duplicate delivery, late delivery and burst hold.
 
-Setting a rate or interval to zero SHALL disable that fault. Late delivery MAY reorder one payment's records in the faulty topic.
+#### Scenario: Complete configurable delivery faults contract
+
+- **WHEN** the `Configurable delivery faults` capability is configured or exercised
+- **THEN** The injector SHALL support three independently configured faults:
+  - duplicate delivery publishes the record a second time after a delay within a configured range;
+  - late delivery holds the record for a delay within a configured range before publishing it;
+  - burst hold buffers all records during a configured hold period that repeats at a configured interval, then publishes them together.
+
+  Setting a rate or interval to zero SHALL disable that fault. Late delivery MAY reorder one payment's records in the faulty topic.
 
 #### Scenario: Late event
 

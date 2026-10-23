@@ -17,7 +17,6 @@ class DecisionInput(BaseModel):
     customer_id: str = Field(min_length=1)
     external_buyer_id: str = Field(min_length=1)
     external_order_id: str = Field(min_length=1)
-    merchant_category: str = Field(min_length=1)
     merchant_account_created_at: datetime
     customer_account_created_at: datetime
     attempted_at: datetime

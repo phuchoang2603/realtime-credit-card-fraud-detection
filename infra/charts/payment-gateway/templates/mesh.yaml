@@ -1,0 +1,75 @@
+{{- range $name, $settings := .Values.services }}
+{{- if $settings.enabled }}
+{{- $svc := mergeOverwrite (deepCopy $.Values.defaults) $settings }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+automountServiceAccountToken: false
+{{- if $svc.mesh.enabled }}
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "payment-gateway.selector" $name | nindent 6 }}
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "payment-gateway.selector" $name | nindent 6 }}
+  action: ALLOW
+  {{- if $svc.mesh.rules }}
+  rules:
+    {{- range $svc.mesh.rules }}
+    - from:
+        - source:
+            principals:
+              {{- range .callers }}
+              - {{ printf "cluster.local/ns/%s/sa/%s" $.Release.Namespace . | quote }}
+              {{- end }}
+      to:
+        - operation:
+            ports:
+              {{- range .ports }}
+              - {{ . | quote }}
+              {{- end }}
+    {{- end }}
+  {{- else if or $svc.mesh.callers $svc.mesh.callerNamespaces }}
+  rules:
+    - from:
+        {{- range $svc.mesh.callers }}
+        - source:
+            principals:
+              - {{ printf "cluster.local/ns/%s/sa/%s" $.Release.Namespace . | quote }}
+        {{- end }}
+        {{- with $svc.mesh.callerNamespaces }}
+        - source:
+            namespaces:
+              {{- toYaml . | nindent 14 }}
+        {{- end }}
+      to:
+        - operation:
+            ports:
+              {{- range $svc.networkPolicy.ingressPorts }}
+              - {{ . | quote }}
+              {{- end }}
+  {{- else }}
+  rules: []
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

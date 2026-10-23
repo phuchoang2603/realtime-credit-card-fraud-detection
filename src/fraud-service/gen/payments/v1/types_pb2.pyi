@@ -2,12 +2,22 @@ import datetime
 
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class RiskOutcome(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    RISK_OUTCOME_UNSPECIFIED: _ClassVar[RiskOutcome]
+    RISK_OUTCOME_APPROVE: _ClassVar[RiskOutcome]
+    RISK_OUTCOME_DECLINE: _ClassVar[RiskOutcome]
+RISK_OUTCOME_UNSPECIFIED: RiskOutcome
+RISK_OUTCOME_APPROVE: RiskOutcome
+RISK_OUTCOME_DECLINE: RiskOutcome
 
 class Money(_message.Message):
     __slots__ = ("minor_units", "currency")
@@ -60,22 +70,20 @@ class ShippingLocation(_message.Message):
     def __init__(self, country: _Optional[str] = ..., region: _Optional[str] = ..., postal_code: _Optional[str] = ..., address_fingerprint: _Optional[str] = ...) -> None: ...
 
 class CheckoutSnapshot(_message.Message):
-    __slots__ = ("external_order_id", "total", "items", "merchant_category", "merchant_account_created_at", "customer_account_created_at", "shipping")
+    __slots__ = ("external_order_id", "total", "items", "merchant_account_created_at", "customer_account_created_at", "shipping")
     EXTERNAL_ORDER_ID_FIELD_NUMBER: _ClassVar[int]
     TOTAL_FIELD_NUMBER: _ClassVar[int]
     ITEMS_FIELD_NUMBER: _ClassVar[int]
-    MERCHANT_CATEGORY_FIELD_NUMBER: _ClassVar[int]
     MERCHANT_ACCOUNT_CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     CUSTOMER_ACCOUNT_CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     SHIPPING_FIELD_NUMBER: _ClassVar[int]
     external_order_id: str
     total: Money
     items: _containers.RepeatedCompositeFieldContainer[LineItem]
-    merchant_category: str
     merchant_account_created_at: _timestamp_pb2.Timestamp
     customer_account_created_at: _timestamp_pb2.Timestamp
     shipping: ShippingLocation
-    def __init__(self, external_order_id: _Optional[str] = ..., total: _Optional[_Union[Money, _Mapping]] = ..., items: _Optional[_Iterable[_Union[LineItem, _Mapping]]] = ..., merchant_category: _Optional[str] = ..., merchant_account_created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., customer_account_created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., shipping: _Optional[_Union[ShippingLocation, _Mapping]] = ...) -> None: ...
+    def __init__(self, external_order_id: _Optional[str] = ..., total: _Optional[_Union[Money, _Mapping]] = ..., items: _Optional[_Iterable[_Union[LineItem, _Mapping]]] = ..., merchant_account_created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., customer_account_created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., shipping: _Optional[_Union[ShippingLocation, _Mapping]] = ...) -> None: ...
 
 class PaymentMethod(_message.Message):
     __slots__ = ("type", "fingerprint")
@@ -100,3 +108,19 @@ class AttemptSignals(_message.Message):
     ip_network_fingerprint: str
     user_agent_family: str
     def __init__(self, attempted_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., payment_method: _Optional[_Union[PaymentMethod, _Mapping]] = ..., device_fingerprint: _Optional[str] = ..., ip_country: _Optional[str] = ..., ip_network_fingerprint: _Optional[str] = ..., user_agent_family: _Optional[str] = ...) -> None: ...
+
+class RiskAssessment(_message.Message):
+    __slots__ = ("outcome", "reason_codes", "policy_version", "model_version", "feature_set_version", "risk_score")
+    OUTCOME_FIELD_NUMBER: _ClassVar[int]
+    REASON_CODES_FIELD_NUMBER: _ClassVar[int]
+    POLICY_VERSION_FIELD_NUMBER: _ClassVar[int]
+    MODEL_VERSION_FIELD_NUMBER: _ClassVar[int]
+    FEATURE_SET_VERSION_FIELD_NUMBER: _ClassVar[int]
+    RISK_SCORE_FIELD_NUMBER: _ClassVar[int]
+    outcome: RiskOutcome
+    reason_codes: _containers.RepeatedScalarFieldContainer[str]
+    policy_version: str
+    model_version: str
+    feature_set_version: str
+    risk_score: float
+    def __init__(self, outcome: _Optional[_Union[RiskOutcome, str]] = ..., reason_codes: _Optional[_Iterable[str]] = ..., policy_version: _Optional[str] = ..., model_version: _Optional[str] = ..., feature_set_version: _Optional[str] = ..., risk_score: _Optional[float] = ...) -> None: ...

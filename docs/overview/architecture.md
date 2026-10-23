@@ -1,8 +1,8 @@
 # Platform architecture
 
-This is the **planned target** for an ecommerce payment gateway with fraud decisioning. The repository currently supplies a Go HTTP edge and a Python gRPC fraud service; the target integrates with the refurbished marketplace, takes synthetic payment-method tokens through hosted checkout, evaluates risk, executes simulated processor operations, and delivers durable payment outcomes. It also produces reproducible data for the mini-coursework and its final ML extension.
+This is the **planned target** for an ecommerce payment gateway with fraud decisioning. The repository implements Edge, Payments, notifier, vault and processor simulators alongside the Python fraud service; production acceptance remains subject to the [gateway verification evidence](../deployment/gitops.md#gateway-verification). The gateway integrates with the refurbished marketplace, takes synthetic payment-method tokens through hosted checkout, evaluates risk, executes simulated processor operations, and delivers durable payment outcomes. It also produces reproducible data for the mini-coursework and its final ML extension.
 
-The [marketplace gateway note](https://github.com/phuchoang2603/refurbished-marketplace/blob/main/docs/ecommerce-fraud-gateway.md) supplies commerce context. Marketplace owns buyers, sellers, catalog/prices, carts, orders, shipping choices, and inventory reservation/commit/release. Gateway stores scoped references and immutable checkout snapshots; it does not become their system of record. Shared cluster provisioning, networking, storage operators, secret operators, Argo CD and ClickStack/OTel infrastructure belong to [talos-proxmox](https://github.com/phuchoang2603/talos-proxmox/blob/main/apps/README.md); this repository owns its application deployments and service policies, with application telemetry integration deferred.
+The [marketplace gateway note](https://github.com/phuchoang2603/refurbished-marketplace/blob/main/docs/ecommerce-fraud-gateway.md) supplies commerce context. Marketplace owns buyers, sellers, catalog/prices, carts, orders, shipping choices, and inventory reservation/commit/release. Gateway stores scoped references and immutable checkout snapshots; it does not become their system of record. Shared cluster provisioning, networking, storage operators, secret operators, Argo CD and ClickStack/OTel infrastructure belong to [talos-proxmox](https://github.com/phuchoang2603/talos-proxmox/tree/main/docs/architecture); this repository owns its application deployments and service policies, with application telemetry integration deferred.
 
 ## How the platform is organized
 
@@ -17,12 +17,11 @@ The [marketplace gateway note](https://github.com/phuchoang2603/refurbished-mark
 
 | Planned deployable unit                        | Language / role                                                      | Owned state                                                                                 |
 | ---------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Edge / hosted checkout                         | Go; merchant API and browser checkout boundary                       | Bounded checkout access; authoritative sessions remain with Payments                        |
-| Accounts                                       | Go; integration authorization and identity mapping                   | Integration credentials/metadata, merchant accounts, customer mappings                      |
+| Edge / hosted checkout                         | Go; integration configuration, merchant API and browser checkout boundary                       | Bounded checkout access; authoritative sessions remain with Payments                        |
 | Vault simulator                                | Go; synthetic tokenization and restricted fixture resolution         | Opaque token mappings, encrypted fictional fixtures and stable method fingerprints         |
-| Payments                                       | Go; sessions, attempts, event-sourced payment commands               | Aggregate streams, command results, projections, effect intents, journal, publication state |
-| Redis                                          | Payments-owned disposable cache                                     | Request-bound completed-attempt results with TTL; no authoritative payment or vault state   |
-| Webhook delivery                               | Go; signed versioned delivery with retries                           | Consumer inbox, subscriptions/delivery attempts, retry state                                |
+| Payments                                       | Go; sessions, attempts, versioned payment commands               | Versioned payment/attempt rows, append-only ledger, idempotency and encrypted effect intents |
+| Redis                                          | Payments-owned first idempotency check                                     | Atomic in-flight claims and completed results with TTL; Postgres arbitrates conflicts   |
+| Notifier                                       | Go; signed versioned delivery with retries                           | Consumer inbox, subscriptions/delivery attempts, retry state                                |
 | Fraud decision / feature API                   | Python; validate inputs, retrieve online features, apply risk policy | Versioned policy and decision metadata; no payment authority                                |
 | Model inference                                | Independently deployable Python ML workload                          | Approved immutable model artifact and feature contract                                      |
 | Drift API and periodic drift job               | Python; online ingestion and scheduled comparisons                   | Versioned reference windows, drift results, retraining trigger state                        |
@@ -32,7 +31,7 @@ The [marketplace gateway note](https://github.com/phuchoang2603/refurbished-mark
 | Offline writer, online writer, materialization | Independently deployable jobs                                        | Store-specific writes, checkpoints, freshness/version handling                              |
 | Training pipeline                              | Python ML jobs, including distributed workers                        | Versioned training data, metrics and candidate model artifacts                              |
 
-Processor adapters and the financial journal initially live within Payments. An adapter, SDK, aggregate or class is not a separate microservice. Initial gateway storage is specified in the [minimum gateway design](../../openspec/changes/build-minimum-payment-gateway/design.md); data-platform choices are scoped in the [roadmap](roadmap.md#planned-data-platform-direction). Feature-store and inference framework choices remain open.
+The processor transport adapter lives within Payments; the financial journal remains later work. Merchant/customer IDs are UUIDv5 values derived in Payments from Edge-configured integrations and external seller/buyer IDs; there is no Accounts service or provisioning call. An adapter, SDK, aggregate or class is not a separate microservice. Initial gateway storage is specified in the [minimum gateway design](../../openspec/changes/archive/2026-10-23-build-minimum-payment-gateway/design.md); data-platform choices are scoped in the [roadmap](roadmap.md#planned-data-platform-direction). Feature-store and inference framework choices remain open.
 
 ## Planned deployment view
 
@@ -45,16 +44,14 @@ flowchart TB
     X["Processor / synthetic bank simulator"]
     subgraph gateway["Gateway application workloads - planned"]
         E["Go edge / hosted checkout"]
-        A["Go Accounts"]
-        AS[("Accounts-owned identity store")]
         V["Go vault simulator"]
         VS[("Vault-owned token and encrypted fixture store")]
         P["Go Payments with processor adapter"]
-        PS[("Payments-owned event store, projections and journal")]
-        RC[("Redis completed-attempt cache")]
-        C["Later WAL CDC / Debezium"]
-        Q[("Kafka integration events")]
-        W["Go webhook delivery"]
+        PS[("Payments-owned versioned rows and append-only ledger")]
+        RC[("Redis idempotency claims and results")]
+        C["WAL CDC / Debezium"]
+        Q[("Kafka internal payment events")]
+        W["Go notifier"]
         WS[("Delivery-owned inbox and retry store")]
         F["Python fraud decision / feature API"]
         I["Independent model inference"]
@@ -71,13 +68,11 @@ flowchart TB
     end
     M -->|"1. credentials and checkout snapshot"| E
     B -->|"2. checkout access and synthetic method token"| E
-    E -->|"3. scoped identity lookup"| A
-    A -->|"4. mappings and credential metadata"| AS
     E -->|"5. session and attempt commands"| P
-    E -->|"method metadata only"| V
+    E -->|"Edge-only tokenization and safe metadata"| V
     V -->|"token mappings and encrypted fixtures"| VS
-    P -->|"request-bound result cache; DB fallback"| RC
-    P -->|"6. append events and persist effects"| PS
+    P -->|"first idempotency claim; DB fallback"| RC
+    P -->|"6. update state and append event atomically"| PS
     P -->|"7. attempt risk inputs"| F
     OS -->|"8. current feature values"| F
     F -->|"9. validated feature vector"| I
@@ -100,7 +95,7 @@ flowchart TB
     K -.->|"26. application deployment reconciliation"| E
 ```
 
-Shared platform hosting applies to all gateway/data workloads; the last two edges are representative to keep the view readable and do not give application services ownership of the platform. The simulator CLI tokenizes fictional fixtures directly through the authenticated vault API before checkout. The current processor queries that vault; a future bank connector must define its own credential boundary rather than giving a bank direct access to this service.
+Shared platform hosting applies to all gateway/data workloads; the last two edges are representative to keep the view readable and do not give application services ownership of the platform. Only Edge tokenizes allow-listed test cards, through the hosted form or synthetic-only payment-method route. Integrations consume signed HTTP webhooks and status queries; Kafka remains internal. The current processor queries that vault; a future bank connector must define its own credential boundary rather than giving a bank direct access to this service.
 
 ## Reference material
 

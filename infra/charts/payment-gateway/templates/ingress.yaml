@@ -1,0 +1,36 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.ingress.name }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    networking.istio.io/service-type: ClusterIP
+spec:
+  gatewayClassName: istio
+  listeners:
+    - name: http
+      port: {{ .Values.ingress.port }}
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+{{- with .Values.ingress.tunnel }}
+{{- if .enabled }}
+---
+apiVersion: networking.cfargotunnel.com/v1alpha1
+kind: TunnelBinding
+metadata:
+  name: {{ $.Values.ingress.name }}
+  namespace: {{ $.Release.Namespace }}
+subjects:
+  - name: {{ $.Values.ingress.name }}-istio
+    spec:
+      fqdn: {{ required "ingress.tunnel.hostname is required when the tunnel is enabled" .hostname | quote }}
+      target: http://{{ $.Values.ingress.name }}-istio.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.ingress.port }}
+tunnelRef:
+  kind: ClusterTunnel
+  name: {{ required "ingress.tunnel.clusterTunnel is required when the tunnel is enabled" .clusterTunnel }}
+{{- end }}
+{{- end }}
+{{- end }}

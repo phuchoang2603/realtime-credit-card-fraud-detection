@@ -1,0 +1,95 @@
+name: Go CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  projects:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.projects.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - id: projects
+        run: echo "matrix=$(python3 scripts/go-ci-matrix.py)" >> "$GITHUB_OUTPUT"
+
+  go:
+    name: go (${{ matrix.project }})
+    needs: projects
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.projects.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GOWORK: "off"
+      CI_TEST_REPORTS: /tmp/ci-test-evidence
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6.5.0
+        with:
+          go-version-file: ${{ matrix.project }}/go.mod
+          cache-dependency-path: ${{ matrix.project }}/go.sum
+      - uses: golangci/golangci-lint-action@v9.3.0
+        with:
+          version: v2.13.2
+          install-only: true
+      - name: Lint and test Go module
+        env:
+          GO_PROJECT: ${{ matrix.project }}
+        run: bash scripts/ci-checks.sh go "$GO_PROJECT"
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: go-test-evidence-${{ matrix.id }}
+          path: ${{ env.CI_TEST_REPORTS }}
+          if-no-files-found: warn
+
+  mutation:
+    if: github.event_name != 'push'
+    name: mutation (${{ matrix.project }})
+    needs: projects
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.projects.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      CI_TEST_REPORTS: /tmp/go-mutation-evidence
+      MUTATION_BASE: ${{ github.event.pull_request.base.sha }}
+      MUTATION_MODE: ${{ github.event_name == 'pull_request' && 'diff' || 'full' }}
+      MUTATION_BUDGET: ${{ github.event_name == 'pull_request' && '15m' || '45m' }}
+      GO_PROJECT: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6.5.0
+        with:
+          go-version-file: ${{ matrix.project }}/go.mod
+          cache-dependency-path: ${{ matrix.project }}/go.sum
+      - name: Install mutation testing tool
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+      - name: Report mutations in handwritten Go logic
+        run: bash scripts/check-go-mutations.sh "$GO_PROJECT" "$MUTATION_MODE"
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: go-mutation-evidence-${{ matrix.id }}
+          path: ${{ env.CI_TEST_REPORTS }}
+          if-no-files-found: warn

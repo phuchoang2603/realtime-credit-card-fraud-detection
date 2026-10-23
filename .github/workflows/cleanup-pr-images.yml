@@ -1,0 +1,29 @@
+name: Cleanup PR GHCR images
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: images-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Delete only this PR's package versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PR: ${{ github.event.number }}
+        run: python3 scripts/cleanup-pr-images.py

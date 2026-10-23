@@ -20,9 +20,29 @@ spec:
         destinationServer: https://kubernetes.default.svc
         applications:
           fraud-service:
-            enabled: false
+            enabled: true
             valuesFile:
               - infra/charts/fraud-service/values-prod.yaml
+            syncRetry: &retry
+              limit: -1
+              backoff:
+                duration: 5s
+                factor: 2
+                maxDuration: 3m
+          payment-gateway:
+            enabled: true
+            destinationNamespace: payment-gateway
+            path: infra/charts/payment-gateway
+            valuesFile:
+              - infra/charts/payment-gateway/values-prod.yaml
+            syncRetry: *retry
+          kafka:
+            enabled: true
+            destinationNamespace: payment-gateway
+            path: infra/charts/kafka
+            valuesFile:
+              - infra/charts/kafka/values-prod.yaml
+            syncRetry: *retry
           secret-store:
             enabled: true
             destinationNamespace: argo-cd

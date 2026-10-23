@@ -28,37 +28,6 @@ jobs:
       - name: Lint data products and check generated references
         run: bash scripts/ci-checks.sh contracts
 
-  python:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-python@v7.0.0
-        with:
-          python-version: "3.14"
-      - uses: astral-sh/setup-uv@v10.1.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: src/*/uv.lock
-      - name: Python lint, format and tests
-        run: bash scripts/ci-checks.sh python
-
-  go:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-go@v6.5.0
-        with:
-          go-version-file: src/edge/go.mod
-          cache-dependency-path: src/edge/go.sum
-      - uses: golangci/golangci-lint-action@v9.3.0
-        with:
-          version: v2.13.2
-          working-directory: src/edge
-        env:
-          GOWORK: "off"
-
   helm:
     runs-on: ubuntu-latest
     timeout-minutes: 5

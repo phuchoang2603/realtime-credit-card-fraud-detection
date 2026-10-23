@@ -4,37 +4,90 @@ on:
   pull_request:
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      service:
-        type: choice
-        default: fraud
-        options: [fraud, edge, all]
-        description: Service image to publish from the selected revision
 
 permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: images-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  fraud:
-    if: github.event_name != 'workflow_dispatch' || inputs.service == 'fraud' || inputs.service == 'all'
+  images:
+    name: ${{ matrix.service }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: fraud
+            image-suffix: ""
+            context: src/fraud-service
+            dockerfile: infra/docker/fraud-service.Dockerfile
+          - service: edge
+            image-suffix: /edge
+            context: .
+            dockerfile: infra/docker/go-service.Dockerfile
+            build-args: |
+              SERVICE_PATH=src/payment-gateway/edge
+              BUILD_PKG=./cmd/edge
+              BUILD_BIN=edge
+              EXPOSE_PORT=8080
+          - service: payments
+            image-suffix: /payments
+            context: .
+            dockerfile: infra/docker/go-service.Dockerfile
+            build-args: |
+              SERVICE_PATH=src/payment-gateway/payments
+              BUILD_PKG=./cmd/payments
+              BUILD_BIN=payments
+              EXPOSE_PORT=8000
+          - service: notifier
+            image-suffix: /notifier
+            context: .
+            dockerfile: infra/docker/go-service.Dockerfile
+            build-args: |
+              SERVICE_PATH=src/payment-gateway/notifier
+              BUILD_PKG=./cmd/notifier
+              BUILD_BIN=notifier
+              EXPOSE_PORT=8000
+          - service: vault-simulator
+            image-suffix: /vault-simulator
+            context: .
+            dockerfile: infra/docker/go-service.Dockerfile
+            build-args: |
+              SERVICE_PATH=src/payment-gateway/vault-simulator
+              BUILD_PKG=./cmd/vault-simulator
+              BUILD_BIN=vault-simulator
+              EXPOSE_PORT=8000
+          - service: processor-simulator
+            image-suffix: /processor-simulator
+            context: .
+            dockerfile: infra/docker/go-service.Dockerfile
+            build-args: |
+              SERVICE_PATH=src/payment-gateway/processor-simulator
+              BUILD_PKG=./cmd/processor-simulator
+              BUILD_BIN=processor-simulator
+              EXPOSE_PORT=8000
+          - service: connect-debezium
+            image-suffix: /connect-debezium
+            context: .
+            dockerfile: infra/docker/connect-debezium.Dockerfile
     uses: ./.github/workflows/build-image.yml
     with:
-      image: ${{ github.repository }}
-      context: src/fraud-service
-      dockerfile: infra/docker/fraud-service.Dockerfile
-      publish: ${{ github.event_name != 'pull_request' }}
-  edge:
-    if: github.event_name != 'workflow_dispatch' || inputs.service == 'edge' || inputs.service == 'all'
-    uses: ./.github/workflows/build-image.yml
-    with:
-      image: ${{ github.repository }}/edge
-      context: .
-      dockerfile: infra/docker/go-service.Dockerfile
-      build-args: |
-        SERVICE_PATH=src/edge
-        BUILD_PKG=./cmd/edge
-        BUILD_BIN=edge
-        EXPOSE_PORT=8080
-      publish: ${{ github.event_name != 'pull_request' }}
+      image: ${{ github.repository }}${{ matrix.image-suffix }}
+      context: ${{ matrix.context }}
+      dockerfile: ${{ matrix.dockerfile }}
+      build-args: ${{ matrix.build-args || '' }}
+      publish: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+  pin:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Pin production charts after all main images publish
+        run: bash scripts/pin-service-images.sh

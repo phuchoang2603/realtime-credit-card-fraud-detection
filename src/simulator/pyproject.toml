@@ -37,6 +37,7 @@ module-root = ""
 testpaths = ["tests"]
 
 [tool.ruff]
+extend-exclude = ["notebooks"]
 line-length = 119
 src = ["."]
 target-version = "py314"

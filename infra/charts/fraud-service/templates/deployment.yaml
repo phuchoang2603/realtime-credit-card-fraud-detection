@@ -17,7 +17,12 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Release.Name }}
         payment-gateway/release: {{ .Release.Name }}
+        {{- if .Values.mesh.enabled }}
+        istio.io/dataplane-mode: ambient
+        {{- end }}
     spec:
+      serviceAccountName: {{ .Release.Name }}
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       containers:
         - name: {{ .Release.Name }}

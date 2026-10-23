@@ -1,0 +1,86 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>{{.Title}}</title>
+<style nonce="{{.Nonce}}">
+body{font-family:system-ui,sans-serif;max-width:32rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
+table{width:100%;border-collapse:collapse;margin:1rem 0}
+td,th{padding:.4rem 0;text-align:left;border-bottom:1px solid #ddd}
+label{display:block;margin:1rem 0 .3rem}
+input[type=text]{width:100%;padding:.5rem;font-size:1rem;box-sizing:border-box}
+button{margin-top:1rem;padding:.6rem 1.2rem;font-size:1rem}
+.error{color:#b00020}
+</style>
+{{end}}
+{{define "message"}}{{template "head" .}}</head>
+<body>
+<h1>{{.Title}}</h1>
+<p>{{.Message}}</p>
+</body>
+</html>{{end}}
+{{define "form"}}{{template "head" .}}</head>
+<body>
+<h1>Pay {{.Merchant}}</h1>
+<table>
+<thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead>
+<tbody>{{range .Items}}<tr><td>{{.Product}} ({{.Category}})</td><td>{{.Quantity}}</td><td>{{.Price}}</td></tr>{{end}}</tbody>
+<tfoot><tr><th colspan="2">Total</th><th>{{.Total}}</th></tr></tfoot>
+</table>
+{{if .Reason}}<p class="error" role="alert">{{.Reason}}</p>{{end}}
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+<form method="post" action="/checkout/{{.SessionID}}/pay" autocomplete="off">
+<label for="card_number">Test card number</label>
+<input type="text" id="card_number" name="card_number" inputmode="numeric" autocomplete="off" required>
+<input type="hidden" name="idempotency_key" value="{{.IdempotencyKey}}">
+<input type="hidden" name="csrf_token" value="{{.CSRF}}">
+<input type="hidden" name="device_fingerprint" id="device_fingerprint" value="">
+<button type="submit">Pay {{.Total}}</button>
+</form>
+<script nonce="{{.Nonce}}">
+(function () {
+  var field = document.getElementById('device_fingerprint');
+  if (!field) { return; }
+  var source = [navigator.language, navigator.platform, screen.width + 'x' + screen.height, screen.colorDepth,
+    new Date().getTimezoneOffset(), navigator.hardwareConcurrency || ''].join('|');
+  function fallback() {
+    var hash = 5381;
+    for (var i = 0; i < source.length; i++) { hash = ((hash << 5) + hash + source.charCodeAt(i)) | 0; }
+    return ('00000000' + (hash >>> 0).toString(16)).slice(-8);
+  }
+  function hex(buffer) {
+    return Array.from(new Uint8Array(buffer)).map(function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  }
+  if (window.crypto && window.crypto.subtle) {
+    window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(source)).then(function (digest) {
+      field.value = hex(digest);
+    }, function () { field.value = fallback(); });
+  } else {
+    field.value = fallback();
+  }
+})();
+</script>
+</body>
+</html>{{end}}
+{{define "pending"}}{{template "head" .}}<noscript><meta http-equiv="refresh" content="3"></noscript>
+</head>
+<body>
+<h1>Confirming your payment</h1>
+<p>The bank has not answered yet. This page updates automatically.</p>
+<script nonce="{{.Nonce}}">
+(function () {
+  function poll() {
+    fetch('/checkout/{{.SessionID}}/status', {credentials: 'same-origin', cache: 'no-store'})
+      .then(function (response) { return response.json(); })
+      .then(function (status) {
+        if (status.state !== 'pending') { window.location.reload(); } else { setTimeout(poll, 2000); }
+      })
+      .catch(function () { setTimeout(poll, 4000); });
+  }
+  setTimeout(poll, 2000);
+})();
+</script>
+</body>
+</html>{{end}}

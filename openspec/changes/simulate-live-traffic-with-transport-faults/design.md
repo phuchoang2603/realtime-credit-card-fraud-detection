@@ -1,6 +1,6 @@
 ## Context
 
-`build-minimum-payment-gateway` stores events in the Payments Postgres `events` table (`event_id`, `payment_id`, `event_type`, `payload bytea`), on a CNPG cluster with logical WAL. It also gives Accounts deterministic customer and merchant IDs, and gives synthetic integrations a non-secret fingerprint key. refurbished-marketplace already runs the target Kafka pattern on the same Talos clusters: a `kafka` chart with a Strimzi KRaft cluster, topics declared in values, Kafka Connect built from a Debezium image, and one EventRouter outbox connector per service, including a BYTEA protobuf outbox published with `ByteArrayConverter`. `generate-historical-synthetic-data` derives its random streams per stage and per day, and records a profile digest and the history end in its manifest. talos-proxmox provides the Strimzi operator. The architecture already classifies burst, lateness and duplicate delivery as transport conditions (data-and-ML flows).
+`build-minimum-payment-gateway` stores events in the Payments Postgres append-only `payment_events` ledger and publishes them through a Debezium outbox connector to `payments.events.v1` on a repository-owned Strimzi cluster in commit order, keyed by payment. Payments derives deterministic customer and merchant IDs, and synthetic integrations use a non-secret fingerprint key. refurbished-marketplace already runs the target Kafka pattern on the same Talos clusters: a `kafka` chart with a Strimzi KRaft cluster, topics declared in values, Kafka Connect built from a Debezium image, and one EventRouter outbox connector per service, including a BYTEA protobuf outbox published with `ByteArrayConverter`. `generate-historical-synthetic-data` derives its random streams per stage and per day, and records a profile digest and the history end in its manifest. talos-proxmox provides the Strimzi operator. The architecture already classifies burst, lateness and duplicate delivery as transport conditions (data-and-ML flows).
 
 ## Goals / Non-Goals
 
@@ -14,38 +14,21 @@
 
 - Client-side faults (deliberate duplicate requests, backdated timestamps, client-driven bursts). Bursts for streaming come from the injector.
 - Faults on the labels topic. Label lateness comes only from chargeback delays.
-- Durable chargeback schedules, multiple simulator replicas, Kafka authentication, Connect tracing (application telemetry export is a later change).
+- Durable chargeback schedules, multiple simulator replicas, Kafka authentication.
 
 ## Decisions
 
-### Kafka chart copied from refurbished-marketplace
+### Topics on the gateway's Kafka
 
-`infra/charts/kafka` copies the marketplace chart's structure and its Strimzi settings, which have already been tuned for these clusters:
-
-- `KafkaNodePool` `<cluster>-dual-role` (controller and broker), one replica, JBOD persistent claim with shared KRaft metadata, plus the marketplace's JVM sizes and observed-usage resource requests.
-- `Kafka` in KRaft mode with node pools, Kafka 4.3.1 / metadata 4.3-IV0, internal `plain` (9092) and `tls` (9093) listeners, `auto.create.topics.enable: false` and replication factor 1. The topic operator runs with explicit resources and a non-empty spec, which keeps Argo CD server-side apply valid.
-- `KafkaTopic` resources rendered from an `entities.<name>.topics` list in values. An entity's `connector` is optional, so topics without a source (faulty, labels) use the same list.
-- `KafkaConnect` with `use-connector-resources`, the `KubernetesSecretConfigProvider`, replication factor −1 for internal topics and `metadata.recovery.strategy: none`. The marketplace's OTel tracing block is omitted until application telemetry is exported.
-- A `Role` and `RoleBinding` letting the Connect service account `get` only its dedicated Payments CDC Secret. The database principal is separate from application roles, scoped to the event publication and required replication permissions; exclude private operation requests and vault data.
-- `values-prod.yaml` overrides only storage size and topic retention or partitions, like the marketplace's.
-
-Deviations: the marketplace deploys to a dedicated `kafka` namespace so its Gateway policies don't intercept Kafka TLS. This repository has no such policies, and its spec keeps workloads in `payment-gateway`, so the chart deploys there. Cluster and Connect names are `payment-gateway-kafka` and `payment-gateway-connect`, so nothing collides with `ecommerce-kafka-cluster`. The Connect image (`infra/docker/connect-debezium.Dockerfile`) uses the same Strimzi base and Debezium version, with only the Postgres plugin.
+`build-minimum-payment-gateway` owns `infra/charts/kafka`, the `payment-gateway-kafka` cluster, Connect and the outbox connector publishing `payments.events.v1`. This change only adds two connector-less entries to its `entities.<name>.topics` list:
 
 | Topic | Key | Value | Partitions | Retention |
 |---|---|---|---|---|
-| `payments.events.v1` | `payment_id` | `PaymentEvent` protobuf | 3 | 7 days |
+| `payments.events.v1` (existing) | `payment_id` | `PaymentEvent` protobuf | 3 | 7 days |
 | `payments.events.v1.faulty` | `payment_id` | identical bytes | 3 | 7 days |
-| `fraud.labels.v1` | `attempt_id` | `labels.v1` protobuf | 1 | 30 days |
+| `fraud.labels.v1` | `attempt_id` | `payments.v1.FraudLabel` protobuf | 1 | 30 days |
 
-The faulty topic has the same partition count as the clean one, so keys map to the same partitions. A 7-day retention on the clean topic allows replaying it into streaming jobs to compare results.
-
-### Events table as the Debezium outbox
-
-The `payments` entity's connector uses the marketplace's Postgres outbox template on the existing `events` table: `pgoutput`, slot `debezium_payments_slot`, `publication.autocreate.mode: filtered`, and `table.include.list: public.events`. EventRouter maps `table.field.event.id: event_id`, `table.field.event.key: payment_id` and `table.field.event.payload: payload`. `route.topic.replacement` is the constant `payments.events.v1`, so every event type lands in one topic. It uses `StringConverter` for keys and `ByteArrayConverter` for values, so the stored protobuf bytes are published unchanged. Snapshot mode stays at the default, so events committed before the connector existed are published too. `autoRestart` recovers from startup failures, for example the database not being ready yet.
-
-The WAL gives commit order and never contains rolled-back appends. A payment's appends commit in version order because of the expected-version check, so per-payment order holds without the watermark logic a polling relay would need. Connect stores its source offsets, which gives at-least-once resumption.
-
-Alternative considered: a publication worker inside Payments that polls by global position under a `pg_snapshot_xmin` watermark and keeps its own checkpoint. Rejected because it adds Kafka code, a checkpoint table and a leader election to Payments, while the marketplace already operates the Debezium path on these clusters. The template's extra columns (`publish_attempts`, `published_at`) belong to the marketplace's own outbox tables and aren't needed here.
+The faulty topic has the same partition count as the clean one, so keys map to the same partitions. The clean topic also feeds the gateway's webhook notifier; the injector uses its own consumer group and never writes to the clean topic, so webhooks are unaffected by injected faults.
 
 ### Topic-to-topic fault injector
 
@@ -70,27 +53,27 @@ Alternatives considered: fault transforms inside the outbox connector, which wou
 
 ### Live simulator continues the historical dataset
 
-`live` reads the dataset manifest from `synthetic-source` and rebuilds profiles and the scenario schedule with the generator's per-stage and per-day streams. It compares the profile digest and refuses to run on a mismatch, a start before history end, or a gap larger than `max_gap` (default 2 days). Evidence runs therefore generate a continuation dataset that ends on the run date. On start it provisions every profile merchant with the idempotent `PUT /v1/merchants`, so retries are harmless.
+`live` reads the dataset manifest from `synthetic-source` and rebuilds profiles and the scenario schedule with the generator's per-stage and per-day streams. It compares the profile digest and refuses to run on a mismatch, a start before history end, or a gap larger than `max_gap` (default 2 days). Evidence runs therefore generate a continuation dataset that ends on the run date.
 
-Before arrivals start, the simulator uses integration-scoped tokenization credentials to register the required fictional card/behavior fixtures with `vault.v1` and keeps their opaque tokens in a private run-local inventory. It cannot call metadata/processing resolution or access the vault database. Do not seed token randomness or publish/log token values. On restart it may obtain new tokens for the same logical fixtures; the vault's deterministic method fingerprints preserve historical/live identity parity.
+Before arrivals start, the simulator tokenizes each fictional card it needs by posting its test card number to `POST /v1/payment-methods` and keeps the opaque tokens in a private run-local inventory. The gateway's allow-list maps the generator's card identity (`card-NNNNNN`) and behavior to one deterministic Luhn-valid number, so the vault's method fingerprint equals the historical fingerprint for that card. Do not publish or log token values or card numbers. On restart it may obtain new tokens for the same cards; fingerprints stay equal.
 
-Arrivals follow a seeded Poisson process at `traffic.rate`. Each arrival samples a purchase from the rebuilt behavior model for the current simulated day, including active scenarios. The simulator then calls payment creation and one or more attempts. Each attempt carries a seeded idempotency key, simulated client context and the vault-issued token for its selected fixture. Keep the original token and request content unchanged on a transport retry. An asyncio loop with an httpx client and a concurrency limit keeps request latency from slowing the arrival process. When the gateway saturates, the shortfall shows up in the logged arrival lag instead of being silently dropped.
+Arrivals follow a seeded Poisson process at `traffic.rate`. Each arrival samples a purchase from the rebuilt behavior model for the current simulated day, including active scenarios. The simulator then calls payment creation and one or more attempts. Payment creation carries a seeded idempotency key and the full snapshot; each attempt carries a seeded idempotency key, simulated client context and the token for its selected card. Keep the original token and request content unchanged on a transport retry. An asyncio loop with an httpx client and a concurrency limit keeps request latency from slowing the arrival process. When the gateway saturates, the shortfall shows up in the logged arrival lag instead of being silently dropped.
 
 Labels: a truth label is produced after each attempt response. Chargebacks wait in an in-memory heap at `delay × label_time_scale`. When one is due, the simulator calls `GET /v1/payments/{id}` and publishes the chargeback only if that attempt succeeded.
 
 ### One configuration file
 
-`configs/live-v1.yaml` has `dataset` (version, location), `traffic` (edge URL, rate, concurrency, `max_gap`, `label_time_scale`), `vault` (endpoint and transport trust configuration), `faults` (seed; `duplicate` and `late`, each with rate and delay range; `burst` with interval and hold; `max_pending`; report interval) and `kafka` (bootstrap servers, topic names). Pydantic validates it at startup. Integration, vault-tokenization and S3 credentials come only from runtime secret injection; never put token inventories or credentials in the dataset manifest.
+`configs/live-v1.yaml` has `dataset` (version, location), `traffic` (edge URL, rate, concurrency, `max_gap`, `label_time_scale`), `faults` (seed; `duplicate` and `late`, each with rate and delay range; `burst` with interval and hold; `max_pending`; report interval) and `kafka` (bootstrap servers, topic names). Pydantic validates it at startup. Integration and S3 credentials come only from runtime secret injection; never put token inventories or credentials in the dataset manifest.
 
 ### Deployment
 
-One `simulator` image, with the `live` and `faults` commands as two Deployments in one chart. Each runs one replica with the `Recreate` strategy, so a rollout never runs two simulators at once. The chart is disabled by default and explicitly enabled for synthetic evidence runs through the configured prod root, then disabled after the run. Both connect to `payment-gateway-kafka-kafka-bootstrap:9092`. Only `live` receives the scoped integration/vault-tokenization credentials and vault network access; the fault injector does not.
+One `simulator` image, with the `live` and `faults` commands as two Deployments in one chart. Each runs one replica with the `Recreate` strategy, so a rollout never runs two simulators at once. The chart is disabled by default and explicitly enabled for synthetic evidence runs through the configured prod root, then disabled after the run. Both connect to `payment-gateway-kafka-kafka-bootstrap:9092`. Only `live` receives the synthetic integration's API key and Edge network access; the fault injector does not.
 
-The app-of-apps gains `kafka` and `simulator` children next to the gateway workloads. Prod uses `infra/charts/kafka/values-prod.yaml`. Child sync retries absorb Strimzi CRDs, the database and the Payments Secret appearing in any order, as in the marketplace.
+The app-of-apps gains a `simulator` child next to the gateway's `kafka` application. Child sync retries absorb the topics and Secrets appearing in any order.
 
 ### Libraries
 
-Python: confluent-kafka for consumer and producer with manual commits, httpx for async HTTP, and the existing protobuf bindings and pydantic. Kafka Connect: Strimzi `kafka:1.2.0-kafka-4.3.1` with the Debezium Postgres connector 3.7.0.Final, matching the marketplace.
+Python: confluent-kafka for consumer and producer with manual commits, httpx for async HTTP, and the existing protobuf bindings and pydantic.
 
 ## Risks / Trade-offs
 
@@ -99,18 +82,16 @@ Python: confluent-kafka for consumer and producer with manual commits, httpx for
 - [Restart duplicates add to injected duplicates] → The summary counts injected duplicates. Topic-level duplicate counts above that are attributed to restarts in the evidence.
 - [Hash-based rates drift at small counts] → The summary reports observed rates next to configured ones.
 - [Gateway throughput limits the live rate] → Streaming burst load comes from injector holds, not client rate.
-- [Unauthenticated internal Kafka listener] → ClusterIP only, inside `payment-gateway`; authentication belongs to #63.
-- [The replication slot retains WAL while Connect or Kafka is down] → Same exposure the marketplace accepts. Payments' CNPG volume sizing and slot lag are checked in the outage evidence, and a long outage is resolved by dropping and recreating the connector.
-- [Single broker with replication factor 1] → Matches the marketplace's prod choice to save RAM. Kafka is a delivery copy, and Postgres keeps the authoritative events.
+- [Live traffic shares the clean topic with the notifier] → The synthetic integration has no webhook URL, so the notifier skips its events; live rate is bounded so it cannot starve the notifier on the single broker.
 - [Generator changes invalidate old datasets for continuation] → The digest check fails fast. Generating a new continuation dataset takes minutes.
 
 ## Migration Plan
 
-1. Validate locally/in integration, then deploy Kafka through the configured prod root. The connector snapshots existing events, then streams new ones; no dev root is created.
-2. Generate a continuation dataset ending on the run date and provision scoped integration/vault-tokenization credentials through Doppler.
+1. Add the two topics to the gateway's Kafka application through the configured prod root; no dev root is created.
+2. Generate a continuation dataset ending on the run date and provision the synthetic integration's API key through Doppler.
 3. Deploy the simulator chart. Record evidence with each fault enabled alone, then all together.
 
-Rollback: disable the simulator chart, and delete the connector to stop publication. Committed events stay in Postgres. A recreated connector with a new slot snapshots again, so consumers see duplicates, not gaps.
+Rollback: disable the simulator chart. Publication to the clean topic is owned by the gateway and keeps running.
 
 ## Open Questions
 

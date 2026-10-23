@@ -36,9 +36,11 @@ jobs:
         id: meta
         with:
           images: ghcr.io/${{ inputs.image }}
+          flavor: latest=false
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=,format=short
+            type=raw,value=pr-${{ github.event.number }}-${{ github.sha }},enable=${{ github.event_name == 'pull_request' }}
+            type=raw,value=main-${{ github.sha }},enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       - uses: docker/build-push-action@v6.19.2
         with:
           context: ${{ inputs.context }}

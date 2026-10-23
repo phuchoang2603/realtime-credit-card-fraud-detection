@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC
 
 from app.domain.decision import DecisionInput
-from fraud.v2 import fraud_pb2
+from fraud.v1 import fraud_pb2
 
 
 def decision_input_from_proto(request: fraud_pb2.DecideRequest) -> DecisionInput:
@@ -41,7 +41,6 @@ def decision_input_from_proto(request: fraud_pb2.DecideRequest) -> DecisionInput
             "customer_id": request.customer.customer_id,
             "external_buyer_id": request.customer.external_buyer_id,
             "external_order_id": snapshot.external_order_id,
-            "merchant_category": snapshot.merchant_category,
             "merchant_account_created_at": snapshot.merchant_account_created_at.ToDatetime(tzinfo=UTC),
             "customer_account_created_at": snapshot.customer_account_created_at.ToDatetime(tzinfo=UTC),
             "attempted_at": signals.attempted_at.ToDatetime(tzinfo=UTC),

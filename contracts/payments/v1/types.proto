@@ -1,5 +1,7 @@
 syntax = "proto3";
 package payments.v1;
+
+option go_package = "github.com/phuchoang2603/payment-gateway-fraud-detection/shared/proto/payments/v1;paymentsv1";
 import "google/protobuf/timestamp.proto";
 
 // Amounts are integer minor units in the specified ISO 4217 currency.
@@ -24,10 +26,9 @@ message CheckoutSnapshot {
   string external_order_id = 1;
   Money total = 2;
   repeated LineItem items = 3;
-  string merchant_category = 4;
-  google.protobuf.Timestamp merchant_account_created_at = 5;
-  google.protobuf.Timestamp customer_account_created_at = 6;
-  ShippingLocation shipping = 7;
+  google.protobuf.Timestamp merchant_account_created_at = 4;
+  google.protobuf.Timestamp customer_account_created_at = 5;
+  ShippingLocation shipping = 6;
 }
 message PaymentMethod { string type = 1; string fingerprint = 2; }
 // Unobserved optional signals remain absent, not empty or zero.
@@ -38,4 +39,18 @@ message AttemptSignals {
   optional string ip_country = 4;
   optional string ip_network_fingerprint = 5;
   optional string user_agent_family = 6;
+}
+enum RiskOutcome {
+  RISK_OUTCOME_UNSPECIFIED = 0;
+  RISK_OUTCOME_APPROVE = 1;
+  RISK_OUTCOME_DECLINE = 2;
+}
+// Shared by fraud.v1 Decide and RiskDecisionRecorded.
+message RiskAssessment {
+  RiskOutcome outcome = 1;
+  repeated string reason_codes = 2;
+  string policy_version = 3;
+  optional string model_version = 4;
+  optional string feature_set_version = 5;
+  optional double risk_score = 6;
 }

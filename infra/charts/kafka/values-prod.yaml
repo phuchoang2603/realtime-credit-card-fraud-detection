@@ -1,0 +1,14 @@
+kafka:
+  replicas: 1
+  replicationFactor: 1
+  minInsyncReplicas: 1
+  storage:
+    size: 10Gi
+
+entities:
+  payments:
+    connector:
+      databaseName: payments
+
+global:
+  imageTag: 3f48c07

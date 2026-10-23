@@ -6,7 +6,8 @@ secretStore:
   namespaces:
     - fraud-ml-prod
     - fraud-data-prod
+    - payment-gateway
   tokenSecret:
-    namespace: fraud-ml-prod
+    namespace: operators
     name: fraud-doppler-token
     key: dopplerToken

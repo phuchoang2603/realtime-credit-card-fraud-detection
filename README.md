@@ -22,8 +22,9 @@ The current repository contains a health-only Go HTTP edge and a Python gRPC fra
 │   ├── charts/            # Application Helm charts
 │   └── docker/            # Service Dockerfiles and reusable Go template
 ├── openspec/              # Capability specifications and change plans
-├── src/edge/              # Public HTTP edge and generated gRPC client
-├── src/fraud-service/     # gRPC fraud decision service, tests and generated bindings
+├── src/payment-gateway/   # Go gateway services, shared module and workspace
+├── src/fraud-service/     # Python fraud decision service
+├── src/simulator/         # Historical data simulator
 ├── devenv.nix             # Local development environment
 ├── devenv.yaml            # Devenv inputs
 └── devenv.lock            # Locked environment dependencies
