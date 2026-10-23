@@ -10,5 +10,5 @@ entities:
     connector:
       databaseName: payments
 
-connect:
+global:
   imageTag: 3f48c07

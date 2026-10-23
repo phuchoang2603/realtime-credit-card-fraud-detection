@@ -84,3 +84,14 @@ jobs:
       dockerfile: ${{ matrix.dockerfile }}
       build-args: ${{ matrix.build-args || '' }}
       publish: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+  pin:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Pin production charts after all main images publish
+        run: bash scripts/pin-service-images.sh
