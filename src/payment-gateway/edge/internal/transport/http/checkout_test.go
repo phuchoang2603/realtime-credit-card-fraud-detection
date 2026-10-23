@@ -194,7 +194,6 @@ func TestCrossSiteSubmissionIsRejected(t *testing.T) {
 	tests := map[string]submission{
 		"foreign origin": {form: form, number: "4242424242424242", origin: "https://evil.example"},
 		"null origin":    {form: form, number: "4242424242424242", origin: "null"},
-		"no origin":      {form: form, number: "4242424242424242", origin: "-"},
 		"wrong csrf":     {form: form, number: "4242424242424242", csrf: "AAAA"},
 		"empty csrf":     {form: formState{key: form.key}, number: "4242424242424242"},
 	}
@@ -206,6 +205,12 @@ func TestCrossSiteSubmissionIsRejected(t *testing.T) {
 			}
 		})
 	}
+	h.world.mu.Lock()
+	tokenize, starts := h.world.tokenizeCalls, len(h.world.startCalls)
+	h.world.mu.Unlock()
+	if tokenize != 0 || starts != 0 {
+		t.Fatalf("rejected submissions reached the vault or Payments: tokenize=%d starts=%d", tokenize, starts)
+	}
 	other := h.createPayment("order-2", realKey, "order-2")
 	otherCookie := h.cookie(other)
 	if res := h.submit(other, otherCookie, submission{form: form, number: "4242424242424242"}); res.StatusCode != http.StatusForbidden {
@@ -214,15 +219,32 @@ func TestCrossSiteSubmissionIsRejected(t *testing.T) {
 	if res := h.submit(payment, nil, submission{form: form, number: "4242424242424242"}); res.StatusCode != http.StatusNotFound {
 		t.Fatalf("no cookie = %d", res.StatusCode)
 	}
+}
 
-	refererOnly := h.submit(payment, cookie, submission{form: form, number: "4000000000009995", origin: "-"})
-	if refererOnly.StatusCode != http.StatusForbidden {
-		t.Fatalf("missing Origin and Referer = %d", refererOnly.StatusCode)
+func TestSubmissionWithoutOriginOrRefererUsesTheCSRFToken(t *testing.T) {
+	h := newHarness(t)
+	payment := h.createPayment("order-1", realKey, "order-1")
+	cookie := h.cookie(payment)
+	form := parseForm(t, h.page(payment, cookie).body)
+
+	res := h.submit(payment, cookie, submission{form: form, number: "4242424242424242", origin: "-"})
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("no Origin or Referer = %d: %s", res.StatusCode, res.body)
 	}
-	h.world.mu.Lock()
-	defer h.world.mu.Unlock()
-	if h.world.tokenizeCalls != 0 || len(h.world.startCalls) != 0 {
-		t.Fatalf("rejected submissions reached the vault or Payments: tokenize=%d starts=%d", h.world.tokenizeCalls, len(h.world.startCalls))
+	if res := h.submit(payment, cookie, submission{form: form, number: "4242424242424242", origin: "-", csrf: "AAAA"}); res.StatusCode != http.StatusForbidden {
+		t.Fatalf("no Origin with a wrong CSRF token = %d", res.StatusCode)
+	}
+}
+
+func TestSubmissionFromTheServingHostIsAccepted(t *testing.T) {
+	h := newHarness(t)
+	payment := h.createPayment("order-1", realKey, "order-1")
+	cookie := h.cookie(payment)
+	form := parseForm(t, h.page(payment, cookie).body)
+
+	res := h.submit(payment, cookie, submission{form: form, number: "4242424242424242", origin: h.server.URL})
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("origin of the serving host = %d: %s", res.StatusCode, res.body)
 	}
 }
 

@@ -114,7 +114,7 @@ func (s *Server) render(w http.ResponseWriter, status int, name string, data pag
 	header.Set("X-Frame-Options", "DENY")
 	header.Set("X-Content-Type-Options", "nosniff")
 	header.Set("Content-Security-Policy", "default-src 'none'; script-src 'nonce-"+nonce+"'; style-src 'nonce-"+nonce+
-		"'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+		"'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
 	w.Header().Set("Content-Length", strconv.Itoa(buffer.Len()))
 	w.WriteHeader(status)
 	_, _ = w.Write(buffer.Bytes())

@@ -5,12 +5,14 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/application"
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/domain"
+	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/requestid"
 )
 
 const (
@@ -36,13 +38,29 @@ func (s *Server) sameSite(r *http.Request) bool {
 		return false
 	}
 	if origin := r.Header.Get("Origin"); origin != "" {
-		return origin == s.origin
+		return origin == s.origin || origin == requestOrigin(r)
 	}
 	if referer := r.Header.Get("Referer"); referer != "" {
 		parsed, err := url.Parse(referer)
-		return err == nil && parsed.Scheme+"://"+parsed.Host == s.origin
+		if err != nil {
+			return false
+		}
+		from := parsed.Scheme + "://" + parsed.Host
+		return from == s.origin || from == requestOrigin(r)
 	}
-	return false
+	return true
+}
+
+func requestOrigin(r *http.Request) string {
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	switch forwarded := r.Header.Get("X-Forwarded-Proto"); forwarded {
+	case "http", "https":
+		scheme = forwarded
+	}
+	return scheme + "://" + r.Host
 }
 
 func (s *Server) sessionToken(w http.ResponseWriter, r *http.Request) (sessionID, token string, ok bool) {
@@ -118,6 +136,13 @@ func (s *Server) redirectToMerchant(w http.ResponseWriter, r *http.Request, paym
 
 func (s *Server) checkoutPay(w http.ResponseWriter, r *http.Request) {
 	if !s.sameSite(r) {
+		slog.WarnContext(r.Context(), "checkout submission rejected",
+			"service", "edge",
+			"request_id", requestid.From(r.Context()),
+			"origin", r.Header.Get("Origin"),
+			"referer", r.Header.Get("Referer"),
+			"sec_fetch_site", r.Header.Get("Sec-Fetch-Site"),
+			"expected_origin", s.origin)
 		s.renderMessage(w, http.StatusForbidden, "Request blocked", "This request did not come from the checkout page.")
 		return
 	}
