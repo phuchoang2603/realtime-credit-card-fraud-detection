@@ -64,7 +64,11 @@ case "${1:-}" in
   go)
     report_dir="$(realpath -m "${CI_TEST_REPORTS:-$(mktemp -d)}")"
     mkdir -p "$report_dir"
-    check_projects go.mod check_go
+    if [[ -n "${2:-}" ]]; then
+      check_go "$2"
+    else
+      check_projects go.mod check_go
+    fi
     ;;
   contracts)
     TMPDIR_CHECKS="$(mktemp -d)"
