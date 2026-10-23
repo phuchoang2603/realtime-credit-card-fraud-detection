@@ -93,6 +93,8 @@ case "${1:-}" in
     while IFS= read -r -d '' manifest; do
       check_chart "$(dirname "$manifest")"
     done < <(find infra -type f -name Chart.yaml -print0)
+    helm lint infra/argocd/app-of-apps --set imageUpdater.enabled=true --set global.targetRevision=main
+    helm template check infra/argocd/app-of-apps --set imageUpdater.enabled=true --set global.targetRevision=main > /dev/null
     ;;
   *)
     printf 'Usage: %s {contracts|python|go|go-mutation|helm}\n' "$0" >&2
