@@ -48,7 +48,7 @@ jobs:
     timeout-minutes: 20
     env:
       GOWORK: "off"
-      GATEWAY_TEST_REPORTS: ${{ runner.temp }}/gateway-tests
+      GATEWAY_TEST_REPORTS: ${{ github.workspace }}/../gateway-test-evidence
       MUTATION_BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@v7.0.1
@@ -75,7 +75,7 @@ jobs:
         if: always()
         with:
           name: gateway-test-evidence
-          path: ${{ runner.temp }}/gateway-tests
+          path: ${{ env.GATEWAY_TEST_REPORTS }}
           if-no-files-found: warn
 
   helm:
