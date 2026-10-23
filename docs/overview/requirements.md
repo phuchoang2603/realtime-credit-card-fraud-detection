@@ -1,6 +1,6 @@
 # Requirements
 
-These requirements describe the planned system, not delivered behavior. **First slice** means the API-driven synthetic gateway in the [minimum gateway plan](../../openspec/changes/build-minimum-payment-gateway/design.md); **later** means a separate implementation increment.
+These requirements describe the planned system, not delivered behavior. **First slice** means the API-driven synthetic gateway in the [minimum gateway plan](../../openspec/changes/archive/2026-10-23-build-minimum-payment-gateway/design.md); **later** means a separate implementation increment.
 
 ## Functional requirements
 

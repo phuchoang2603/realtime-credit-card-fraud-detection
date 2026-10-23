@@ -57,7 +57,7 @@ Keep disputes, merchant refunds, processor uncertainty and fraud ground truth di
 
 ## Mapping the research into the gateway
 
-The [processor simulator](../../openspec/changes/build-minimum-payment-gateway/design.md#processor-simulator-store-and-faults) stands in for the external payment provider. It accepts a stable operation key, stores the simulated outcome and answers status queries. For example, it can persist success but delay the response past Payments' deadline: Payments records an unknown outcome, then recovers the existing success without charging twice. Fraud approval only permits proceeding to processing; it does not prove that the provider accepted or settled a payment.
+The [processor simulator](../../openspec/changes/archive/2026-10-23-build-minimum-payment-gateway/design.md#processor-simulator-store-and-faults) stands in for the external payment provider. It accepts a stable operation key, stores the simulated outcome and answers status queries. For example, it can persist success but delay the response past Payments' deadline: Payments records an unknown outcome, then recovers the existing success without charging twice. Fraud approval only permits proceeding to processing; it does not prove that the provider accepted or settled a payment.
 
 | Concern | Proposed owner and behavior |
 | --- | --- |

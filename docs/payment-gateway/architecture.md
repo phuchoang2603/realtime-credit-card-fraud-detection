@@ -1,6 +1,6 @@
 # Payment gateway architecture
 
-This is the **planned target** for the payment gateway and its fraud decisioning path; the [verification evidence](../../openspec/changes/build-minimum-payment-gateway/verification.md) records what the prod deployment currently proves. The implemented slice supplies Edge, Payments, notifier, vault and processor simulators, plus Python fraud decisioning; it takes synthetic payment-method tokens through hosted checkout, evaluates risk, executes simulated processor operations, and delivers durable payment outcomes.
+This is the **planned target** for the payment gateway and its fraud decisioning path; the [verification evidence](../../openspec/changes/archive/2026-10-23-build-minimum-payment-gateway/verification.md) records what the prod deployment currently proves. The implemented slice supplies Edge, Payments, notifier, vault and processor simulators, plus Python fraud decisioning; it takes synthetic payment-method tokens through hosted checkout, evaluates risk, executes simulated processor operations, and delivers durable payment outcomes.
 
 ## How the gateway is organized
 
@@ -40,7 +40,7 @@ Before implementing a real bank connection, obtain its integration profile and c
 
 For a concrete example of profile differences, [Worldpay's Lync host format](https://docs.worldpay.com/core/lync-iso-8583-message-specification/host-message-format) uses `0100/0110` for authorization, `0220/0230` for completion/capture, `0400/0410` for reversal, and ASCII hexadecimal bitmaps. Its timeout reversal behavior is part of that provider's interface. This is evidence for profile-specific design, not a Vietnamese-bank field map to copy.
 
-Delivery proceeds from the gRPC operation simulator to a **named synthetic ISO profile with an actual encoded request/response exchange**. The synthetic ISO increment must prove byte fixtures, response correlation, duplicates, late responses and uncertain-outcome recovery without live cards. A selected bank's certified profile would require a separate production scope, including how to verify financial outcomes; live connectivity is not a deliverable of this simplified project. The current gRPC simulator is not an ISO 8583 implementation. The [minimum gateway plan](../../openspec/changes/build-minimum-payment-gateway/design.md#adopted-bank-integration-and-policy-direction) records these follow-up gates.
+Delivery proceeds from the gRPC operation simulator to a **named synthetic ISO profile with an actual encoded request/response exchange**. The synthetic ISO increment must prove byte fixtures, response correlation, duplicates, late responses and uncertain-outcome recovery without live cards. A selected bank's certified profile would require a separate production scope, including how to verify financial outcomes; live connectivity is not a deliverable of this simplified project. The current gRPC simulator is not an ISO 8583 implementation. The [minimum gateway plan](../../openspec/changes/archive/2026-10-23-build-minimum-payment-gateway/design.md#adopted-bank-integration-and-policy-direction) records these follow-up gates.
 
 ### Vietnam policy adoption
 

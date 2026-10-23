@@ -9,8 +9,7 @@ spec:
   project: realtime-credit-card-fraud-detection
   source:
     repoURL: https://github.com/phuchoang2603/payment-gateway-fraud-detection.git
-    # TEMP: verification of build-minimum-payment-gateway; revert to main before merge.
-    targetRevision: &revision feat/build-minimum-payment-gateway
+    targetRevision: &revision main
     path: infra/argocd/app-of-apps
     helm:
       releaseName: payment-gateway-prod
