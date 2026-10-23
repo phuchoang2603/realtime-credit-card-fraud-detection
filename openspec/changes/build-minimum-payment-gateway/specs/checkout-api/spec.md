@@ -57,7 +57,7 @@ The edge SHALL keep shipping country, region and postal code, replace the recipi
 
 ### Requirement: Hosted checkout page
 
-Edge SHALL serve a hosted checkout page at `/checkout/{session_id}` authorized by the session's checkout token, showing the payment's amount and merchant and a card form. It SHALL move the token from the URL into a secure, HTTP-only, session-scoped cookie, bind form submissions to the session against cross-site requests, and give each submission a stable idempotency key. On submit it SHALL tokenize the card number through the vault, discard it without storing or logging it, and start an attempt with the returned token. A success SHALL redirect to the payment's return URL, a decline SHALL show the reason and allow another attempt while the payment is open, and a pending outcome SHALL show a status page. Card numbers outside the vault's test-card allow-list SHALL be rejected without starting an attempt.
+Edge SHALL serve a hosted checkout page at `/checkout/{session_id}` authorized by the session's checkout token, showing the payment's amount and merchant and a card form. It SHALL move the token from the URL into a secure, HTTP-only, session-scoped cookie, bind form submissions to the session against cross-site requests, and give each submission a stable idempotency key. The page's content security policy SHALL let the form post only to itself while allowing the browser to follow the success redirect to the payment's return origin. On submit it SHALL tokenize the card number through the vault, discard it without storing or logging it, and start an attempt with the returned token. A success SHALL redirect to the payment's return URL, a decline SHALL show the reason and allow another attempt while the payment is open, and a pending outcome SHALL show a status page. Card numbers outside the vault's test-card allow-list SHALL be rejected without starting an attempt.
 
 #### Scenario: Decline then retry
 
@@ -73,6 +73,16 @@ Edge SHALL serve a hosted checkout page at `/checkout/{session_id}` authorized b
 
 - **WHEN** the same form submission is posted twice
 - **THEN** one attempt exists and both responses show its result
+
+#### Scenario: Foreign origin
+
+- **WHEN** a submission presents an origin other than the serving host or the configured public origin
+- **THEN** Edge rejects it without tokenizing the card or starting an attempt
+
+#### Scenario: Opaque origin
+
+- **WHEN** a submission presents an opaque `Origin: null` with the session cookie and the page's CSRF token
+- **THEN** Edge treats the header as absent, accepts the submission through the session and CSRF binding, and still rejects the same request without that token
 
 ### Requirement: Client context
 
