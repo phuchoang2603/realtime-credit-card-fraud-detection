@@ -37,7 +37,7 @@ func (s *Server) sameSite(r *http.Request) bool {
 	if r.Header.Get("Sec-Fetch-Site") == "cross-site" {
 		return false
 	}
-	if origin := r.Header.Get("Origin"); origin != "" {
+	if origin := r.Header.Get("Origin"); origin != "" && origin != "null" {
 		return origin == s.origin || origin == requestOrigin(r)
 	}
 	if referer := r.Header.Get("Referer"); referer != "" {

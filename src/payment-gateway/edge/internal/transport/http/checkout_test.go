@@ -193,7 +193,6 @@ func TestCrossSiteSubmissionIsRejected(t *testing.T) {
 
 	tests := map[string]submission{
 		"foreign origin": {form: form, number: "4242424242424242", origin: "https://evil.example"},
-		"null origin":    {form: form, number: "4242424242424242", origin: "null"},
 		"wrong csrf":     {form: form, number: "4242424242424242", csrf: "AAAA"},
 		"empty csrf":     {form: formState{key: form.key}, number: "4242424242424242"},
 	}
@@ -233,6 +232,21 @@ func TestSubmissionWithoutOriginOrRefererUsesTheCSRFToken(t *testing.T) {
 	}
 	if res := h.submit(payment, cookie, submission{form: form, number: "4242424242424242", origin: "-", csrf: "AAAA"}); res.StatusCode != http.StatusForbidden {
 		t.Fatalf("no Origin with a wrong CSRF token = %d", res.StatusCode)
+	}
+}
+
+func TestOpaqueOriginUsesTheCSRFToken(t *testing.T) {
+	h := newHarness(t)
+	payment := h.createPayment("order-1", realKey, "order-1")
+	cookie := h.cookie(payment)
+	form := parseForm(t, h.page(payment, cookie).body)
+
+	res := h.submit(payment, cookie, submission{form: form, number: "4242424242424242", origin: "null"})
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("null Origin = %d: %s", res.StatusCode, res.body)
+	}
+	if res := h.submit(payment, cookie, submission{form: form, number: "4242424242424242", origin: "null", csrf: "AAAA"}); res.StatusCode != http.StatusForbidden {
+		t.Fatalf("null Origin with a wrong CSRF token = %d", res.StatusCode)
 	}
 }
 
