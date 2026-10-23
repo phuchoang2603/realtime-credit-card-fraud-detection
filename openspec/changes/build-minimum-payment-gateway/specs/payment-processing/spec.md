@@ -6,7 +6,12 @@ Own authoritative payment state as versioned rows with an append-only event ledg
 
 ### Requirement: Versioned state with append-only ledger
 
-Payments SHALL keep authoritative payment and attempt state in versioned rows and SHALL apply each transition only when the row still has the expected version, rejecting stale writers. Each transition SHALL atomically commit the state change, exactly one `payments.v1` ledger event whose `aggregate_version` equals the payment's new version, and the command idempotency state. Ledger events SHALL NOT be updated or deleted, and the Payments runtime role SHALL be able only to insert and read them. Commands and workers SHALL read current state, not rehydrate it from the ledger. Each ledger event SHALL receive a unique global sequence position; positions SHALL NOT be treated as transaction commit order or used alone as a publication cursor.
+Payments SHALL keep authoritative payment and attempt state in versioned rows and SHALL apply each transition only when the row still has the expected version, rejecting stale writers.
+
+#### Scenario: Complete versioned state with append-only ledger contract
+
+- **WHEN** the `Versioned state with append-only ledger` capability is configured or exercised
+- **THEN** Payments SHALL keep authoritative payment and attempt state in versioned rows and SHALL apply each transition only when the row still has the expected version, rejecting stale writers. Each transition SHALL atomically commit the state change, exactly one `payments.v1` ledger event whose `aggregate_version` equals the payment's new version, and the command idempotency state. Ledger events SHALL NOT be updated or deleted, and the Payments runtime role SHALL be able only to insert and read them. Commands and workers SHALL read current state, not rehydrate it from the ledger. Each ledger event SHALL receive a unique global sequence position; positions SHALL NOT be treated as transaction commit order or used alone as a publication cursor.
 
 #### Scenario: Concurrent writers
 
@@ -30,7 +35,12 @@ Payments SHALL keep authoritative payment and attempt state in versioned rows an
 
 ### Requirement: Idempotent payment creation
 
-Creating a payment SHALL be idempotent per `(integration_id, Idempotency-Key)`, and the order reference SHALL be unique per integration. A repeat with the same snapshot SHALL return the original payment, session, checkout token and expiry. A repeat with a different snapshot SHALL be a conflict. Payments SHALL derive `merchant_id` and `customer_id` as UUIDv5 values of the integration and external seller or buyer ID per the identity vectors, without a provisioning step. A new payment SHALL expire at a configured time after creation (initially 15 minutes).
+Creating a payment SHALL be idempotent per `(integration_id, Idempotency-Key)`, and the order reference SHALL be unique per integration.
+
+#### Scenario: Complete idempotent payment creation contract
+
+- **WHEN** the `Idempotent payment creation` capability is configured or exercised
+- **THEN** Creating a payment SHALL be idempotent per `(integration_id, Idempotency-Key)`, and the order reference SHALL be unique per integration. A repeat with the same snapshot SHALL return the original payment, session, checkout token and expiry. A repeat with a different snapshot SHALL be a conflict. Payments SHALL derive `merchant_id` and `customer_id` as UUIDv5 values of the integration and external seller or buyer ID per the identity vectors, without a provisioning step. A new payment SHALL expire at a configured time after creation (initially 15 minutes).
 
 #### Scenario: Changed snapshot under same key
 
@@ -76,7 +86,12 @@ Each attempt SHALL request a `fraud.v1` decision within a configured deadline an
 
 ### Requirement: Processor effect intent and unknown outcomes
 
-Payments SHALL record `ProcessorOperationRequested` with a stable operation key before calling the processor and SHALL reuse that key on every retry. In the same transaction it SHALL persist an encrypted opaque token and request binding in a private operation-request record for crash recovery, excluded from events and later CDC publication. It SHALL clear the encrypted token when the terminal result commits. A confirmed result SHALL be recorded as success or processor decline. A timeout or lost response SHALL be recorded as `ProcessorOutcomeUnknown` and SHALL NOT be treated as a decline. The whole attempt SHALL be bounded by a configured overall budget (initially 5 s); once the effect intent has committed, exhausting it SHALL return a pending status.
+Payments SHALL record `ProcessorOperationRequested` with a stable operation key before calling the processor and SHALL reuse that key on every retry.
+
+#### Scenario: Complete processor effect intent and unknown outcomes contract
+
+- **WHEN** the `Processor effect intent and unknown outcomes` capability is configured or exercised
+- **THEN** Payments SHALL record `ProcessorOperationRequested` with a stable operation key before calling the processor and SHALL reuse that key on every retry. In the same transaction it SHALL persist an encrypted opaque token and request binding in a private operation-request record for crash recovery, excluded from events and later CDC publication. It SHALL clear the encrypted token when the terminal result commits. A confirmed result SHALL be recorded as success or processor decline. A timeout or lost response SHALL be recorded as `ProcessorOutcomeUnknown` and SHALL NOT be treated as a decline. The whole attempt SHALL be bounded by a configured overall budget (initially 5 s); once the effect intent has committed, exhausting it SHALL return a pending status.
 
 #### Scenario: Processor timeout
 
@@ -85,7 +100,12 @@ Payments SHALL record `ProcessorOperationRequested` with a stable operation key 
 
 ### Requirement: Redis idempotency record
 
-Payments SHALL keep idempotency records for payment creation and attempts in Redis as the first check. A new key SHALL be claimed atomically (set-if-absent) with a request digest and an in-flight marker before any effect, and SHALL be completed with the final result after the database commit. A repeat SHALL return the in-flight or final result, and a digest mismatch SHALL be a conflict. Records SHALL expire after a configured retention window (initially 24 hours) and SHALL NOT be evicted by memory pressure. The Postgres unique constraint on the same key, committed with the first ledger event, SHALL remain the final arbiter: on a Redis miss, loss, outage or operation over 50 ms, Payments SHALL fall back to Postgres and SHALL NOT fail open. Records SHALL NOT contain payment-method tokens, checkout credentials or sensitive request bodies.
+Payments SHALL keep idempotency records for payment creation and attempts in Redis as the first check.
+
+#### Scenario: Complete redis idempotency record contract
+
+- **WHEN** the `Redis idempotency record` capability is configured or exercised
+- **THEN** Payments SHALL keep idempotency records for payment creation and attempts in Redis as the first check. A new key SHALL be claimed atomically (set-if-absent) with a request digest and an in-flight marker before any effect, and SHALL be completed with the final result after the database commit. A repeat SHALL return the in-flight or final result, and a digest mismatch SHALL be a conflict. Records SHALL expire after a configured retention window (initially 24 hours) and SHALL NOT be evicted by memory pressure. The Postgres unique constraint on the same key, committed with the first ledger event, SHALL remain the final arbiter: on a Redis miss, loss, outage or operation over 50 ms, Payments SHALL fall back to Postgres and SHALL NOT fail open. Records SHALL NOT contain payment-method tokens, checkout credentials or sensitive request bodies.
 
 #### Scenario: Concurrent same-key requests
 
@@ -127,7 +147,12 @@ A recovery worker SHALL find attempts with unknown outcomes, and requested opera
 
 ### Requirement: Signed outcome webhooks
 
-A notifier SHALL consume `payments.events.v1` in its own consumer group and, for each integration with a configured webhook URL, record one delivery per subscribed event keyed by `event_id`, so re-consumption creates no new delivery. It SHALL POST JSON carrying the event ID, type, payment ID, order reference, attempt ID, status, reason and occurrence time, with headers `Idempotency-Key: <event_id>` and `Gateway-Signature: t=<unix>,v1=<HMAC-SHA256 of t "." body>` under the integration's signing secret. Non-2xx responses and timeouts SHALL be retried with the same event ID and body, exponential backoff and jitter up to a configured limit, then marked failed and kept inspectable. Webhook URLs SHALL be HTTPS, except in-cluster service addresses (`*.svc.cluster.local`, `*.svc`), which MAY use plaintext HTTP because the mesh encrypts them. The `Gateway-Signature` SHALL authenticate the event payload regardless of transport. Delivery SHALL be at least once, SHALL NOT block or roll back committed outcomes, and SHALL NOT include tokens or personal data.
+A notifier SHALL consume `payments.events.v1` in its own consumer group and, for each integration with a configured webhook URL, record one delivery per subscribed event keyed by `event_id`, so re-consumption creates no new delivery.
+
+#### Scenario: Complete signed outcome webhooks contract
+
+- **WHEN** the `Signed outcome webhooks` capability is configured or exercised
+- **THEN** A notifier SHALL consume `payments.events.v1` in its own consumer group and, for each integration with a configured webhook URL, record one delivery per subscribed event keyed by `event_id`, so re-consumption creates no new delivery. It SHALL POST JSON carrying the event ID, type, payment ID, order reference, attempt ID, status, reason and occurrence time, with headers `Idempotency-Key: <event_id>` and `Gateway-Signature: t=<unix>,v1=<HMAC-SHA256 of t "." body>` under the integration's signing secret. Non-2xx responses and timeouts SHALL be retried with the same event ID and body, exponential backoff and jitter up to a configured limit, then marked failed and kept inspectable. Webhook URLs SHALL be HTTPS, except in-cluster service addresses (`*.svc.cluster.local`, `*.svc`), which MAY use plaintext HTTP because the mesh encrypts them. The `Gateway-Signature` SHALL authenticate the event payload regardless of transport. Delivery SHALL be at least once, SHALL NOT block or roll back committed outcomes, and SHALL NOT include tokens or personal data.
 
 #### Scenario: Receiver outage
 

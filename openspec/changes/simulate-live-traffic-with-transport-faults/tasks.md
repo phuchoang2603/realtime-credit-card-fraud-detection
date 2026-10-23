@@ -16,7 +16,7 @@
 
 ## 4. Image and deployment
 
-- [ ] 4.1 Add `infra/docker/simulator.Dockerfile` and a `simulator` job in `release.yml` using `build-image.yml`, and add the Kafka service container to the CI Python job; verify the PR build does not publish and CI passes
+- [ ] 4.1 Add `infra/docker/simulator.Dockerfile` and a `simulator` job in `release.yml` using `build-image.yml`, and add the Kafka service container to the CI Python job; verify same-repository PR builds publish disposable PR tags, fork PRs build without publication, main builds publish main tags, and CI passes
 - [ ] 4.2 Add `infra/charts/simulator` with `live` and `faults` Deployments (one replica, `Recreate`), disabled by default and explicitly enabled for bounded synthetic runs through the configured prod root; inject the synthetic integration's API key and Edge network access only into `live`; verify Helm rendering introduces no dev root and the fault injector has no gateway credentials
 
 ## 5. Evidence and documentation

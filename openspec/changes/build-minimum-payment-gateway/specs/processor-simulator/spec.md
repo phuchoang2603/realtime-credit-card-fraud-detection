@@ -24,7 +24,12 @@ The simulator SHALL execute a sale for an operation key, integration identity, v
 
 ### Requirement: Token behaviors
 
-The processor SHALL resolve new operations' opaque tokens through the vault on the processor-only vault port for the owning integration. The fictional fixture SHALL determine approve, insufficient funds, issuer decline or invalid-token behavior; the token value SHALL NOT encode that behavior. An unknown or inactive token SHALL be rejected without a sale. A vault outage SHALL return unavailable without a fabricated outcome or charge. Neither fixture contents nor token values SHALL be logged or placed in payment events.
+The processor SHALL resolve new operations' opaque tokens through the vault on the processor-only vault port for the owning integration.
+
+#### Scenario: Complete token behaviors contract
+
+- **WHEN** the `Token behaviors` capability is configured or exercised
+- **THEN** The processor SHALL resolve new operations' opaque tokens through the vault on the processor-only vault port for the owning integration. The fictional fixture SHALL determine approve, insufficient funds, issuer decline or invalid-token behavior; the token value SHALL NOT encode that behavior. An unknown or inactive token SHALL be rejected without a sale. A vault outage SHALL return unavailable without a fabricated outcome or charge. Neither fixture contents nor token values SHALL be logged or placed in payment events.
 
 #### Scenario: Insufficient-funds card
 

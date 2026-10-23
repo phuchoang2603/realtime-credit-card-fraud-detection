@@ -20,7 +20,12 @@ The live simulator SHALL take a historical dataset version and rebuild that data
 
 ### Requirement: Clean gateway commands only
 
-The simulator SHALL create payment traffic only through the checkout API of a synthetic integration: test-card tokenization, payment creation with the full snapshot, and attempt submission with simulated client context and the returned opaque tokens. It SHALL NOT call the vault, Payments, Fraud or processor internal APIs directly. Token values SHALL NOT be seeded, logged, published or placed in dataset manifests. Each payment creation and attempt SHALL carry a unique `Idempotency-Key`; transport or 503/504 retries SHALL reuse the same key, token and request content. The simulator SHALL NOT write events or inject delivery faults. Arrivals SHALL follow the configured rate, and purchase and scenario choices SHALL be seeded.
+The simulator SHALL create payment traffic only through the checkout API of a synthetic integration: test-card tokenization, payment creation with the full snapshot, and attempt submission with simulated client context and the returned opaque tokens.
+
+#### Scenario: Complete clean gateway commands only contract
+
+- **WHEN** the `Clean gateway commands only` capability is configured or exercised
+- **THEN** The simulator SHALL create payment traffic only through the checkout API of a synthetic integration: test-card tokenization, payment creation with the full snapshot, and attempt submission with simulated client context and the returned opaque tokens. It SHALL NOT call the vault, Payments, Fraud or processor internal APIs directly. Token values SHALL NOT be seeded, logged, published or placed in dataset manifests. Each payment creation and attempt SHALL carry a unique `Idempotency-Key`; transport or 503/504 retries SHALL reuse the same key, token and request content. The simulator SHALL NOT write events or inject delivery faults. Arrivals SHALL follow the configured rate, and purchase and scenario choices SHALL be seeded.
 
 #### Scenario: Edge timeout
 
@@ -34,7 +39,12 @@ The simulator SHALL create payment traffic only through the checkout API of a sy
 
 ### Requirement: Live labels
 
-The simulator SHALL publish a simulation-truth label for every attempt to `fraud.labels.v1` once its response is received. For fraudulent attempts and for `friendly_fraud`, it SHALL schedule a chargeback label with the configured delay multiplied by the configured time scale. When the chargeback is due, the simulator SHALL publish it only if the payment status shows that attempt succeeded. Labels SHALL use the `payments.v1.FraudLabel` contract with `label_available_at` set to the publication time. Scenario names SHALL appear only in labels.
+The simulator SHALL publish a simulation-truth label for every attempt to `fraud.labels.v1` once its response is received.
+
+#### Scenario: Complete live labels contract
+
+- **WHEN** the `Live labels` capability is configured or exercised
+- **THEN** The simulator SHALL publish a simulation-truth label for every attempt to `fraud.labels.v1` once its response is received. For fraudulent attempts and for `friendly_fraud`, it SHALL schedule a chargeback label with the configured delay multiplied by the configured time scale. When the chargeback is due, the simulator SHALL publish it only if the payment status shows that attempt succeeded. Labels SHALL use the `payments.v1.FraudLabel` contract with `label_available_at` set to the publication time. Scenario names SHALL appear only in labels.
 
 #### Scenario: Pending attempt at chargeback time
 
