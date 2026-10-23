@@ -4,10 +4,6 @@ on:
   pull_request:
   push:
     branches: [main]
-    paths-ignore:
-      - infra/charts/payment-gateway/values-prod.yaml
-      - infra/charts/fraud-service/values-prod.yaml
-      - infra/charts/kafka/values-prod.yaml
 
 permissions:
   contents: read
