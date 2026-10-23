@@ -32,7 +32,7 @@ ingress:
 services:
   edge:
     image:
-      tag: 65d95ce
+      tag: 73c7abd
   notifier:
     image:
       tag: 269de69
