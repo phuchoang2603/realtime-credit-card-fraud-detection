@@ -484,8 +484,8 @@ database:
 redis:
   name: payment-gateway-redis
   image:
-    repository: valkey/valkey
-    tag: 8.1.10
+    repository: quay.io/opstree/redis
+    tag: v7.2.16
     pullPolicy: IfNotPresent
   resources:
     requests:
