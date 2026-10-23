@@ -1,5 +1,5 @@
 image:
-  tag: "85d951d"
+  tag: "3dd206c"
   pullPolicy: Always
 mesh:
   enabled: true
