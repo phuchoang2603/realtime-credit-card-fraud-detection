@@ -1,3 +1,5 @@
+imageTag: ""
+
 defaults:
   replicaCount: 1
   image:

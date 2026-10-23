@@ -36,7 +36,7 @@ spec:
       {{- if $svc.migrate.enabled }}
       initContainers:
         - name: migrate
-          image: "{{ $svc.image.repository }}:{{ $svc.image.tag }}"
+          image: "{{ $svc.image.repository }}:{{ $.Values.imageTag | default $svc.image.tag }}"
           imagePullPolicy: {{ $svc.image.pullPolicy }}
           args: [migrate]
           securityContext:
@@ -51,7 +51,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ $name }}
-          image: "{{ $svc.image.repository }}:{{ $svc.image.tag }}"
+          image: "{{ $svc.image.repository }}:{{ $.Values.imageTag | default $svc.image.tag }}"
           imagePullPolicy: {{ $svc.image.pullPolicy }}
           {{- with $svc.args }}
           args:

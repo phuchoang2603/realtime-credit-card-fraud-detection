@@ -29,19 +29,4 @@ ingress:
     enabled: true
     clusterTunnel: talos-proxmox
     hostname: pay-gateway.phuchoang.sbs
-services:
-  edge:
-    image:
-      tag: 73c7abd
-  notifier:
-    image:
-      tag: 269de69
-  payments:
-    image:
-      tag: 269de69
-  processor-simulator:
-    image:
-      tag: 269de69
-  vault-simulator:
-    image:
-      tag: 269de69
+imageTag: 1760a8b
