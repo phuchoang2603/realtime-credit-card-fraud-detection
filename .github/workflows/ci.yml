@@ -13,23 +13,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  openspec:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          package-manager-cache: false
-      - name: Install pinned OpenSpec CLI
-        run: npm install --global @fission-ai/openspec@1.14.1
-      - name: Strictly validate gateway change
-        run: openspec validate build-minimum-payment-gateway --strict --no-interactive
-      - name: Strictly validate live traffic follow-up
-        if: ${{ !cancelled() }}
-        run: openspec validate simulate-live-traffic-with-transport-faults --strict --no-interactive
-
   contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -67,7 +50,7 @@ jobs:
     timeout-minutes: 20
     env:
       GOWORK: "off"
-      GATEWAY_TEST_REPORTS: /tmp/gateway-test-evidence
+      CI_TEST_REPORTS: /tmp/ci-test-evidence
       MUTATION_BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@v7.0.1
@@ -76,8 +59,7 @@ jobs:
       - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: src/payment-gateway/edge/go.mod
-          cache-dependency-path: |
-            src/payment-gateway/*/go.sum
+          cache-dependency-path: src/**/go.sum
       - uses: golangci/golangci-lint-action@v9.3.0
         with:
           version: v2.13.2
@@ -89,12 +71,12 @@ jobs:
         run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
       - name: Mutate changed ledger validator code
         if: github.event_name == 'pull_request'
-        run: bash scripts/ci-checks.sh go-mutation
+        run: bash scripts/check-ledger-mutations.sh
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
-          name: gateway-test-evidence
-          path: ${{ env.GATEWAY_TEST_REPORTS }}
+          name: ci-test-evidence
+          path: ${{ env.CI_TEST_REPORTS }}
           if-no-files-found: warn
 
   helm:

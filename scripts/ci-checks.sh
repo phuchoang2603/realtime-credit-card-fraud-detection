@@ -3,19 +3,32 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-check_python() {
-  local project="$1" source="$2" tests="${3:-}"
-  local -a paths=("$source")
-  [[ -z "$tests" ]] || paths+=("$tests")
-  (
-    cd "$project"
-    uv run --locked ruff check "${paths[@]}"
-    uv run --locked ruff format --check "${paths[@]}"
-    if [[ -n "$tests" ]]; then
-      uv run --locked pytest -q "$tests"
-    fi
-  )
+check_projects() {
+  local manifest="$1" check="$2" project
+  while IFS= read -r -d '' project; do
+    project="$(dirname "$project")"
+    printf '\nChecking %s\n' "$project"
+    "$check" "$project"
+  done < <(git ls-files -z -- "src/**/$manifest")
 }
+
+check_python() (
+  cd "$1"
+  uv run --locked ruff check .
+  uv run --locked ruff format --check .
+  uv run --locked pytest -q
+)
+
+check_go() (
+  local reports="$report_dir/${1#src/}"
+  mkdir -p "$reports"
+  cd "$1"
+  export GOWORK=off
+  golangci-lint run ./...
+  go test -p 1 -race -count=1 -coverprofile "$reports/coverage.out" ./...
+  go tool cover -func "$reports/coverage.out" | tee "$reports/coverage.txt"
+  go tool cover -html "$reports/coverage.out" -o "$reports/coverage.html"
+)
 
 check_data_product() {
   local product="$1" name contract reference
@@ -49,34 +62,9 @@ DATAPRODUCT_CLI=0.3.2
 
 case "${1:-}" in
   go)
-    report_dir="${GATEWAY_TEST_REPORTS:-$(mktemp -d)}"
+    report_dir="$(realpath -m "${CI_TEST_REPORTS:-$(mktemp -d)}")"
     mkdir -p "$report_dir"
-    while IFS= read -r -d '' manifest; do
-      (
-        cd "$(dirname "$manifest")"
-        GOWORK=off golangci-lint run ./...
-        module_name="$(basename "$PWD")"
-        GOWORK=off go test -p 1 -race -count=1 -coverprofile "$report_dir/$module_name.out" ./...
-        go tool cover -func "$report_dir/$module_name.out" | tee "$report_dir/$module_name.txt"
-        go tool cover -html "$report_dir/$module_name.out" -o "$report_dir/$module_name.html"
-      )
-    done < <(find src -type f -name go.mod -not -path '*/vendor/*' -print0 | sort -z)
-    ;;
-  go-mutation)
-    : "${MUTATION_BASE:?Set MUTATION_BASE to the reviewed base commit}"
-    : "${GATEWAY_TEST_REPORTS:?Set GATEWAY_TEST_REPORTS to the CI artifact directory}"
-    mkdir -p "$GATEWAY_TEST_REPORTS"
-    cd src/payment-gateway/payments/cmd/ledger-check
-    mutation_dir="$(mktemp -d)"
-    trap 'rm -rf "$mutation_dir"' EXIT
-    cp ../../go.mod "$mutation_dir/go.mod"
-    cp ../../go.sum "$mutation_dir/go.sum"
-    go mod edit -modfile "$mutation_dir/go.mod" \
-      -replace "github.com/phuchoang2603/payment-gateway-fraud-detection/shared=$(cd ../../../shared && pwd)"
-    GOWORK=off GOFLAGS="-p=1 -modfile=$mutation_dir/go.mod" \
-      GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true \
-      gremlins unleash --diff "$MUTATION_BASE" --workers 2 --test-cpu 1 \
-      --output "$GATEWAY_TEST_REPORTS/ledger-mutation.json" | tee "$GATEWAY_TEST_REPORTS/ledger-mutation.txt"
+    check_projects go.mod check_go
     ;;
   contracts)
     TMPDIR_CHECKS="$(mktemp -d)"
@@ -86,8 +74,7 @@ case "${1:-}" in
     done < <(find contracts/data-products -mindepth 2 -maxdepth 2 -name product.odps.yaml -print0 | sort -z)
     ;;
   python)
-    check_python src/fraud-service app tests
-    check_python src/simulator simulator tests
+    check_projects pyproject.toml check_python
     ;;
   helm)
     while IFS= read -r -d '' manifest; do
@@ -95,7 +82,7 @@ case "${1:-}" in
     done < <(find infra -type f -name Chart.yaml -print0)
     ;;
   *)
-    printf 'Usage: %s {contracts|python|go|go-mutation|helm}\n' "$0" >&2
+    printf 'Usage: %s {contracts|python|go|helm}\n' "$0" >&2
     exit 2
     ;;
 esac
