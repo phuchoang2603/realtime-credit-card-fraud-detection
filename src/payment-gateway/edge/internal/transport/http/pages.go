@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strconv"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/edge/internal/application"
@@ -37,6 +39,25 @@ type pageData struct {
 	CSRF           string
 	Title          string
 	Message        string
+	FormOrigin     string
+}
+
+var hostnamePattern = regexp.MustCompile(`^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$`)
+
+// The form posts to this origin and is answered with a redirect to the merchant's return URL, which browsers check against the same form-action list.
+func merchantOrigin(raw string) string {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme != "https" {
+		return ""
+	}
+	host := parsed.Hostname()
+	if !hostnamePattern.MatchString(host) {
+		return ""
+	}
+	if port := parsed.Port(); port != "" {
+		return "https://" + host + ":" + port
+	}
+	return "https://" + host
 }
 
 var zeroDecimalCurrencies = map[string]bool{"JPY": true, "VND": true, "KRW": true, "CLP": true, "ISK": true}
@@ -93,6 +114,7 @@ func (s *Server) formData(view application.CheckoutView) pageData {
 		Items:          items,
 		IdempotencyKey: key,
 		CSRF:           s.csrfToken(payment.SessionID, key),
+		FormOrigin:     merchantOrigin(payment.ReturnURL),
 	}
 }
 
@@ -113,8 +135,12 @@ func (s *Server) render(w http.ResponseWriter, status int, name string, data pag
 	header.Set("Referrer-Policy", "no-referrer")
 	header.Set("X-Frame-Options", "DENY")
 	header.Set("X-Content-Type-Options", "nosniff")
+	formAction := "form-action 'self'"
+	if data.FormOrigin != "" {
+		formAction += " " + data.FormOrigin
+	}
 	header.Set("Content-Security-Policy", "default-src 'none'; script-src 'nonce-"+nonce+"'; style-src 'nonce-"+nonce+
-		"'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+		"'; connect-src 'self'; "+formAction+"; base-uri 'none'; frame-ancestors 'none'")
 	w.Header().Set("Content-Length", strconv.Itoa(buffer.Len()))
 	w.WriteHeader(status)
 	_, _ = w.Write(buffer.Bytes())

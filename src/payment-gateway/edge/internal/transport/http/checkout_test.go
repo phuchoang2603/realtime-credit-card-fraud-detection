@@ -155,6 +155,9 @@ func TestTokenIsExchangedForAScopedCookie(t *testing.T) {
 		t.Fatal("the checkout token must not appear in the page")
 	}
 	policy := clean.Header.Get("Content-Security-Policy")
+	if !strings.Contains(policy, "form-action 'self' https://shop.example.com") {
+		t.Fatalf("form-action must allow the merchant return origin: %q", policy)
+	}
 	if !strings.Contains(policy, "default-src 'none'") || !strings.Contains(policy, "frame-ancestors 'none'") ||
 		clean.Header.Get("X-Frame-Options") != "DENY" || clean.Header.Get("Referrer-Policy") != "no-referrer" ||
 		clean.Header.Get("Cache-Control") != "no-store" {
