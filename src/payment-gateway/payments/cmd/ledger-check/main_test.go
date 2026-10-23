@@ -241,3 +241,20 @@ func TestRunInputFailures(t *testing.T) {
 		})
 	}
 }
+
+func TestRunOutputFailure(t *testing.T) {
+	var stderr bytes.Buffer
+	output, err := os.CreateTemp(t.TempDir(), "closed-output")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := output.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if code := run([]string{writeLedger(t, []row{ledgerRow(t, created, 1)})}, output, &stderr); code != 1 {
+		t.Fatalf("exit = %d, want 1", code)
+	}
+	if !strings.Contains(stderr.String(), "file already closed") {
+		t.Fatalf("stderr = %q", stderr.String())
+	}
+}

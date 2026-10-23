@@ -34,17 +34,17 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) != 1 {
-		fmt.Fprintln(stderr, "usage: ledger-check <ledger.json>")
+		_, _ = fmt.Fprintln(stderr, "usage: ledger-check <ledger.json>")
 		return 2
 	}
 	raw, err := os.ReadFile(args[0])
 	if err != nil {
-		fmt.Fprintln(stderr, err)
+		_, _ = fmt.Fprintln(stderr, err)
 		return 1
 	}
 	var rows []row
 	if err := json.Unmarshal(raw, &rows); err != nil {
-		fmt.Fprintln(stderr, err)
+		_, _ = fmt.Fprintln(stderr, err)
 		return 1
 	}
 	sort.Slice(rows, func(i, j int) bool {
@@ -73,10 +73,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 	if failures != 0 {
-		fmt.Fprintf(stderr, "ledger-check: %d violation(s) across %d payments and %d events\n", failures, len(states), len(rows))
+		_, _ = fmt.Fprintf(stderr, "ledger-check: %d violation(s) across %d payments and %d events\n", failures, len(states), len(rows))
 		return 1
 	}
-	fmt.Fprintf(stdout, "ledger-check: %d events across %d payments satisfy the lifecycle\n", len(rows), len(states))
+	if _, err := fmt.Fprintf(stdout, "ledger-check: %d events across %d payments satisfy the lifecycle\n", len(rows), len(states)); err != nil {
+		_, _ = fmt.Fprintln(stderr, err)
+		return 1
+	}
 	return 0
 }
 
@@ -231,5 +234,5 @@ func expectActive(state *lifecycle, id, want string) error {
 }
 
 func report(stderr io.Writer, r row, err error) {
-	fmt.Fprintf(stderr, "%s version %d (%s): %v\n", r.PaymentID, r.AggregateVersion, r.EventType, err)
+	_, _ = fmt.Fprintf(stderr, "%s version %d (%s): %v\n", r.PaymentID, r.AggregateVersion, r.EventType, err)
 }
