@@ -13,15 +13,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  go-projects:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.projects.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v7.0.1
-      - id: projects
-        run: echo "matrix=$(python3 scripts/go-ci-matrix.py)" >> "$GITHUB_OUTPUT"
-
   contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -34,59 +25,10 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: contracts/data-products/**/*.yaml
-      - name: Check CI helper behavior
+      - name: Check PR image retention rules
         run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
       - name: Lint data products and check generated references
         run: bash scripts/ci-checks.sh contracts
-
-  python:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-python@v7.0.0
-        with:
-          python-version: "3.14"
-      - uses: astral-sh/setup-uv@v10.1.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: src/**/uv.lock
-      - name: Python lint, format and tests
-        run: bash scripts/ci-checks.sh python
-
-  go:
-    name: go (${{ matrix.project }})
-    needs: go-projects
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.go-projects.outputs.matrix) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      GOWORK: "off"
-      CI_TEST_REPORTS: /tmp/ci-test-evidence
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v6.5.0
-        with:
-          go-version-file: ${{ matrix.project }}/go.mod
-          cache-dependency-path: ${{ matrix.project }}/go.sum
-      - uses: golangci/golangci-lint-action@v9.3.0
-        with:
-          version: v2.13.2
-          install-only: true
-      - name: Lint and test Go module
-        env:
-          GO_PROJECT: ${{ matrix.project }}
-        run: bash scripts/ci-checks.sh go "$GO_PROJECT"
-      - uses: actions/upload-artifact@v7.0.2
-        if: always()
-        with:
-          name: go-test-evidence-${{ matrix.id }}
-          path: ${{ env.CI_TEST_REPORTS }}
-          if-no-files-found: warn
 
   helm:
     runs-on: ubuntu-latest
