@@ -34,7 +34,7 @@ The simulator SHALL create payment traffic only through the checkout API of a sy
 
 ### Requirement: Live labels
 
-The simulator SHALL publish a simulation-truth label for every attempt to `fraud.labels.v1` once its response is received. For fraudulent attempts and for `friendly_fraud`, it SHALL schedule a chargeback label with the configured delay multiplied by the configured time scale. When the chargeback is due, the simulator SHALL publish it only if the payment status shows that attempt succeeded. Labels SHALL use the `labels.v1` contract with `label_available_at` set to the publication time. Scenario names SHALL appear only in labels.
+The simulator SHALL publish a simulation-truth label for every attempt to `fraud.labels.v1` once its response is received. For fraudulent attempts and for `friendly_fraud`, it SHALL schedule a chargeback label with the configured delay multiplied by the configured time scale. When the chargeback is due, the simulator SHALL publish it only if the payment status shows that attempt succeeded. Labels SHALL use the `payments.v1.FraudLabel` contract with `label_available_at` set to the publication time. Scenario names SHALL appear only in labels.
 
 #### Scenario: Pending attempt at chargeback time
 

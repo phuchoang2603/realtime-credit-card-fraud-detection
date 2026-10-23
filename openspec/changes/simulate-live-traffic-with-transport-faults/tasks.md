@@ -12,7 +12,7 @@
 
 - [ ] 3.1 Implement dataset continuation: read the manifest, rebuild profiles and the scenario schedule with the generator's per-stage and per-day streams, and refuse on digest mismatch, start before history end or gap above `max_gap`; verify the digest-mismatch refusal test
 - [ ] 3.2 Implement setup tokenization through `POST /v1/payment-methods` using each card's deterministic test card number, then seeded Poisson arrivals, payment creation with the full snapshot and attempts with seeded idempotency keys and simulated client context; reuse the original key/token/request on transport or 503/504 retries, verify one recorded attempt after a forced edge timeout and stable historical/live fingerprints after token reissuance, and exclude tokens from logs/manifests/labels
-- [ ] 3.3 Implement truth labels and compressed chargebacks that check payment status when due, published to `fraud.labels.v1`; verify against a local gateway that a pending attempt gets no chargeback and a succeeded fraudulent attempt does
+- [ ] 3.3 Implement truth labels and compressed chargebacks that check payment status when due, published to `fraud.labels.v1`; verify against the prod Kubernetes gateway after GitOps rollout that a pending attempt gets no chargeback and a succeeded fraudulent attempt does
 
 ## 4. Image and deployment
 
