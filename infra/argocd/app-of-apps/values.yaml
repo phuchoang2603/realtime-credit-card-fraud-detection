@@ -3,6 +3,8 @@ global:
   targetRevision: main
 destinationName: dev
 namePrefix: payment-gateway-dev
+imageUpdater:
+  enabled: false
 applications:
   fraud-service:
     enabled: true

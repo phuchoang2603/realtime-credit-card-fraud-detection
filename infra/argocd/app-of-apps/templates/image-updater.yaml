@@ -1,0 +1,59 @@
+{{- if and .Values.imageUpdater.enabled (eq .Values.global.targetRevision "main") }}
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: {{ .Values.namePrefix }}
+  namespace: argo-cd
+spec:
+  commonUpdateSettings:
+    updateStrategy: newest-build
+    allowTags: "regexp:^main-[0-9a-f]{40}$"
+  writeBackConfig:
+    method: git
+    gitConfig:
+      repository: {{ .Values.global.repoURL | quote }}
+      branch: main
+  applicationRefs:
+    - namePattern: {{ printf "%s-payment-gateway" .Values.namePrefix | quote }}
+      writeBackConfig:
+        method: git
+        gitConfig:
+          branch: main
+          writeBackTarget: "helmvalues:/infra/charts/payment-gateway/values-prod.yaml"
+      images:
+        {{- range list "edge" "payments" "notifier" "vault-simulator" "processor-simulator" }}
+        - alias: {{ . }}
+          imageName: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/{{ . }}
+          manifestTargets:
+            helm:
+              name: services.{{ . }}.image.repository
+              tag: services.{{ . }}.image.tag
+        {{- end }}
+    - namePattern: {{ printf "%s-fraud-service" .Values.namePrefix | quote }}
+      writeBackConfig:
+        method: git
+        gitConfig:
+          branch: main
+          writeBackTarget: "helmvalues:/infra/charts/fraud-service/values-prod.yaml"
+      images:
+        - alias: fraud
+          imageName: ghcr.io/phuchoang2603/payment-gateway-fraud-detection
+          manifestTargets:
+            helm:
+              name: image.repository
+              tag: image.tag
+    - namePattern: {{ printf "%s-kafka" .Values.namePrefix | quote }}
+      writeBackConfig:
+        method: git
+        gitConfig:
+          branch: main
+          writeBackTarget: "helmvalues:/infra/charts/kafka/values-prod.yaml"
+      images:
+        - alias: connect
+          imageName: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/connect-debezium
+          commonUpdateSettings:
+            forceUpdate: true
+          manifestTargets:
+            helm:
+              tag: connect.imageTag
+{{- end }}

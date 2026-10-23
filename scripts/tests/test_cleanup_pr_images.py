@@ -1,5 +1,5 @@
-import base64
 import importlib.util
+import os
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -13,35 +13,74 @@ spec.loader.exec_module(cleanup)
 
 
 class ImageRetentionTests(unittest.TestCase):
-    def test_only_unreferenced_pr_versions_are_deleted(self):
-        for tags, protected, delete in (
-            (["pr-sha"], set(), True),
-            (["pr-sha"], {"pr-sha"}, False),
-            (["pr-sha", "main-sha"], {"main-sha"}, False),
-            (["pr-sha", "latest"], set(), False),
-            (["other-sha"], set(), False),
-            ([], set(), False),
+    def test_only_exclusively_owned_pr_versions_are_deleted(self):
+        sha = "a" * 40
+        pr_tag = f"pr-82-{sha}"
+        for tags, delete in (
+            ([pr_tag], True),
+            ([pr_tag, f"pr-82-{'b' * 40}"], True),
+            ([pr_tag, f"main-{sha}"], False),
+            ([pr_tag, "latest"], False),
+            ([pr_tag, f"pr-83-{sha}"], False),
+            ([pr_tag, "release-v1"], False),
+            ([f"pr-820-{sha}"], False),
+            ([f"pr-8-{sha}"], False),
+            ([f"main-{sha}"], False),
+            ([sha[:7]], False),
+            (["pr-82-invalid"], False),
+            ([], False),
         ):
-            with self.subTest(tags=tags, protected=protected):
+            with self.subTest(tags=tags):
                 version = {"metadata": {"container": {"tags": tags}}}
-                self.assertEqual(cleanup.should_delete(version, {"pr-sha"}, protected), delete)
+                self.assertEqual(cleanup.should_delete(version, 82), delete)
+        self.assertFalse(cleanup.should_delete({}, 82))
+
+    @patch.object(cleanup, "paginate")
+    @patch.object(cleanup, "api")
+    def test_discovery_scopes_user_and_org_packages_to_repository(self, api, paginate):
+        for account_type, namespace in (("User", "users"), ("Organization", "orgs")):
+            with self.subTest(account_type=account_type):
+                api.return_value = {"type": account_type}
+                paginate.return_value = iter([
+                    {"name": "repo/edge", "repository": {"full_name": "Owner/Repo"}},
+                    {"name": "repo/new-service", "repository": {"full_name": "owner/repo"}},
+                    {"name": "repo/unrelated", "repository": {"full_name": "owner/other"}},
+                    {"name": "repo/unlinked", "repository": None},
+                ])
+                self.assertEqual(list(cleanup.repository_packages("owner/repo")), [
+                    f"/{namespace}/owner/packages/container/repo%2Fedge/versions",
+                    f"/{namespace}/owner/packages/container/repo%2Fnew-service/versions",
+                ])
+                paginate.assert_called_with(f"/{namespace}/owner/packages?package_type=container")
 
     @patch.object(cleanup, "api")
-    def test_chart_pins_protect_the_matching_packages(self, api):
-        api.side_effect = [
-            {"content": base64.b64encode(text.encode()).decode()}
-            for text in ('imageTag: gateway-sha\n', 'image:\n  tag: "fraud-sha"\n', 'global:\n  imageTag: connect-sha\n')
-        ]
-        pins = cleanup.production_pins("owner/repo", "main")
-        self.assertEqual(pins[""], {"fraud-sha"})
-        self.assertEqual(pins["/connect-debezium"], {"connect-sha"})
-        for image in cleanup.IMAGES[1:6]:
-            self.assertEqual(pins[image], {"gateway-sha"})
+    def test_pagination_keeps_query_and_reads_all_pages(self, api):
+        api.side_effect = [[{"id": n} for n in range(100)], [{"id": 100}]]
+        result = list(cleanup.paginate("/packages?package_type=container"))
+        self.assertEqual([item["id"] for item in result], list(range(101)))
+        self.assertEqual([call.args[0] for call in api.call_args_list], [
+            "/packages?package_type=container&per_page=100&page=1",
+            "/packages?package_type=container&per_page=100&page=2",
+        ])
 
-    @patch.object(cleanup, "api", return_value={"content": base64.b64encode(b"imageTag: []\n").decode()})
-    def test_unreadable_pin_stops_cleanup(self, api):
-        with self.assertRaises(RuntimeError):
-            cleanup.production_pins("owner/repo", "main")
+    @patch.dict(os.environ, {"REPOSITORY": "owner/repo", "PR": "82"})
+    @patch.object(cleanup, "repository_packages", return_value=iter(["/versions"]))
+    @patch.object(cleanup, "api")
+    def test_cleanup_reads_all_versions_before_deleting(self, api, packages):
+        def version(identifier, tag):
+            return {"id": identifier, "metadata": {"container": {"tags": [tag]}}}
+
+        pr_tag = "pr-82-" + "a" * 40
+        first_page = [version(n, pr_tag) for n in range(100)]
+        api.side_effect = [first_page, [version(100, "main-" + "b" * 40)]] + [None] * 100
+        cleanup.main()
+        calls = api.call_args_list
+        self.assertEqual([call.args[0] for call in calls[:2]], [
+            "/versions?per_page=100&page=1", "/versions?per_page=100&page=2",
+        ])
+        self.assertEqual([call.args[0] for call in calls[2:]], [f"/versions/{n}" for n in range(100)])
+        for call in calls[2:]:
+            self.assertEqual(call.kwargs, {"method": "DELETE", "missing_ok": True})
 
     @patch.object(cleanup, "api", side_effect=RuntimeError("API unavailable"))
     def test_api_failure_stops_cleanup(self, api):

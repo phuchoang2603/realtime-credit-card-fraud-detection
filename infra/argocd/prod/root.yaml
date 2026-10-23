@@ -17,6 +17,8 @@ spec:
       valuesObject:
         global:
           targetRevision: *revision
+        imageUpdater:
+          enabled: true
         namePrefix: payment-gateway-prod
         destinationServer: https://kubernetes.default.svc
         applications:
