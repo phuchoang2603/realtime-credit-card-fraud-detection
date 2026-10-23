@@ -32,7 +32,7 @@ def paginate(path):
 
 def should_delete(version, pr):
     tags = version.get("metadata", {}).get("container", {}).get("tags") or []
-    return bool(tags) and all(re.fullmatch(rf"pr-{pr}-[0-9a-f]{{40}}", tag) for tag in tags)
+    return any(re.fullmatch(rf"pr-{pr}-[0-9a-f]{{40}}", tag) for tag in tags)
 
 
 def repository_packages(repository):

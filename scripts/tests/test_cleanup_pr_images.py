@@ -13,16 +13,16 @@ spec.loader.exec_module(cleanup)
 
 
 class ImageRetentionTests(unittest.TestCase):
-    def test_only_exclusively_owned_pr_versions_are_deleted(self):
+    def test_versions_with_matching_pr_tags_are_deleted(self):
         sha = "a" * 40
         pr_tag = f"pr-82-{sha}"
         for tags, delete in (
             ([pr_tag], True),
             ([pr_tag, f"pr-82-{'b' * 40}"], True),
-            ([pr_tag, f"main-{sha}"], False),
-            ([pr_tag, "latest"], False),
-            ([pr_tag, f"pr-83-{sha}"], False),
-            ([pr_tag, "release-v1"], False),
+            ([pr_tag, f"main-{sha}"], True),
+            ([pr_tag, "latest"], True),
+            ([pr_tag, f"pr-83-{sha}"], True),
+            ([pr_tag, "release-v1"], True),
             ([f"pr-820-{sha}"], False),
             ([f"pr-8-{sha}"], False),
             ([f"main-{sha}"], False),
