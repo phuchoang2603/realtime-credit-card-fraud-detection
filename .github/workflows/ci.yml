@@ -13,6 +13,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  openspec:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Install pinned OpenSpec CLI
+        run: npm install --global @fission-ai/openspec@1.14.1
+      - name: Strictly validate gateway change
+        run: openspec validate build-minimum-payment-gateway --strict --no-interactive
+      - name: Strictly validate live traffic follow-up
+        if: ${{ !cancelled() }}
+        run: openspec validate simulate-live-traffic-with-transport-faults --strict --no-interactive
+
   contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 
@@ -28,19 +29,23 @@ type lifecycle struct {
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "usage: ledger-check <ledger.json>")
-		os.Exit(2)
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
+
+func run(args []string, stdout, stderr io.Writer) int {
+	if len(args) != 1 {
+		fmt.Fprintln(stderr, "usage: ledger-check <ledger.json>")
+		return 2
 	}
-	raw, err := os.ReadFile(os.Args[1])
+	raw, err := os.ReadFile(args[0])
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		fmt.Fprintln(stderr, err)
+		return 1
 	}
 	var rows []row
 	if err := json.Unmarshal(raw, &rows); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		fmt.Fprintln(stderr, err)
+		return 1
 	}
 	sort.Slice(rows, func(i, j int) bool {
 		if rows[i].PaymentID != rows[j].PaymentID {
@@ -54,7 +59,7 @@ func main() {
 		event, err := decode(r)
 		if err != nil {
 			failures++
-			report(r, err)
+			report(stderr, r, err)
 			continue
 		}
 		state := states[r.PaymentID]
@@ -64,14 +69,15 @@ func main() {
 		}
 		if err := apply(state, r, event); err != nil {
 			failures++
-			report(r, err)
+			report(stderr, r, err)
 		}
 	}
 	if failures != 0 {
-		fmt.Fprintf(os.Stderr, "ledger-check: %d violation(s) across %d payments and %d events\n", failures, len(states), len(rows))
-		os.Exit(1)
+		fmt.Fprintf(stderr, "ledger-check: %d violation(s) across %d payments and %d events\n", failures, len(states), len(rows))
+		return 1
 	}
-	fmt.Printf("ledger-check: %d events across %d payments satisfy the lifecycle\n", len(rows), len(states))
+	fmt.Fprintf(stdout, "ledger-check: %d events across %d payments satisfy the lifecycle\n", len(rows), len(states))
+	return 0
 }
 
 func decode(r row) (*paymentsv1.PaymentEvent, error) {
@@ -224,6 +230,6 @@ func expectActive(state *lifecycle, id, want string) error {
 	return nil
 }
 
-func report(r row, err error) {
-	fmt.Fprintf(os.Stderr, "%s version %d (%s): %v\n", r.PaymentID, r.AggregateVersion, r.EventType, err)
+func report(stderr io.Writer, r row, err error) {
+	fmt.Fprintf(stderr, "%s version %d (%s): %v\n", r.PaymentID, r.AggregateVersion, r.EventType, err)
 }
