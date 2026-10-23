@@ -11,4 +11,4 @@ entities:
       databaseName: payments
 
 global:
-  imageTag: abcbba9
+  imageTag: ac123fe
