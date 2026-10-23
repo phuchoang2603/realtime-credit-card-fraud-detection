@@ -3,12 +3,15 @@ import os
 import re
 import subprocess
 import urllib.parse
+from pathlib import Path
 
 
 def api(path, method="GET", missing_ok=False):
     response = subprocess.run(
         ["gh", "api", "--method", method, path],
-        capture_output=True, text=True, check=False,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     if response.returncode:
         if missing_ok and "HTTP 404" in response.stderr:
@@ -36,14 +39,24 @@ def should_delete(version, pr):
 
 
 def repository_packages(repository):
-    owner = repository.split("/", 1)[0]
+    owner, repository_name = repository.split("/", 1)
     account = api(f"/users/{owner}")
     namespace = "orgs" if account["type"] == "Organization" else "users"
-    for package in paginate(f"/{namespace}/{owner}/packages?package_type=container"):
+    matrix_path = Path(__file__).resolve().parents[1] / ".github/service-images.json"
+    matrix = json.loads(matrix_path.read_text())
+    for image in matrix["include"]:
+        name = urllib.parse.quote(
+            (repository_name + image["image-suffix"]).lower(), safe=""
+        )
+        path = f"/{namespace}/{owner}/packages/container/{name}"
+        package = api(path, missing_ok=True)
+        if package is None:
+            print(f"skipping unpublished package {name}")
+            continue
         linked_repository = (package.get("repository") or {}).get("full_name", "")
-        if linked_repository.casefold() == repository.casefold():
-            name = urllib.parse.quote(package["name"], safe="")
-            yield f"/{namespace}/{owner}/packages/container/{name}/versions"
+        if linked_repository.casefold() != repository.casefold():
+            raise RuntimeError(f"Package {name} is not linked to {repository}")
+        yield f"{path}/versions"
 
 
 def main():
@@ -51,6 +64,9 @@ def main():
     pr = int(os.environ["PR"])
     if pr <= 0:
         raise ValueError("PR must be positive")
+    pull_request = api(f"/repos/{repository}/pulls/{pr}")
+    if pull_request["state"] != "closed":
+        raise ValueError("Cleanup requires a closed pull request")
     for path in repository_packages(repository):
         versions = list(paginate(path))
         for version in versions:
