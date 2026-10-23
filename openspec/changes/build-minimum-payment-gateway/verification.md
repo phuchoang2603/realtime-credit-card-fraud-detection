@@ -1,6 +1,6 @@
 # Gateway verification evidence
 
-Run on 2026-10-23 against the `talos-prox` prod cluster with Argo CD syncing branch `feat/build-minimum-payment-gateway` (PR 82). All checks used the deployed workloads, CNPG cluster, Redis, Kafka, Debezium Connect and notifier in namespace `payment-gateway`; no service, database or broker was started locally. Edge JSON APIs were called from a temporary pod in the `ecommerce` namespace because the AuthorizationPolicy admits only that namespace and the ingress gateway.
+Run on 2026-10-23 against the prod cluster with Argo CD syncing branch `feat/build-minimum-payment-gateway` (PR 82). All checks used the deployed workloads, CNPG cluster, Redis, Kafka, Debezium Connect and notifier in namespace `payment-gateway`; no service, database or broker was started locally. Edge JSON APIs were called from a temporary pod in the `ecommerce` namespace because the AuthorizationPolicy admits only that namespace and the ingress gateway.
 
 ## Functional smoke matrix
 
