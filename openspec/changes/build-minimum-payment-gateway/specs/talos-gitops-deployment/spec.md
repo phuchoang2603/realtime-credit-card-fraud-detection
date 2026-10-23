@@ -38,11 +38,6 @@ Same-repository PRs SHALL publish every service image with `pr-<number>-<full-sh
 - **WHEN** a same-repository PR is opened or updated
 - **THEN** all service images are published with that PR's tag and no production image pin changes
 
-#### Scenario: Merged service changes
-
-- **WHEN** changes reach main
-- **THEN** fraud, edge, Payments, notifier, vault simulator, processor simulator and Debezium Connect images are built and published with the main commit tag and `latest`, without manifest version comparison scripts
-
 ### Requirement: Production image pinning
 
 Only after every main service image has published successfully, one CI job SHALL pin the gateway, fraud-service and Kafka production chart tags to that commit's `main-<full-sha>`. PR and feature-branch runs SHALL NOT update production pins. The pin commit SHALL use `[skip ci]`, and CI SHALL ignore image-only production-values commits to prevent rebuild loops. No image-updater controller SHALL be required.
@@ -72,7 +67,12 @@ On PR closure, cleanup SHALL cancel that PR's active image build and delete repo
 
 Every PR and main push SHALL run independent Python, Go and Helm check jobs covering Python lint/format/tests, Go lint and tests for every module, and Helm validation, using the checked-in protobuf bindings. Each service image SHALL use the shared image workflow.
 
-#### Scenario: Validate a pull request
+#### Scenario: Pull request or branch push
 
 - **WHEN** a PR is opened or updated
 - **THEN** independent checks validate all services and the image matrix builds every service image
+
+#### Scenario: Merged service changes
+
+- **WHEN** changes reach main
+- **THEN** fraud, edge, Payments, notifier, vault simulator, processor simulator and Debezium Connect images are built and published with the main commit tag and `latest`, without manifest version comparison scripts
