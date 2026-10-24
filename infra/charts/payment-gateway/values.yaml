@@ -243,6 +243,16 @@ services:
       - to:
         - namespaceSelector:
             matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: otel-agent
+        ports:
+        - port: 4317
+          protocol: TCP
+      - to:
+        - namespaceSelector:
+            matchLabels:
               kubernetes.io/metadata.name: ecommerce
           podSelector:
             matchLabels:
