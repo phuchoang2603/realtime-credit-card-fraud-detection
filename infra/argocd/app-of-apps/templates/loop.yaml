@@ -12,7 +12,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: realtime-credit-card-fraud-detection
+  project: payment-gateway-fraud-detection
   destination:
     {{- if $.Values.destinationServer }}
     server: {{ $.Values.destinationServer | quote }}

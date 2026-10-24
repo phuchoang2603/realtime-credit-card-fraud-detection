@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: realtime-credit-card-fraud-detection
+  name: payment-gateway-fraud-detection
   namespace: argo-cd
 spec:
   description: Applications managed by the payment-gateway-fraud-detection repository
