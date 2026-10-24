@@ -1,0 +1,168 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: historical-dp1-bronze
+  namespace: __NAMESPACE__
+spec:
+  serviceAccountName: dp1-metadata
+  entrypoint: historical
+  arguments:
+    parameters:
+      - {name: source-root, value: __SOURCE_ROOT__}
+      - {name: dataset-version, value: __DATASET_VERSION__}
+      - {name: inventory-uri, value: __SOURCE_INVENTORY_URI__}
+      - {name: inventory-sha256, value: __SOURCE_INVENTORY_SHA256__}
+  onExit: finalizer
+  activeDeadlineSeconds: 7200
+  synchronization:
+    mutexes:
+      - name: bronze-payments-writer
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+    - name: historical
+      steps:
+        - - name: preflight
+            template: metadata
+            arguments:
+              parameters:
+                - {name: stage, value: preflight}
+        - - name: smoke
+            template: spark
+            arguments:
+              parameters:
+                - {name: stage, value: smoke}
+        - - name: ingest
+            template: spark
+            arguments:
+              parameters:
+                - {name: stage, value: ingest}
+        - - name: validate
+            template: validate-once
+        - - name: governance
+            template: metadata
+            arguments:
+              parameters:
+                - {name: stage, value: publish}
+        - - name: accept
+            template: metadata
+            arguments:
+              parameters:
+                - {name: stage, value: accept}
+    - name: validate-once
+      steps:
+        - - name: validate
+            template: spark
+            arguments:
+              parameters:
+                - {name: stage, value: validate}
+    - name: spark
+      serviceAccountName: dp1-spark
+      inputs:
+        parameters:
+          - name: stage
+      activeDeadlineSeconds: 2400
+      retryStrategy:
+        limit: "{{=inputs.parameters.stage == 'ingest' ? 2 : 0}}"
+        retryPolicy: Always
+        backoff:
+          duration: 15s
+          factor: 2
+          maxDuration: 2m
+      volumes:
+        - name: executor-template
+          configMap:
+            name: dp1-executor-template
+      container:
+        image: __SPARK_IMAGE__
+        command: [dp1]
+        args: ["{{inputs.parameters.stage}}"]
+        envFrom:
+          - configMapRef: {name: dp1-config}
+          - secretRef: {name: dp1-lake}
+        env:
+          - {name: SOURCE_ROOT, value: "{{workflow.parameters.source-root}}"}
+          - {name: DATASET_VERSION, value: "{{workflow.parameters.dataset-version}}"}
+          - {name: SOURCE_INVENTORY_URI, value: "{{workflow.parameters.inventory-uri}}"}
+          - {name: SOURCE_INVENTORY_SHA256, value: "{{workflow.parameters.inventory-sha256}}"}
+          - {name: IMAGE_DIGEST, value: __SPARK_IMAGE__}
+          - {name: SPARK_IMAGE, value: __SPARK_IMAGE__}
+          - {name: WORKFLOW_ID, value: "{{workflow.name}}"}
+          - name: POD_NAMESPACE
+            valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+          - name: POD_IP
+            valueFrom: {fieldRef: {fieldPath: status.podIP}}
+        volumeMounts:
+          - {name: executor-template, mountPath: /etc/dp1, readOnly: true}
+        resources:
+          requests: {cpu: 500m, memory: 2560Mi}
+          limits: {cpu: "2", memory: 3Gi}
+    - name: metadata
+      serviceAccountName: dp1-metadata
+      inputs:
+        parameters:
+          - name: stage
+      activeDeadlineSeconds: 300
+      retryStrategy:
+        limit: "2"
+        backoff: {duration: 10s, factor: 2, maxDuration: 1m}
+      container:
+        image: __METADATA_IMAGE__
+        command: [dp1]
+        args: ["{{inputs.parameters.stage}}"]
+        envFrom:
+          - configMapRef: {name: dp1-config}
+          - secretRef: {name: dp1-lake}
+          - secretRef: {name: dp1-metadata}
+        env:
+          - {name: SOURCE_ROOT, value: "{{workflow.parameters.source-root}}"}
+          - {name: DATASET_VERSION, value: "{{workflow.parameters.dataset-version}}"}
+          - {name: SOURCE_INVENTORY_URI, value: "{{workflow.parameters.inventory-uri}}"}
+          - {name: SOURCE_INVENTORY_SHA256, value: "{{workflow.parameters.inventory-sha256}}"}
+          - {name: IMAGE_DIGEST, value: __SPARK_IMAGE__}
+          - {name: WORKFLOW_ID, value: "{{workflow.name}}"}
+        resources:
+          requests: {cpu: 100m, memory: 512Mi}
+          limits: {cpu: "1", memory: 1Gi}
+    - name: finalizer
+      steps:
+        - - name: publish-failure
+            template: metadata
+            when: "{{workflow.status}} != Succeeded"
+            arguments:
+              parameters:
+                - {name: stage, value: publish}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: historical-dp1-governance-replay
+  namespace: __NAMESPACE__
+spec:
+  serviceAccountName: dp1-metadata
+  entrypoint: replay
+  arguments:
+    parameters:
+      - {name: source-root, value: __SOURCE_ROOT__}
+      - {name: dataset-version, value: __DATASET_VERSION__}
+      - {name: inventory-uri, value: __SOURCE_INVENTORY_URI__}
+      - {name: inventory-sha256, value: __SOURCE_INVENTORY_SHA256__}
+  activeDeadlineSeconds: 600
+  templates:
+    - name: replay
+      container:
+        image: __METADATA_IMAGE__
+        command: [dp1]
+        args: [publish]
+        envFrom:
+          - configMapRef: {name: dp1-config}
+          - secretRef: {name: dp1-lake}
+          - secretRef: {name: dp1-metadata}
+        env:
+          - {name: SOURCE_ROOT, value: "{{workflow.parameters.source-root}}"}
+          - {name: DATASET_VERSION, value: "{{workflow.parameters.dataset-version}}"}
+          - {name: SOURCE_INVENTORY_URI, value: "{{workflow.parameters.inventory-uri}}"}
+          - {name: SOURCE_INVENTORY_SHA256, value: "{{workflow.parameters.inventory-sha256}}"}
+        resources:
+          requests: {cpu: 100m, memory: 512Mi}
+          limits: {cpu: "1", memory: 1Gi}

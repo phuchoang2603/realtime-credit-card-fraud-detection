@@ -46,6 +46,18 @@
       "image-suffix": "/connect-debezium",
       "context": ".",
       "dockerfile": "infra/docker/connect-debezium.Dockerfile"
+    },
+    {
+      "service": "data-platform-spark",
+      "image-suffix": "/data-platform-spark",
+      "context": ".",
+      "dockerfile": "infra/docker/data-platform-spark.Dockerfile"
+    },
+    {
+      "service": "data-platform-metadata",
+      "image-suffix": "/data-platform-metadata",
+      "context": ".",
+      "dockerfile": "infra/docker/data-platform-metadata.Dockerfile"
     }
   ]
 }
