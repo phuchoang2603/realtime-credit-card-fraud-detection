@@ -11,4 +11,4 @@ entities:
       databaseName: payments
 
 global:
-  imageTag: main-cd9d64a822ac5e14d8167e73e9d1ba8223e470e7
+  imageTag: main-665c1ea40277a6eefbfee07c07131f9509cf7e55
