@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/twmb/franz-go/pkg/kerr"
 	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/phuchoang2603/payment-gateway-fraud-detection/notifier/internal/application"
@@ -46,28 +47,46 @@ func (c *Consumer) Run(ctx context.Context) {
 		if fetches.IsClientClosed() || ctx.Err() != nil {
 			return
 		}
+		recreated := map[string]bool{}
+		hasErrors := false
 		fetches.EachError(func(topic string, partition int32, err error) {
+			hasErrors = true
+			if errors.Is(err, kerr.UnknownTopicID) {
+				recreated[topic] = true
+			}
 			c.metrics.ConsumerError("poll")
 			slog.Warn("kafka fetch error", "topic", topic, "partition", partition, "error", err)
 		})
 		records := fetches.Records()
-		if len(records) == 0 {
-			continue
-		}
 		for _, record := range records {
 			if !c.process(ctx, record) {
 				return
 			}
 		}
-		if err := c.client.CommitRecords(ctx, records...); err != nil {
-			if ctx.Err() != nil {
-				return
+		if len(records) > 0 {
+			if err := c.client.CommitRecords(ctx, records...); err != nil {
+				if ctx.Err() != nil {
+					return
+				}
+				hasErrors = true
+				c.metrics.ConsumerError("commit")
+				slog.Warn("kafka offset commit failed", "error", err)
+			} else {
+				c.metrics.Committed(time.Now())
 			}
-			c.metrics.ConsumerError("commit")
-			slog.Warn("kafka offset commit failed", "error", err)
-			continue
 		}
-		c.metrics.Committed(time.Now())
+		for topic := range recreated {
+			c.client.PurgeTopicsFromClient(topic)
+			c.client.AddConsumeTopics(topic)
+			slog.Warn("rejoining recreated payment event topic", "topic", topic)
+		}
+		if hasErrors {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(c.retry):
+			}
+		}
 	}
 }
 
