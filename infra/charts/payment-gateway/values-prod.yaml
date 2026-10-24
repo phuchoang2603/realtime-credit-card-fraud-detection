@@ -17,12 +17,12 @@ database:
 redis:
   resources:
     requests:
-      cpu: 200m
-      memory: 1536Mi
+      cpu: 100m
+      memory: 768Mi
     limits:
       cpu: '1'
-      memory: 2Gi
-  maxmemory: 1536mb
+      memory: 1Gi
+  maxmemory: 512mb
 ingress:
   enabled: true
   tunnel:
