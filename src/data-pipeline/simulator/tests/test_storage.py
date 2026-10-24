@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -9,8 +10,10 @@ import yaml
 
 import simulator.storage as storage
 from simulator.arrow import LABEL_SCHEMA, event_schema
-from simulator.generation import GeneratedHistory
-from simulator.profiles import build_profiles, schedule_for_day
+from simulator.object_store import ObjectStore
+from simulator.profiles import build_profiles, schedule_for_task, tasks_for_day
+from simulator.publication import publication_receipt
+from simulator.resources import ResourceMonitor
 from tests.conftest import small_config
 
 duckdb.execute("SET TimeZone = 'UTC'")
@@ -53,11 +56,15 @@ def test_arrow_schema_matches_contract(contract, schema):
     }
 
 
-def test_published_dataset_passes_both_contracts(dataset):
+def test_published_dataset_records_deferred_validation(dataset):
     root, manifest = dataset
-    assert manifest["validation"] == {"payment-events": "passed", "fraud-labels": "passed"}
+    assert manifest["validation"] == {
+        "result": "skipped",
+        "gate": "dp1-spark-gx",
+        "reason": "validation deferred to dp1-spark-gx; the downstream pipeline is the contract gate",
+    }
     assert (root / "manifest.json").exists()
-    assert {path.name for path in (root / "validation").iterdir()} == {"payment-events.json", "fraud-labels.json"}
+    assert not (root / "validation").exists()
 
 
 def test_rebuilt_profiles_match_the_manifest_digest(dataset):
@@ -69,8 +76,16 @@ def test_regeneration_is_byte_identical(dataset, tmp_path):
     root, manifest = dataset
     storage.generate(small_config(), fs.LocalFileSystem(), str(tmp_path))
     again = tmp_path / "historical" / "smoke"
-    files = sorted(path.relative_to(root) for path in root.rglob("*.parquet"))
-    assert files == sorted(path.relative_to(again) for path in again.rglob("*.parquet"))
+    files = sorted(
+        path.relative_to(root)
+        for name in ("payment_events", "fraud_labels")
+        for path in (root / name).rglob("*.parquet")
+    )
+    assert files == sorted(
+        path.relative_to(again)
+        for name in ("payment_events", "fraud_labels")
+        for path in (again / name).rglob("*.parquet")
+    )
     assert all((root / path).read_bytes() == (again / path).read_bytes() for path in files)
 
 
@@ -78,6 +93,19 @@ def test_existing_dataset_version_is_refused(dataset):
     root, _ = dataset
     with pytest.raises(FileExistsError, match="already published"):
         storage.generate(small_config(), fs.LocalFileSystem(), str(root.parents[1]))
+
+
+def test_completed_publication_recovery_reuses_output(dataset, monkeypatch):
+    root, expected = dataset
+    original = (root / "manifest.json").read_bytes()
+
+    def unexpected(*args):
+        raise AssertionError("completed publication must not regenerate")
+
+    monkeypatch.setattr(storage, "build_profiles", unexpected)
+    actual = storage.generate(small_config(), fs.LocalFileSystem(), str(root.parents[1]), resume=True)
+    assert actual == expected
+    assert (root / "manifest.json").read_bytes() == original
 
 
 def test_schema_cutover_is_physical(dataset):
@@ -141,7 +169,10 @@ def test_each_day_publishes_its_scheduled_payments(dataset):
         .fetchall()
     )
     for day, count in created.items():
-        assert count == len(schedule_for_day(config, day, profiles))
+        assert count == sum(
+            len(schedule_for_task(config, task, profiles))
+            for task in tasks_for_day(config, (day - config.start_date).days)
+        )
 
 
 def test_labels_are_separate_from_events(dataset):
@@ -168,24 +199,6 @@ def test_labels_are_separate_from_events(dataset):
         """
     ).fetchone()
     assert declined_fraud[0] > 0 and declined_fraud[1] == 0
-
-
-def test_contract_violation_blocks_publication(tmp_path, monkeypatch):
-    build = storage.build_history
-
-    def skip_risk_decision(*args, **kwargs):
-        history = build(*args, **kwargs)
-        events = tuple(event for event in history.events if event.get("risk_decision_recorded") is None)
-        return GeneratedHistory(events, history.labels, history.truth)
-
-    monkeypatch.setattr(storage, "build_history", skip_risk_decision)
-    with pytest.raises(storage.ContractViolation, match="payment-events"):
-        storage.generate(
-            small_config(duration_days=2, **{"data_problems.schema_cutover_date": "2026-07-02"}),
-            fs.LocalFileSystem(),
-            str(tmp_path),
-        )
-    assert not (tmp_path / "historical").exists()
 
 
 def test_row_groups_respect_the_configured_size(tmp_path):
@@ -220,8 +233,64 @@ def test_empty_schedule_publishes_an_empty_valid_dataset(tmp_path):
             "scenarios.card_testing.rate": 0,
         }
     )
-    manifest = storage.generate(config, fs.LocalFileSystem(), str(tmp_path))
+    manifest = storage.generate(config, fs.LocalFileSystem(), str(tmp_path), allow_small_dataset=True)
     assert manifest["observed"]["payments"] == 0
-    assert manifest["validation"] == {"payment-events": "passed", "fraud-labels": "passed"}
     assert manifest["storage"]["payment_events"]["files"] == 0
     assert (tmp_path / "historical" / "smoke" / "manifest.json").exists()
+
+
+def test_task_fragments_are_one_file_per_table_and_schema_version(dataset):
+    root, _ = dataset
+    for task in (root / "_run" / "fragments").iterdir():
+        names = sorted(path.name for path in task.iterdir())
+        assert names == [name for name in names if name.startswith(("payment_events-v", "fraud_labels-v"))]
+        assert len(names) == len(set(names))
+        assert len(names) <= 3
+
+
+def test_publication_receipt_records_skipped_cleanup(dataset):
+    root, _ = dataset
+    publication = json.loads((root / "_run" / "publication.json").read_text())
+    assert publication["cleanup"] == "skipped"
+    assert publication["tagging"] == "skipped"
+    assert (root / "_run" / "fragments").is_dir()
+
+
+def test_cleanup_removes_intermediates_after_publication(tmp_path):
+    config = small_config(dataset_version="cleanup")
+    root = tmp_path / "output"
+    storage.generate(config, fs.LocalFileSystem(), str(root), cleanup_intermediates=True)
+    prefix = root / "historical" / "cleanup"
+    publication = json.loads((prefix / "_run" / "publication.json").read_text())
+    assert publication["cleanup"] == "removed"
+    assert publication["objects"] > 0
+    assert publication["bytes"] > 0
+    assert (prefix / "manifest.json").exists()
+    assert {path.name for path in (prefix / "_run").iterdir()} == {"locks", "publication.json"}
+
+
+def test_publication_refuses_probe_scale_without_opt_in(tmp_path):
+    config = small_config(dataset_version="guard", **{"counts.customers": 10})
+    with pytest.raises(ValueError, match="publication refused"):
+        storage.generate(config, fs.LocalFileSystem(), str(tmp_path))
+    prefix = tmp_path / "historical" / "guard"
+    assert not (prefix / "manifest.json").exists()
+    assert (prefix / "_run" / "prepared.json").exists()
+
+
+def test_publication_receipt_records_accepted_version_flag(tmp_path):
+    config = small_config(dataset_version="unprotected", accepted_version=True)
+    storage.generate(config, fs.LocalFileSystem(), str(tmp_path))
+    publication = json.loads((tmp_path / "historical" / "unprotected" / "_run" / "publication.json").read_text())
+    assert publication["accepted_version"] is True
+    assert publication["tagging"] == "skipped"
+
+
+def test_resource_samples_do_not_change_publication_receipt(tmp_path):
+    monitor = ResourceMonitor(tmp_path, small_config().execution)
+    manifest = {"configuration": {}, "execution_attempts": [{"resources": monitor.report()}]}
+    store = ObjectStore(str(tmp_path))
+    receipt = publication_receipt(store, manifest)
+    monitor.sample()
+    assert monitor.peaks["process_tree_rss_bytes"] > 0
+    assert publication_receipt(store, manifest) == receipt

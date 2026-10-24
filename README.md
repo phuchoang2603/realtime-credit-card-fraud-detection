@@ -24,7 +24,8 @@ The current repository contains a health-only Go HTTP edge and a Python gRPC fra
 ├── openspec/              # Capability specifications and change plans
 ├── src/payment-gateway/   # Go gateway services, shared module and workspace
 ├── src/fraud-service/     # Python fraud decision service
-├── src/simulator/         # Historical data simulator
+├── src/data-pipeline/     # Data workloads
+│   └── simulator/        # Historical data simulator
 ├── devenv.nix             # Local development environment
 ├── devenv.yaml            # Devenv inputs
 └── devenv.lock            # Locked environment dependencies
