@@ -18,6 +18,8 @@ spec:
       {{- include "payment-gateway.selector" $name | nindent 6 }}
   template:
     metadata:
+      annotations:
+        resource.opentelemetry.io/service.name: {{ $name | quote }}
       labels:
         {{- include "payment-gateway.selector" $name | nindent 8 }}
         {{- if $svc.mesh.enabled }}
@@ -68,10 +70,28 @@ spec:
               containerPort: {{ .containerPort }}
               protocol: TCP
             {{- end }}
-          {{- with $svc.env }}
           env:
+            - name: OTEL_SERVICE_NAME
+              value: {{ $name | quote }}
+            - name: TRACING_ENABLED
+              value: {{ $svc.telemetry.tracingEnabled | quote }}
+            - name: METRICS_ENABLED
+              value: {{ $svc.telemetry.metricsEnabled | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ $svc.telemetry.endpoint | quote }}
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: {{ $svc.telemetry.samplingRatio | quote }}
+            - name: OTEL_METRIC_EXPORT_INTERVAL
+              value: {{ $svc.telemetry.metricExportInterval | quote }}
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: SERVICE_REVISION
+              value: {{ $.Values.imageTag | default $svc.image.tag | quote }}
+            {{- with $svc.env }}
             {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- end }}
           {{- with $svc.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
