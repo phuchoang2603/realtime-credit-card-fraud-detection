@@ -6,6 +6,12 @@ defaults:
     repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/payments
     tag: latest
     pullPolicy: IfNotPresent
+  telemetry:
+    tracingEnabled: true
+    metricsEnabled: true
+    endpoint: otel-agent.observability.svc.cluster.local:4317
+    samplingRatio: "0.1"
+    metricExportInterval: 60000
   args: []
   mesh:
     enabled: false
@@ -16,8 +22,6 @@ defaults:
   - name: grpc
     containerPort: 8000
     appProtocol: kubernetes.io/h2c
-  - name: http-metrics
-    containerPort: 8010
   env: []
   migrate:
     enabled: false
@@ -150,6 +154,18 @@ services:
         memory: 64Mi
       limits:
         memory: 256Mi
+  fraud-service:
+    enabled: true
+    mesh:
+      callers:
+      - payments
+    image:
+      repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection
+    networkPolicy:
+      ingressFrom:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: payments
   notifier:
     enabled: true
     image:
@@ -199,7 +215,6 @@ services:
     networkPolicy:
       ingressPorts:
       - 8000
-      - 8010
       ingressFrom: []
       egress:
       - to:
@@ -224,6 +239,16 @@ services:
               strimzi.io/cluster: payment-gateway-kafka
         ports:
         - port: 9092
+          protocol: TCP
+      - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: otel-agent
+        ports:
+        - port: 4317
           protocol: TCP
       - to:
         - namespaceSelector:
@@ -378,8 +403,6 @@ services:
     - name: processing
       containerPort: 8001
       appProtocol: kubernetes.io/h2c
-    - name: http-metrics
-      containerPort: 8010
     image:
       repository: ghcr.io/phuchoang2603/payment-gateway-fraud-detection/vault-simulator
     migrate:
